@@ -15,44 +15,29 @@
   "status": "validated",
   "confidence": 0.92,
   "researchedAt": "2026-06-27T09:00:00Z",
-  "validatedAt": "2026-06-26T19:42:09.6268038Z",
+  "validatedAt": "2026-06-26T21:26:17.2394383Z",
   "validatedBy": "Tuan",
   "summary": "EF Core 8+ cho phép execute raw SQL và map kết quả thành bất kỳ type nào (không cần entity), với parameterization tự động an toàn.",
-  "problem": "LINQ không express được một số complex query (window functions, CTEs phức tạp, aggregation đặc thù). Raw SQL cũ trong EF Core yêu cầu Entity type và keyless entity setup phức tạp.",
-  "solution": "EF Core 8+ có `Database.SqlQuery<T>()` cho phép map raw SQL result thành bất kỳ class/record nào với SQL parameterization tự động (tránh SQL injection). Không cần Entity configuration.",
-  "codeExample": "```csharp\n// ✅ EF Core 8+ Typed Raw SQL — không cần entity\npublic record RevenueByMonth(DateOnly Month, decimal Revenue, int OrderCount);\n\nvar results = await _ctx.Database\n    .SqlQuery<RevenueByMonth>($\"\"\"\n        SELECT\n            DATE_TRUNC('month', created_at)::date AS month,\n            SUM(total_amount)                     AS revenue,\n            COUNT(*)::int                         AS order_count\n        FROM orders\n        WHERE tenant_id = {tenantId}\n          AND created_at BETWEEN {from} AND {to}\n          AND status = 'completed'\n        GROUP BY 1\n        ORDER BY 1\n        \"\"\")\n    .ToListAsync(ct);\n// Lưu ý: {tenantId} tự động thành @p0 — safe khỏi SQL injection\n// Column name trong SQL phải match property name (case-insensitive)\n```",
-  "tradeoffs": [
-    "✅ Không cần Entity setup — dùng được ngay với record/class",
-    "✅ SQL Injection safe — EF Core tự parameterize interpolated values",
-    "✅ Dùng được LINQ sau SqlQuery: .Where(), .OrderBy(), .Skip().Take()",
-    "⚠️ Column name phải match property name — cần AS alias cẩn thận",
-    "⚠️ Không có compile-time SQL validation — test kỹ",
-    "❌ Không compose được với LINQ navigation property"
-  ],
-  "references": [
-    {
-      "title": "EF Core 8 — Raw SQL Queries",
-      "url": "https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-8.0/whatsnew#raw-sql-queries-for-unmapped-types"
-    },
-    {
-      "title": "SqlQuery<T> docs",
-      "url": "https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.relationaldatabasefacadeextensions.sqlquery"
-    }
-  ],
+  "problem": "",
+  "solution": "",
+  "codeExample": "",
+  "tradeoffs": [],
+  "references": [],
   "selfVerification": {
-    "verified": true,
-    "method": "Demo project chạy query thật trên PostgreSQL, verify SQL được generate đúng qua EF Core logging",
-    "caveats": "Tested trên EF Core 8.0.x và PostgreSQL 15"
+    "verified": false,
+    "method": "",
+    "caveats": ""
   },
   "demo": {
     "exists": true,
     "type": "backend",
-    "path": "DotNet/EfCoreRawSql",
-    "description": "API endpoint demo: POST /api/demo/ef-core-raw-sql — trả về revenue by month report dùng SqlQuery<T>"
+    "path": "",
+    "description": ""
   },
   "validation": {
     "notes": "",
     "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
     "action": "append"
-  }
+  },
+  "toolkitContent": ""
 }

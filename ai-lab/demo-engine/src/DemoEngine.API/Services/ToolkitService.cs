@@ -21,7 +21,10 @@ public class ToolkitService(IConfiguration config, ILogger<ToolkitService> logge
         var targetAbs = Path.GetFullPath(
             Path.Combine(_toolkitPath, targetRel.Replace('/', Path.DirectorySeparatorChar)));
 
-        var content = FormatMarkdown(item);
+        // Dùng toolkitContent nếu AI đã điền sẵn, ngược lại auto-generate
+        var content = !string.IsNullOrWhiteSpace(item.ToolkitContent)
+            ? item.ToolkitContent.Trim() + "\n\n---"
+            : FormatMarkdown(item);
 
         // Kiểm tra duplicate heading trong file đích
         var fileExists   = File.Exists(targetAbs);
@@ -203,7 +206,9 @@ public class ToolkitService(IConfiguration config, ILogger<ToolkitService> logge
         _                                       => category
     };
 
-    // ── Formatter — compact, token-efficient ─────────────────────────────────
+    // ── Formatter — fallback khi toolkitContent chưa được điền ──────────────
+    // Ưu tiên dùng item.ToolkitContent (AI viết sẵn khi research).
+    // Nếu rỗng, tự generate theo format compact này.
 
     private static string FormatMarkdown(KnowledgeItem item)
     {
@@ -211,66 +216,38 @@ public class ToolkitService(IConfiguration config, ILogger<ToolkitService> logge
         var date = (item.ValidatedAt ?? DateTime.UtcNow).ToString("yyyy-MM-dd");
         var conf = Math.Round(item.Confidence * 100);
 
-        // Heading + metadata compact (1 dòng)
+        // Heading ngắn gọn
         sb.AppendLine($"## {item.Topic}");
         sb.AppendLine($"> {date} · {conf}%");
         sb.AppendLine();
 
-        // Summary — 1 câu, không lặp lại heading
+        // Summary — 1 câu
         if (!string.IsNullOrWhiteSpace(item.Summary))
-        {
-            var summary = TruncateSentence(item.Summary.Trim(), 120);
-            sb.AppendLine(summary);
-            sb.AppendLine();
-        }
+            sb.AppendLine(FirstSentence(item.Summary)).AppendLine();
 
-        // Khi dùng — chỉ lấy câu đầu tiên nếu dài
-        if (!string.IsNullOrWhiteSpace(item.Problem))
-        {
-            var problem = TruncateSentence(item.Problem.Trim(), 100);
-            sb.AppendLine($"**Khi dùng:** {problem}");
-            sb.AppendLine();
-        }
-
-        // Code example — giữ nguyên (code là phần quan trọng nhất)
+        // Code — phần quan trọng nhất, giữ nguyên
         if (!string.IsNullOrWhiteSpace(item.CodeExample))
-        {
-            sb.AppendLine(item.CodeExample.Trim());
-            sb.AppendLine();
-        }
+            sb.AppendLine(item.CodeExample.Trim()).AppendLine();
 
-        // Trade-offs — gộp thành 1 dòng thay vì list dài
-        if (item.Tradeoffs.Count > 0)
-        {
-            sb.AppendLine(string.Join(" · ", item.Tradeoffs));
-            sb.AppendLine();
-        }
+        // Warnings only — bỏ ✅ pros (AI biết đây là pattern tốt rồi)
+        var warnings = item.Tradeoffs
+            .Where(t => t.StartsWith("⚠️") || t.StartsWith("❌"))
+            .ToList();
+        if (warnings.Count > 0)
+            sb.AppendLine(string.Join(" · ", warnings)).AppendLine();
 
-        // Validation notes — chỉ khi có nội dung thực sự
+        // Validation note nếu có
         if (!string.IsNullOrWhiteSpace(item.Validation.Notes))
-        {
-            sb.AppendLine($"**Note:** {item.Validation.Notes.Trim()}");
-            sb.AppendLine();
-        }
-
-        // References — chỉ title, không URL (tiết kiệm token)
-        if (item.References.Count > 0)
-        {
-            var refs = item.References.Select(r => r.Title).Where(t => !string.IsNullOrWhiteSpace(t));
-            sb.AppendLine($"**Ref:** {string.Join(", ", refs)}");
-            sb.AppendLine();
-        }
+            sb.AppendLine($"**Note:** {item.Validation.Notes.Trim()}").AppendLine();
 
         sb.AppendLine("---");
         return sb.ToString();
     }
 
-    // Cắt đến câu hoàn chỉnh gần nhất nếu dài hơn maxLen
-    private static string TruncateSentence(string text, int maxLen)
+    private static string FirstSentence(string text)
     {
-        if (text.Length <= maxLen) return text;
-        var dot = text.IndexOf('.', maxLen / 2);
-        return dot > 0 && dot < maxLen ? text[..(dot + 1)] : text[..maxLen] + "…";
+        var dot = text.IndexOf('.', StringComparison.Ordinal);
+        return dot > 0 && dot < 150 ? text[..(dot + 1)] : (text.Length > 150 ? text[..150] + "…" : text);
     }
 
     private static string ExtractShortTitle(string topic)

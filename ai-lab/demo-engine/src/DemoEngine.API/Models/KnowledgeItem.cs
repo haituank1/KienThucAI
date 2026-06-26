@@ -26,6 +26,12 @@ public class KnowledgeItem
     public DemoInfo Demo { get; set; } = new();
     public ValidationInfo Validation { get; set; } = new();
 
+    /// <summary>
+    /// Nội dung sẽ append vào toolkit khi validate.
+    /// AI điền sẵn khi research. Nếu rỗng → auto-generate khi cần.
+    /// </summary>
+    public string ToolkitContent { get; set; } = "";
+
     // Computed — not stored in JSON
     [JsonIgnore]
     public string FilePath { get; set; } = "";

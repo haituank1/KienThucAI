@@ -12,36 +12,12 @@
   "validatedAt": "2026-06-27T15:00:00Z",
   "validatedBy": "Tuan",
   "summary": "MCP là protocol chuẩn cho phép AI agent (Claude, GPT...) gọi external tools (database, API, file system) một cách structured và secure.",
-  "problem": "AI chat thuần chỉ generate text — không thể tự động query DB, gọi API, đọc file hệ thống. MCP giải quyết bằng cách define contract chuẩn giữa AI và tools.",
-  "solution": "Build MCP server (Node.js hoặc Python) expose tools qua JSON-RPC. Claude Code hoặc Claude Desktop tự động discover và gọi tools này. Có thể build MCP server trong vài giờ.",
-  "codeExample": "```typescript\n// MCP Server đơn giản với Node.js\nimport { Server } from '@modelcontextprotocol/sdk/server/index.js';\nimport { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';\n\nconst server = new Server({\n  name: 'my-db-tools',\n  version: '1.0.0',\n}, {\n  capabilities: { tools: {} }\n});\n\n// Expose tool cho AI\nserver.setRequestHandler(ListToolsRequestSchema, async () => ({\n  tools: [{\n    name: 'query_orders',\n    description: 'Query orders từ PostgreSQL với filter',\n    inputSchema: {\n      type: 'object',\n      properties: {\n        status: { type: 'string', enum: ['pending', 'completed'] },\n        limit: { type: 'number', default: 10 }\n      }\n    }\n  }]\n}));\n\n// Handle tool call\nserver.setRequestHandler(CallToolRequestSchema, async (req) => {\n  if (req.params.name === 'query_orders') {\n    const rows = await db.query(\n      'SELECT * FROM orders WHERE status=$1 LIMIT $2',\n      [req.params.arguments.status, req.params.arguments.limit]\n    );\n    return { content: [{ type: 'text', text: JSON.stringify(rows) }] };\n  }\n});\n\nawait server.connect(new StdioServerTransport());\n```",
-  "tradeoffs": [
-    "✅ Protocol chuẩn — works với Claude, GPT-4, và nhiều AI khác",
-    "✅ Security: AI không có direct DB access — qua tool contract",
-    "✅ Composable: nhiều MCP servers chạy song song",
-    "⚠️ Learning curve: cần hiểu JSON-RPC và transport types",
-    "⚠️ Chủ yếu Node.js/Python SDK — C# SDK còn experimental",
-    "❌ Debugging khó hơn REST API thông thường"
-  ],
-  "references": [
-    { "title": "MCP Official Docs", "url": "https://modelcontextprotocol.io" },
-    { "title": "Claude MCP Guide", "url": "https://docs.anthropic.com/en/docs/agents-and-tools/mcp" },
-    { "title": "MCP C# SDK (experimental)", "url": "https://github.com/modelcontextprotocol/csharp-sdk" }
-  ],
-  "selfVerification": {
-    "verified": true,
-    "method": "Build MCP server đọc file hệ thống, test với Claude Code, verify tool được gọi đúng",
-    "caveats": "C# SDK vẫn còn alpha, Node.js SDK stable hơn"
-  },
-  "demo": {
-    "exists": false,
-    "type": "backend",
-    "path": "",
-    "description": "Demo chưa được tạo"
-  },
-  "validation": {
-    "notes": "Đã dùng thực tế trong Cowork. MCP rất useful cho workflow automation.",
-    "toolkitTarget": "01-context/learning-tracker.md",
-    "action": "update"
-  }
+  "problem": "",
+  "solution": "",
+  "codeExample": "",
+  "tradeoffs": [],
+  "references": [],
+  "selfVerification": { "verified": false, "method": "", "caveats": "" },
+  "demo": { "exists": false, "type": "backend", "path": "", "description": "" },
+  "validation": { "notes": "", "toolkitTarget": "01-context/learning-tracker.md", "action": "update" }
 }

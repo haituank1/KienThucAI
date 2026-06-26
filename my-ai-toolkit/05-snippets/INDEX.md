@@ -1,16 +1,19 @@
-# 05-Snippets — Index
-> Auto-generated. Đọc file này trước để navigate, rồi pull file cần thiết.  
-> Last updated: 2026-06-27
+﻿# 05-Snippets — Index
+> **Auto-generated bởi DemoEngine** khi validate knowledge mới.
+> Đọc file này trước để biết có gì, rồi AI tự navigate đến file cần thiết.
+> Last updated: 2026-06-26 21:27 UTC
 
 ---
 
-## Cách dùng
+## Cách dùng với AI
 
-```
-"Xem snippets index: [paste INDEX.md]. Khi tôi hỏi về X, đọc file liên quan trước khi trả lời."
-```
+Paste file này vào đầu session:
+> "Xem snippets index: [paste INDEX.md]. Khi tôi hỏi về X, hãy đọc file liên quan trước khi trả lời."
 
-Hoặc trong CLAUDE.md: `Snippets: my-ai-toolkit/05-snippets/INDEX.md`
+Hoặc trong CLAUDE.md của project:
+```
+Snippets: my-ai-toolkit/05-snippets/INDEX.md — đọc index trước, pull file cần thiết.
+```
 
 ---
 
@@ -18,45 +21,39 @@ Hoặc trong CLAUDE.md: `Snippets: my-ai-toolkit/05-snippets/INDEX.md`
 
 | File | Sections | Dùng khi |
 |------|---------|---------|
-| [ef-core-patterns.md](dotnet/ef-core-patterns.md) | Projection N+1, Bulk update ExecuteUpdateAsync, Batch insert 1000/chunk, Streaming OOM, Optimistic Concurrency xmin, Raw SQL SqlQuery\<T\>, Global Query Filter, Compiled Query, Interceptor audit, Owned Entity | EF Core query, performance, ORM pattern |
-| [gotchas.md](dotnet/gotchas.md) | Captured variable loop, ConfigureAwait, DbContext captive dependency, HttpClient socket exhaustion, LEFT JOIN→INNER JOIN, Task.WhenAll 1 exception, CancellationToken missing, IEnumerable double enumerate, SemaphoreSlim leak, DateTime.Now timezone, Json case sensitivity, DI GetService null | Debug lỗi lạ, review code, production issue |
-| [async-patterns.md](dotnet/async-patterns.md) | Parallel.ForEachAsync bounded, Channel\<T\> producer/consumer, CancellationToken timeout wrapper, Polly v8, Graceful shutdown BackgroundService, ValueTask vs Task | Concurrency, pipeline, retry, background job |
-| [performance-patterns.md](dotnet/performance-patterns.md) | Span\<T\> zero-copy, ArrayPool buffer, ObjectPool StringBuilder, Streaming export O(1) memory, BenchmarkDotNet, Struct <16 bytes | Memory optimization, hot path, export lớn |
-
----
+| [async-patterns.md](dotnet/async-patterns.md) | Parallel Processing với bounded concurre…, Channel<T> — Producer/Consumer pipeline, CancellationToken Timeout Wrapper, Retry với Polly v8, Graceful Shutdown trong BackgroundServic…, ValueTask vs Task | Concurrency, pipeline, retry, background job |
+| [ef-core-patterns.md](dotnet/ef-core-patterns.md) | Projection với nested object (tránh N+1), Bulk update không load entity (EF Core 7…, Batch insert, Streaming large result (tránh OOM), Optimistic Concurrency (PostgreSQL xmin), Raw SQL — Typed SqlQuery<T> (EF Core 8+), Global Query Filter — Soft delete & Mult…, Compiled Query — Hot query >100 req/s (~…, Interceptor — Audit trail tự động, Owned Entity — Value Object mapping, EF Core — Typed Raw SQL `SqlQuery<T>` | EF Core query, ORM pattern, performance |
+| [gotchas.md](dotnet/gotchas.md) | Captured variable trong async loop, ConfigureAwait trong library, DbContext trong background service (capt…, HttpClient socket exhaustion, EF Core LEFT JOIN bị thành INNER JOIN, Task.WhenAll chỉ propagate 1 exception, CancellationToken không được pass → requ…, IEnumerable bị enumerate nhiều lần, SemaphoreSlim — class-level, không tạo p…, DateTime.Now vs DateTime.UtcNow, System.Text.Json — case sensitivity sile…, DI — GetService vs GetRequiredService | Debug lỗi lạ, review code, production issue |
+| [performance-patterns.md](dotnet/performance-patterns.md) | Span<T> — Zero-copy string/byte processi…, ArrayPool<T> — Reuse buffer trong hot pa…, ObjectPool<T> — Reuse expensive objects, Streaming Export — Memory O(1) thay vì O…, BenchmarkDotNet — Đo thực tế trước khi o…, Struct cho short-lived, small data | Memory optimization, hot path, export lớn |
 
 ## postgresql/
 
 | File | Sections | Dùng khi |
 |------|---------|---------|
-| [query-patterns.md](postgresql/query-patterns.md) | Keyset pagination, Upsert ON CONFLICT, Window function RANK, Aggregation FILTER, CTE growth, Batch delete, SKIP LOCKED job queue, JSONB query GIN, Recursive CTE, Multi-row UPDATE VALUES | Query design, pagination, reporting, queue |
-| [index-patterns.md](postgresql/index-patterns.md) | Composite index column order, Partial index, Covering index INCLUDE, Functional index, GIN Array/JSONB/FTS, BRIN time-series, Index monitoring unused, CONCURRENTLY | Index strategy, performance tuning |
-| [gotchas.md](postgresql/gotchas.md) | Function wrap→no index, NULL NOT IN, TIMESTAMPTZ vs TIMESTAMP, OR→seq scan, LIKE leading wildcard, COUNT(*) slow, Deadlock ordering | Debug query chậm bất thường, data inconsistency |
-
----
-
-## redis/
-
-| File | Sections | Dùng khi |
-|------|---------|---------|
-| [patterns.md](redis/patterns.md) | Cache-Aside stampede lock, Distributed lock Lua script atomic, Rate limiting sliding window, Pub/Sub invalidation | Cache strategy, distributed lock, rate limit |
-
----
+| [gotchas.md](postgresql/gotchas.md) | Index bị bỏ qua vì function wrap, NULL trong NOT IN → empty set, TIMESTAMP vs TIMESTAMPTZ, OR giữa columns khác nhau → Seq Scan, LIKE với leading wildcard → full table s…, COUNT(*) trên large table, Deadlock với concurrent updates | Debug query chậm, data inconsistency |
+| [index-patterns.md](postgresql/index-patterns.md) | Composite Index — Thứ tự column, Partial Index — Chỉ 5% rows, size ~5% fu…, Covering Index (INCLUDE) — Index Only Sc…, Functional Index — Query có function wra…, GIN Index — Array, JSONB, Full-text, BRIN — Time-series, append-only (1% size…, Index Monitoring, CREATE INDEX CONCURRENTLY — Production s… | Index strategy, performance tuning, production |
+| [query-patterns.md](postgresql/query-patterns.md) | Keyset Pagination (thay OFFSET), Upsert với ON CONFLICT, Window Function — Ranking, Aggregation với FILTER (thay nhiều subqu…, CTE — Complex query + MoM growth, Batch delete (tránh lock lâu + replicati…, SKIP LOCKED — Job queue pattern, JSONB Query, Recursive CTE — Hierarchical data, Multi-row UPDATE từ VALUES (1 round trip… | Query design, pagination, reporting, job queue |
 
 ## rabbitmq/
 
 | File | Sections | Dùng khi |
 |------|---------|---------|
-| [patterns.md](rabbitmq/patterns.md) | Outbox Pattern EF Core, Consumer idempotent Inbox, Retry + DLQ MassTransit, Republish DLQ | Message queue, event-driven, reliability |
+| [patterns.md](rabbitmq/patterns.md) | Outbox Pattern với EF Core, Consumer Idempotent với Inbox, Retry + Dead Letter Queue, Republish từ DLQ | Message queue, event-driven, reliability |
+
+## redis/
+
+| File | Sections | Dùng khi |
+|------|---------|---------|
+| [patterns.md](redis/patterns.md) | Cache-Aside với lock tránh stampede, Distributed Lock — Lua script atomic rel…, Rate Limiting — Fixed window, Pub/Sub — Cache invalidation | Cache strategy, distributed lock, rate limit |
 
 ---
 
 ## Thống kê
 
-| Category | Files | Sections |
-|----------|-------|---------|
-| dotnet | 4 | 10+12+6+6 = 34 |
-| postgresql | 3 | 10+8+7 = 25 |
-| redis | 1 | 4 |
+| Category | Files | Tổng sections |
+|----------|-------|--------------|
+| dotnet | 4 | 35 |
+| postgresql | 3 | 25 |
 | rabbitmq | 1 | 4 |
-| **Total** | **9** | **67** |
+| redis | 1 | 4 |
+| **Total** | **9** | **68** |

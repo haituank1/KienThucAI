@@ -76,27 +76,7 @@ catch (DbUpdateConcurrencyException)
 }
 ```
 
-## 6. Raw SQL — Typed SqlQuery<T> (EF Core 8+)
-```csharp
-// ✅ Không cần Entity setup; {params} tự động parameterized (SQL injection safe)
-// ⚠️ Column name trong SQL phải match property name (case-insensitive)
-// ⚠️ Không compose được với LINQ navigation property
-public record RevenueByMonth(DateOnly Month, decimal Revenue, int OrderCount);
 
-var results = await _ctx.Database
-    .SqlQuery<RevenueByMonth>($"""
-        SELECT
-            DATE_TRUNC('month', created_at)::date AS month,
-            SUM(total_amount)                     AS revenue,
-            COUNT(*)::int                         AS order_count
-        FROM orders
-        WHERE tenant_id = {tenantId}
-          AND created_at BETWEEN {from} AND {to}
-        GROUP BY 1 ORDER BY 1
-        """)
-    .ToListAsync(ct);
-// Có thể chain: .Where(), .OrderBy(), .Skip().Take() sau SqlQuery
-```
 
 ## 7. Global Query Filter — Soft delete & Multi-tenancy
 ```csharp
@@ -171,3 +151,26 @@ builder.Entity<Order>().OwnsOne(o => o.Price, money =>
 ```
 
 **Master Lesson:** Enable `EnableSensitiveDataLogging()` trong dev để thấy SQL thực tế — không assume LINQ → SQL mapping đúng mà không verify.
+
+## EF Core — Typed Raw SQL `SqlQuery<T>`
+
+```csharp
+// Không cần Entity setup, {params} auto-parameterized (SQL injection safe)
+public record RevenueByMonth(DateOnly Month, decimal Revenue, int OrderCount);
+
+var results = await ctx.Database
+    .SqlQuery<RevenueByMonth>($"""
+        SELECT date_trunc('month', created_at)::date AS month,
+               sum(total_amount)   AS revenue,
+               count(*)::int       AS order_count
+        FROM orders
+        WHERE tenant_id = {tenantId} AND created_at BETWEEN {from} AND {to}
+        GROUP BY 1 ORDER BY 1
+        """)
+    .ToListAsync(ct);
+// LINQ composable sau: .Where(), .OrderBy(), .Skip().Take()
+```
+
+⚠️ Column alias PHẢI match property name (case-insensitive) · ⚠️ Không có compile-time validation · ❌ Không compose được với LINQ navigation property
+
+---

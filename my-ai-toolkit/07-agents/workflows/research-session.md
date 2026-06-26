@@ -98,8 +98,38 @@ Schema:
     "notes": "",
     "toolkitTarget": "[path trong my-ai-toolkit để merge vào]",
     "action": "append"
-  }
+  },
+  "toolkitContent": "[XEM HƯỚNG DẪN BÊN DƯỚI]"
 }
+
+---
+
+**QUAN TRỌNG — `toolkitContent` format:**
+
+Đây là nội dung markdown sẽ được append trực tiếp vào file toolkit khi validate.
+Viết ngắn gọn, token-efficient, AI đọc và làm theo được ngay.
+
+Rules:
+- Heading: `## [Topic ngắn gọn]` (không cần date/confidence)
+- Code: giữ nguyên phần quan trọng nhất, bỏ verbose comments
+- Chỉ dùng `⚠️` và `❌` — bỏ `✅` pros (AI biết đây là pattern tốt vì nó trong toolkit)
+- Không cần references (tiết kiệm token)
+- Tổng cộng: 15-25 dòng là lý tưởng
+
+Ví dụ tốt:
+```
+## EF Core — Typed Raw SQL `SqlQuery<T>`
+
+\`\`\`csharp
+// {params} auto-parameterized, không cần Entity setup
+var results = await ctx.Database
+    .SqlQuery<RevenueByMonth>($"SELECT ... WHERE tenant_id={tenantId}")
+    .ToListAsync(ct);
+// LINQ composable: .Where(), .OrderBy(), .Skip().Take()
+\`\`\`
+
+⚠️ Column alias PHẢI match property name · ❌ Không compose với LINQ navigation property
+```
 
 ---
 
