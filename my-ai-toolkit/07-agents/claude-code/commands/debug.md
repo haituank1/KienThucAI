@@ -1,30 +1,47 @@
 # Claude Code Custom Command: /debug
 
 > Đặt ở `.claude/commands/debug.md`
-> Dùng: `/debug` — sau đó mô tả lỗi hoặc paste stack trace
+> Dùng: `/debug [mô tả lỗi]` — Claude sẽ đọc codebase và debug có hệ thống.
 
 ---
 
-Tôi cần debug vấn đề sau. Hãy phân tích theo thứ tự:
+Stack: .NET 8, EF Core 8, PostgreSQL 15, Clean Architecture + CQRS.
 
-**Bước 1 — Xác định root cause**
-- Đây là lỗi gì? (logic bug / N+1 / memory / concurrency / config)
-- Tại sao xảy ra — cơ chế kỹ thuật
+Debug theo thứ tự này — không skip bước:
 
-**Bước 2 — Locate**
-- File và method nào gây ra?
-- Đọc code liên quan trước khi kết luận
+**1. Đọc code liên quan TRƯỚC khi đưa ra giả thuyết**
+Dùng file tools để đọc: method bị lỗi, dependencies, entity config liên quan.
 
-**Bước 3 — Fix**
-- Fix minimal, ít side effect nhất
-- Giải thích tại sao fix này đúng
+**2. Xác định root cause**
+- Tầng nào gây ra: Domain / Application / Infrastructure / Config / External?
+- Cơ chế kỹ thuật: tại sao error xảy ra, không chỉ "sai ở đây"
+- Distinguish: bug trong code hay unexpected input?
 
-**Bước 4 — Verify**
-- Cách test để confirm fix hoạt động
-- Edge case cần check thêm
+**3. Fix — Minimal, safe**
+- Thay đổi ít nhất có thể
+- Không refactor cùng lúc với fix bug
+- Giải thích tại sao fix này đúng (không chỉ "đổi X thành Y")
 
-**Bước 5 — Prevent**
-- Thêm test / validation / guard clause gì để không tái phát
+**4. Verify**
+- Test cụ thể để confirm fix
+- Check không break case nào khác
 
----
-Context: .NET 8, EF Core 8, PostgreSQL 15, Clean Architecture.
+**5. Prevent**
+- Test cho scenario này
+- Guard clause / validation nếu cần
+- Nếu là gotcha chung → đề xuất thêm vào `05-snippets/*/gotchas.md`
+
+**Format output:**
+```
+## Root Cause
+[1-2 câu kỹ thuật]
+
+## Fix
+[Code]
+
+## Verify
+[Test / command để confirm]
+
+## Prevent
+[Guard / test suggestion]
+```

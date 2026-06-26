@@ -1,39 +1,56 @@
 # Claude Code Custom Command: /spec
 
 > Đặt ở `.claude/commands/spec.md`
-> Dùng: `/spec [mô tả feature]` — sinh ra SPEC document
+> Dùng: `/spec [mô tả feature hoặc paste Jira ticket]`
 
 ---
 
-Từ mô tả feature sau, hãy tạo một SPEC document theo cấu trúc:
+Đọc CLAUDE.md và codebase để hiểu project context, sau đó tạo SPEC document cho feature sau.
 
-## Metadata
-- Feature name (gợi ý tên ngắn gọn)
-- Complexity estimate: S/M/L/XL
+Stack: .NET 8, PostgreSQL, Clean Architecture + CQRS.
 
-## Problem Statement
-[1-2 câu — vấn đề đang giải quyết]
+**Output SPEC gồm:**
 
-## Solution Overview
-[Approach ở mức cao]
+```markdown
+## [Feature Name] — Complexity: S/M/L/XL
 
-## API Contract
-[Endpoint, request/response schema nếu có]
+### Problem Statement
+[1-2 câu: vấn đề gì, ai bị ảnh hưởng]
 
-## Data Model Changes
-[Table/column thay đổi nếu có]
+### Solution Overview  
+[Approach — không phải code detail]
 
-## Edge Cases
-[Liệt kê edge case quan trọng]
+### API Contract (nếu có)
+[METHOD] /api/v1/[resource]
+Request: { ... }
+Response 200: { ... }
+Response 4xx: { ... }
 
-## Acceptance Criteria
-[Testable, cụ thể]
+### Data Model Changes
+[Schema thay đổi + index cần thêm]
 
-## Technical Risks
-[Performance, data migration, breaking change, v.v.]
+### Edge Cases & Error Handling
+| Scenario | Expected Behavior |
+|----------|-------------------|
+| ... | ... |
 
-## Open Questions
-[Những gì cần confirm với PM/BA trước khi code]
+### Acceptance Criteria
+- [ ] [Testable criterion 1]
+- [ ] [Testable criterion 2]
+- [ ] No N+1 query
+- [ ] Unit tests cho happy path + edge cases
 
----
-Sau khi tạo SPEC, hỏi tôi: "Bạn muốn tôi bắt đầu implement từ layer nào?"
+### Technical Risks
+- [Performance: vd "export 1M rows → cần streaming"]  
+- [Migration: vd "ADD COLUMN NOT NULL trên 50M rows → cần planning"]
+- [Breaking change: vd "rename field → cần versioning"]
+
+### Open Questions
+| # | Question | Who to ask |
+|---|----------|-----------|
+| 1 | [...] | PM/BA/Tech Lead |
+```
+
+Sau khi tạo SPEC:
+1. Highlight risk lớn nhất nếu có
+2. Hỏi: "Approve approach này không? Muốn tôi bắt đầu implement từ Domain layer?"

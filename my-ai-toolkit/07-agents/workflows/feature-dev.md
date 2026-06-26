@@ -1,71 +1,167 @@
 # Workflow: Implement Feature Mới
 
-## Dùng khi nào
-Mỗi khi bắt đầu implement 1 feature từ Jira ticket.
+> Workflow chuẩn từ nhận ticket → merge PR.
+> Estimated time per phase ghi để bạn time-box.
 
 ---
 
-## Step-by-Step với Claude Code
+## Phase 0 — Prepare (5 phút)
 
-### 1. Chuẩn bị context (5 phút)
 ```bash
-# Đảm bảo CLAUDE.md ở root project đã up-to-date
+# 1. Sync main
+git checkout main && git pull
+
+# 2. Check CLAUDE.md còn up-to-date không
 cat CLAUDE.md
 
-# Tạo branch
-git checkout -b feature/[ticket-id]-[short-description]
+# 3. Tạo branch
+git checkout -b feature/[TICKET-123]-[short-description]
 ```
 
-Paste vào Claude: `03-prompts/session-starters/new-feature.md` + ticket description
+---
 
-### 2. Design (Claude suggest, bạn approve)
-Prompt Claude:
-> "Đề xuất approach cho feature này. Chưa cần code. Tôi muốn biết:
-> 1. Các layer nào cần thay đổi
-> 2. DB schema thay đổi gì không
-> 3. Risk / concern nào cần chú ý"
+## Phase 1 — Spec & Design (15-30 phút)
 
-**→ Approve/feedback trước khi tiếp tục**
+**Nếu feature < S:** Skip spec, đi thẳng vào code.
 
-### 3. Implement theo thứ tự layer
+**Nếu feature >= M:**
+
+Dùng Claude Code hoặc paste vào Claude chat:
 ```
-Domain        → Entity, Value Object, Domain Event
-Application   → Command/Query, Handler, Validator, DTO
-Infrastructure → Repository, Migration, External service
-API           → Controller, Endpoint mapping
+/spec [paste Jira ticket description]
 ```
 
-Prompt mỗi layer:
-> "Implement [layer] cho feature [tên]. Follow clean architecture rules trong CLAUDE.md."
+Hoặc dùng `03-prompts/session-starters/new-feature.md`.
 
-### 4. Test
+**Hỏi Claude TRƯỚC khi code:**
+- Approach nào → discuss trade-off
+- Schema thay đổi gì → plan migration
+- Risk gì → mitigate trước
+
+**→ Approve approach trước, rồi mới implement.**
+
+---
+
+## Phase 2 — Implement (bulk of time)
+
+**Thứ tự layer — luôn theo chiều này:**
+
+```
+1. Domain
+   ├── Entity methods (business logic)
+   ├── Value Objects
+   └── Domain Events
+
+2. Application
+   ├── Command / Query record
+   ├── Handler
+   ├── Validator (FluentValidation)
+   └── DTO
+
+3. Infrastructure
+   ├── Repository implementation
+   ├── EF Core config (nếu cần)
+   ├── Migration
+   └── External service client
+
+4. API
+   ├── Controller endpoint
+   └── DI registration
+```
+
+**Prompt per layer:**
+> "Implement [Domain/Application/Infrastructure/API] layer cho feature [tên].
+> Follow CLAUDE.md conventions. Stack: .NET 8, EF Core 8, PostgreSQL."
+
+**Sau mỗi layer:**
 ```bash
-dotnet test --filter "Category=[FeatureName]"
+dotnet build  # verify compile
 ```
 
-Nếu thiếu test, dùng: `03-prompts/daily/unit-test.md`
+---
 
-### 5. Review trước PR
+## Phase 3 — Test (20-30% total time)
+
 ```bash
-# Trong Claude Code
+# Chạy tests
+dotnet test --filter "FullyQualifiedName~[FeatureName]"
+
+# Xem coverage
+dotnet test --collect:"XPlat Code Coverage"
+```
+
+**Generate tests nếu chưa có:**
+```
+/test [ClassName]
+```
+
+**Must cover:**
+- Happy path
+- Business rule violations
+- Not found / validation error
+
+---
+
+## Phase 4 — Self Review (10 phút)
+
+```bash
+# Xem diff
+git diff main...HEAD
+
+# Claude review
 /review
 ```
 
-Hoặc paste diff vào Claude với prompt: `03-prompts/daily/code-review.md`
-
-### 6. Document (nếu feature phức tạp)
-Update `06-projects/[company]/[project]/project-context.md` nếu:
-- Thêm entity mới
-- Thêm business rule quan trọng
-- Có gotcha mới phát hiện → thêm vào `05-snippets/`
+**Mental checklist:**
+- [ ] N+1 query? (check EF Core log: `EnableSensitiveDataLogging()` trong dev)
+- [ ] CancellationToken pass đúng chưa?
+- [ ] Migration cần `CONCURRENTLY` không?
+- [ ] Sensitive data bị log không?
 
 ---
 
-## Checklist trước khi tạo PR
-- [ ] Build pass: `dotnet build`
-- [ ] Tests pass: `dotnet test`
-- [ ] Migration reviewed (nếu có)
-- [ ] No N+1 (check với query logging)
-- [ ] CancellationToken được pass đúng
-- [ ] Không có hardcoded values
-- [ ] CLAUDE.md / project-context.md cập nhật nếu cần
+## Phase 5 — PR & Update Toolkit
+
+```bash
+git push -u origin HEAD
+# Create PR với description rõ ràng
+```
+
+**Update toolkit nếu học được gì mới:**
+```bash
+# Mở toolkit, thêm vào đúng file
+# Gotcha mới → 05-snippets/[tech]/gotchas.md
+# Pattern mới → 05-snippets/[tech]/[category].md
+# Business rule mới → 06-projects/[company]/[project]/project-context.md
+```
+
+---
+
+## PR Checklist
+
+```
+Code Quality:
+- [ ] dotnet build  — không warning
+- [ ] dotnet test   — pass
+- [ ] /review       — không có Critical
+
+Database:
+- [ ] Migration SQL reviewed (không chỉ EF generated code)
+- [ ] Index dùng CONCURRENTLY nếu table lớn
+- [ ] Down() migration implement đúng
+
+Architecture:
+- [ ] Dependency rule không vi phạm
+- [ ] Business logic ở đúng layer (Domain)
+- [ ] Result<T> thay vì throw exception cho business case
+
+API (nếu có):
+- [ ] Response format dùng ApiResponse<T>
+- [ ] HTTP status code đúng ngữ nghĩa
+- [ ] Input validation đủ
+
+Misc:
+- [ ] Không hardcode secret / magic number
+- [ ] Log đủ để debug production (correlation ID, key identifiers)
+- [ ] CLAUDE.md / project-context.md update nếu cần
+```

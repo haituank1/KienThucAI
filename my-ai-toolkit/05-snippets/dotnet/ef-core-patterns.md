@@ -1,5 +1,8 @@
 # EF Core — Battle-tested Patterns
 
+> Format: Context → Code → Lesson / Gotcha
+> Cập nhật khi tìm ra pattern mới hoặc bị lỗi do pattern sai.
+
 ## 1. Projection với nested object (tránh N+1)
 ```csharp
 // ✅ Load order + items trong 1 query
@@ -118,5 +121,120 @@ var results = await _ctx.Database
     .ToListAsync(ct);
 ```
 
+## 7. Global Query Filter — Soft delete & Multi-tenancy
+
+```csharp
+// DbContext — auto-apply cho mọi query trên entity
+protected override void OnModelCreating(ModelBuilder builder)
+{
+    // Soft delete: tất cả query tự động filter IsDeleted = false
+    builder.Entity<Order>().HasQueryFilter(o => !o.IsDeleted);
+
+    // Multi-tenancy: tự động filter theo tenant hiện tại
+    builder.Entity<Order>().HasQueryFilter(
+        o => o.TenantId == _currentTenantService.TenantId);
+}
+
+// Bypass filter khi cần (admin query, migration):
+var allOrders = await _ctx.Orders
+    .IgnoreQueryFilters()
+    .Where(o => o.IsDeleted)
+    .ToListAsync(ct);
+```
+**Lesson learned:** Global filter invisible — dễ bị quên khi debug "tại sao query không trả về record". Luôn check IgnoreQueryFilters() khi admin report "không thấy data".
+
 ---
-**Lesson learned:** Luôn gọi `.ToQueryString()` để verify SQL được generate khi implement query mới.
+
+## 8. Compiled Query — Giảm overhead cho hot query
+
+```csharp
+// Định nghĩa 1 lần, reuse nhiều lần (skip query compilation overhead)
+public static class CompiledQueries
+{
+    public static readonly Func<AppDbContext, Guid, Task<OrderDetailDto?>> GetOrderById =
+        EF.CompileAsyncQuery((AppDbContext ctx, Guid id) =>
+            ctx.Orders
+                .AsNoTracking()
+                .Where(o => o.Id == id)
+                .Select(o => new OrderDetailDto
+                {
+                    Id = o.Id,
+                    CustomerName = o.Customer.FullName,
+                    TotalAmount = o.TotalAmount
+                })
+                .FirstOrDefault());
+}
+
+// Dùng:
+var order = await CompiledQueries.GetOrderById(_ctx, orderId);
+```
+**Khi dùng:** Query chạy >100 lần/giây. Benchmark: compiled query ~30% nhanh hơn do skip model-to-SQL compilation.
+
+---
+
+## 9. Interceptor — Audit trail tự động
+
+```csharp
+// Tự động set CreatedAt/UpdatedAt khi SaveChanges
+public class AuditInterceptor(ICurrentUserService currentUser) : SaveChangesInterceptor
+{
+    public override InterceptionResult<int> SavingChanges(
+        DbContextEventData eventData, InterceptionResult<int> result)
+    {
+        ApplyAudit(eventData.Context!);
+        return base.SavingChanges(eventData, result);
+    }
+
+    private void ApplyAudit(DbContext ctx)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var entry in ctx.ChangeTracker.Entries<IAuditableEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = now;
+                entry.Entity.CreatedBy = currentUser.UserId;
+            }
+            if (entry.State is EntityState.Added or EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = now;
+                entry.Entity.UpdatedBy = currentUser.UserId;
+            }
+        }
+    }
+}
+
+// Register:
+services.AddDbContext<AppDbContext>((sp, opt) =>
+    opt.UseNpgsql(connStr)
+       .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+```
+
+---
+
+## 10. Owned Entity — Value Object mapping
+
+```csharp
+// Domain: Value Object
+public record Money(decimal Amount, string Currency);
+
+// Entity:
+public class Order
+{
+    public Money Price { get; private set; } = default!;
+}
+
+// EF Core config — map thành columns, không phải separate table
+builder.Entity<Order>().OwnsOne(o => o.Price, money =>
+{
+    money.Property(m => m.Amount).HasColumnName("price_amount")
+         .HasColumnType("numeric(18,4)").IsRequired();
+    money.Property(m => m.Currency).HasColumnName("price_currency")
+         .HasMaxLength(3).IsRequired();
+});
+// SQL: orders.price_amount, orders.price_currency — không có table riêng
+```
+
+---
+
+**Master Lesson:** Chạy `context.Database.Log = Console.WriteLine` hoặc enable `EnableSensitiveDataLogging()` trong dev để thấy SQL thực tế. Không bao giờ assume LINQ → SQL mapping là đúng mà không verify.

@@ -1,65 +1,129 @@
 # Prompt: Phân tích Performance .NET
 
-## Prompt — API endpoint chậm
+---
 
-API endpoint sau có latency cao (~[X]ms, target <[Y]ms):
+## TEMPLATE 1 — API Endpoint chậm
 
-**Endpoint:** `[METHOD] /api/path`
+Stack: .NET 8, ASP.NET Core, EF Core 8, PostgreSQL.
 
-**Handler/Code:**
+Endpoint sau có latency cao và tôi cần tìm bottleneck.
+
+**Endpoint:** `[METHOD] /api/[path]`
+**Latency hiện tại:** ~[X]ms (P50) / ~[Y]ms (P99)
+**Target:** <[Z]ms
+
+**Full handler code:**
 ```csharp
-[PASTE FULL HANDLER + DEPENDENCIES]
+[PASTE — bao gồm handler, dependencies, bất kỳ service nào được gọi]
 ```
 
-**Profiling data (nếu có):**
-- [Application Insights / dotnet-trace / PerfView output]
-- DB query time: [X]ms
-- External call time: [X]ms
-- CPU time: [X]ms
+**Profiling data (điền nếu có):**
+- DB query time: [X]ms (Application Insights / EF Core slow query log)
+- External HTTP call: [X]ms
+- Serialization: [X]ms
+- Business logic: [X]ms
 
-**Load:**
-- [X] request/second peak
-- [N] concurrent users
+**Load pattern:**
+- Peak: ~[N] req/s
+- Average: ~[N] req/s
+- Concurrent users: ~[N]
 
 Phân tích:
-1. Bottleneck theo thứ tự impact
-2. Quick win (ít code change, high impact)
-3. Giải pháp dài hạn
-4. Ước lượng improvement cho mỗi giải pháp
+1. **Bottleneck theo thứ tự impact** — cái nào chiếm % thời gian lớn nhất?
+2. **Quick wins** — thay đổi ít code, improvement ngay lập tức
+3. **Giải pháp dài hạn** — cache, async streaming, DB optimization
+4. **Ước lượng cụ thể** cho mỗi giải pháp (vd: "thêm cache → ~80% reduction")
+5. **Risk** — giải pháp nào có side effect cần chú ý?
 
 ---
 
-## Prompt — Memory / Allocation
+## TEMPLATE 2 — Memory / Allocation vấn đề
 
-Code sau allocate quá nhiều memory trong hot path:
+Code sau chạy trong hot path và gây GC pressure / allocation cao.
 
+**Code:**
 ```csharp
-[PASTE CODE]
+[PASTE]
 ```
 
-**Benchmark hiện tại (nếu có BenchmarkDotNet):**
+**BenchmarkDotNet result (nếu có):**
 ```
-[PASTE BENCHMARK OUTPUT]
+[PASTE — Method | Mean | Allocated]
 ```
+
+**Triệu chứng:**
+- Gen 0/1/2 GC collections: [X/s]
+- Memory: [X MB per request / tăng liên tục]
+- Xảy ra khi: [export lớn / concurrent requests / v.v.]
 
 Phân tích:
-1. Chỗ nào allocate nhiều nhất
-2. Cách giảm allocation (Span<T>, ArrayPool, struct, v.v.)
-3. Trade-off của từng optimization
-4. Viết lại với allocation thấp hơn
+1. Chỗ nào allocate nhiều nhất (new object trong loop? string concat? LINQ intermediate?)
+2. Fix theo thứ tự impact:
+   - Span<T> / Memory<T> thay byte array
+   - ArrayPool<T> cho buffer tạm
+   - StringBuilder cho string
+   - Struct thay class nếu nhỏ và short-lived
+3. Trade-off: readability vs performance cho từng fix
+4. Viết lại hoàn chỉnh với allocation thấp hơn
 
 ---
 
-## Prompt — Export/Import data lớn
+## TEMPLATE 3 — Export / Import dữ liệu lớn
 
-Đang export [N] records ra [Excel/CSV/JSON], bị chậm hoặc OOM:
+Đang xử lý [export/import] [N] records bị [chậm / OutOfMemoryException / timeout].
 
+**Code hiện tại:**
 ```csharp
-[PASTE CODE HIỆN TẠI]
+[PASTE]
 ```
 
-Hãy đề xuất giải pháp:
-1. Streaming approach (không load all vào memory)
-2. Batching strategy (batch size bao nhiêu là hợp lý)
-3. Async/parallel nếu phù hợp
-4. Ước lượng memory usage sau optimize
+**Data context:**
+- Số records: ~[N]
+- Kích thước record trung bình: ~[X] fields
+- Format: [Excel / CSV / JSON / XML]
+- Source: [PostgreSQL table / API / file]
+
+**Vấn đề cụ thể:**
+- [ ] OutOfMemoryException (load tất cả vào memory trước)
+- [ ] Timeout (>30s)
+- [ ] Chậm (mất [X]s cho [N] records)
+- [ ] Blocking (user phải đợi download)
+
+Hãy đề xuất:
+
+1. **Streaming approach** — không load all vào memory
+   - IAsyncEnumerable từ DB
+   - Stream write trực tiếp ra response
+   - Estimated memory usage
+
+2. **Batch strategy**
+   - Batch size optimal cho case này (PostgreSQL + EF Core)
+   - Bulk read vs stream
+
+3. **Background job approach** (nếu export > 30s)
+   - Accept → queue job → notify khi xong
+   - Pre-signed URL pattern
+
+4. **Code hoàn chỉnh** cho approach được recommend
+
+---
+
+## TEMPLATE 4 — Concurrent / Thread Safety Issue
+
+Code chạy fine single-threaded nhưng có vấn đề khi concurrent.
+
+**Code:**
+```csharp
+[PASTE]
+```
+
+**Triệu chứng:**
+- [Race condition / data corruption / deadlock / starvation]
+- Xảy ra: [intermittent / chỉ dưới load cao / ...]
+
+Phân tích:
+1. Shared mutable state nào không được protect?
+2. Lock granularity có đúng không? (quá coarse → bottleneck, quá fine → deadlock)
+3. Fix: ConcurrentDictionary / Interlocked / SemaphoreSlim / Channel<T>?
+4. Code fix với giải thích tại sao thread-safe
+5. Test để reproduce issue (dùng Task.WhenAll + nhiều concurrent requests)

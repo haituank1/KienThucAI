@@ -1,42 +1,82 @@
 # Session Starter: Debug Bug
 
-## Paste vào đầu session debug
+> Copy toàn bộ file này → paste vào đầu session → điền [brackets].
 
 ---
 
-Tôi cần debug một bug. Tech stack: .NET 8, EF Core 8, PostgreSQL.
+## Context cố định (đừng xóa)
 
-**Bug description:**
-[Mô tả behavior sai — expected vs actual]
+Stack: .NET 8, EF Core 8, PostgreSQL 15, Redis, RabbitMQ.
+Pattern: Clean Architecture + CQRS + MediatR.
+
+Quy tắc debug:
+- Tìm root cause, không chỉ fix symptom
+- Giải thích cơ chế kỹ thuật tại sao lỗi xảy ra
+- Fix minimal — không refactor cùng lúc với fix bug
+- Đề xuất test để verify fix
+
+---
+
+## Bug này
+
+**Mô tả ngắn:** [1 câu — vd: "User không thể cancel order đã paid"]
+
+**Expected behavior:** [điều lẽ ra phải xảy ra]
+**Actual behavior:** [điều đang xảy ra]
 
 **Reproduction steps:**
-1. [Step 1]
-2. [Step 2]
-3. → [Kết quả sai]
+1. [step 1]
+2. [step 2]
+3. → [Bug xảy ra ở đây]
 
-**Error / Log:**
-```
-[Stack trace hoặc log message]
-```
-
-**Suspect code:**
-```csharp
-[Code có thể gây lỗi]
-```
-
-**Environment:**
-- [ ] Dev only
-- [ ] Staging
-- [ ] Production
-- Xảy ra: [ ] Luôn luôn / [ ] Intermittent (~X% requests)
-
-**Đã thử:**
-- [Những gì đã debug]
-
-**Tôi muốn bạn:**
-- Xác định root cause (không chỉ fix symptom)
-- Giải thích cơ chế tại sao lỗi này xảy ra
-- Đề xuất fix minimal và safe
-- Cách verify fix đúng
+**Tần suất:** [luôn luôn / ~X% / chỉ khi X / intermittent]
+**Environment:** [ ] Dev  [ ] Staging  [ ] Production
 
 ---
+
+## Error Information
+
+**Stack trace / Exception:**
+```
+[PASTE FULL STACK TRACE — bao gồm inner exception nếu có]
+```
+
+**Log liên quan:**
+```
+[PASTE log lines xung quanh lúc xảy ra lỗi — có correlation ID càng tốt]
+```
+
+**Request payload (nếu là API bug):**
+```json
+[PASTE]
+```
+
+---
+
+## Code Suspect
+
+```csharp
+[PASTE — include full method, constructor, bất kỳ dependency nào liên quan]
+```
+
+**Entity / DB config liên quan (nếu là EF Core bug):**
+```csharp
+[PASTE]
+```
+
+---
+
+## Đã thử
+
+- [điền hoặc "chưa thử gì, cần hướng dẫn"]
+
+---
+
+## Tôi muốn
+
+Phân tích theo thứ tự:
+1. Root cause — không phải list mọi khả năng, tập trung vào probable cause nhất
+2. Cơ chế kỹ thuật — tại sao bug xảy ra (không chỉ "đây là lỗi")
+3. Fix — code cụ thể, minimal change
+4. Verify — test / query để confirm fix đúng
+5. Prevent — guard / test / validation gì để không tái phát

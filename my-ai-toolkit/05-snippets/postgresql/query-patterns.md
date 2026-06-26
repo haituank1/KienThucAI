@@ -104,5 +104,102 @@ BEGIN
 END $$;
 ```
 
+## 7. SKIP LOCKED — Job queue pattern
+
+```sql
+-- Worker lấy job mà không block worker khác
+BEGIN;
+
+SELECT id, payload
+FROM pending_jobs
+WHERE status = 'pending'
+ORDER BY created_at
+LIMIT 10
+FOR UPDATE SKIP LOCKED; -- Skip rows đang locked bởi worker khác
+
+-- Worker xử lý xong thì update:
+UPDATE pending_jobs
+SET status = 'processing', started_at = NOW(), worker_id = :worker_id
+WHERE id = ANY(:job_ids);
+
+COMMIT;
+```
+**Tốt hơn LISTEN/NOTIFY:** Simple, reliable, không cần infra thêm.
+**Index cần:** `CREATE INDEX ON pending_jobs(status, created_at) WHERE status = 'pending'`
+
 ---
-**Lesson learned:** Luôn test query với data size gần production. EXPLAIN ANALYZE trên staging với ~production data.
+
+## 8. JSONB Query — Tìm kiếm trong JSON column
+
+```sql
+-- Schema: orders.metadata JSONB
+-- Data: {"source": "mobile", "campaign": "sale2024", "tags": ["vip", "repeat"]}
+
+-- Containment operator @> (dùng được GIN index)
+SELECT * FROM orders
+WHERE metadata @> '{"source": "mobile"}';
+
+-- Array element check
+SELECT * FROM orders
+WHERE metadata -> 'tags' ? 'vip';
+
+-- Nested path
+SELECT * FROM orders
+WHERE metadata #>> '{payment, method}' = 'credit_card';
+
+-- Index:
+CREATE INDEX idx_orders_metadata ON orders USING GIN(metadata);
+-- Hoặc specific path:
+CREATE INDEX idx_orders_source ON orders((metadata->>'source'));
+```
+
+---
+
+## 9. Recursive CTE — Hierarchical data
+
+```sql
+-- Category tree: categories(id, parent_id, name)
+-- Lấy toàn bộ subcategory của category_id = :root_id
+
+WITH RECURSIVE category_tree AS (
+    -- Base case: root category
+    SELECT id, parent_id, name, 0 as depth
+    FROM categories
+    WHERE id = :root_id
+
+    UNION ALL
+
+    -- Recursive: children
+    SELECT c.id, c.parent_id, c.name, ct.depth + 1
+    FROM categories c
+    JOIN category_tree ct ON c.parent_id = ct.id
+    WHERE ct.depth < 10 -- depth limit để tránh infinite loop
+)
+SELECT * FROM category_tree ORDER BY depth, name;
+```
+
+---
+
+## 10. Multi-row UPDATE từ VALUES
+
+```sql
+-- ✅ Update nhiều rows với giá trị khác nhau — 1 query thay vì N queries
+UPDATE products AS p
+SET price = v.new_price,
+    updated_at = NOW()
+FROM (VALUES
+    ('prod-001'::uuid, 150000::numeric),
+    ('prod-002'::uuid, 250000::numeric),
+    ('prod-003'::uuid, 75000::numeric)
+) AS v(product_id, new_price)
+WHERE p.id = v.product_id;
+
+-- Performance: 1 round trip, 1 lock acquisition thay vì N
+```
+
+---
+
+**Master Lesson:**
+- Luôn EXPLAIN ANALYZE trên staging với production-size data trước khi deploy query mới
+- `pg_stat_statements` là công cụ tốt nhất để tìm slow query trong production
+- Sau khi bulk insert/delete: `ANALYZE table_name` để refresh statistics

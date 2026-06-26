@@ -1,5 +1,8 @@
 # .NET Gotchas — Những lỗi đã gặp
 
+> Format: [Tên gotcha] → Triệu chứng → Root cause → Fix
+> Thêm vào đây mỗi khi phát hiện gotcha mới từ thực tế.
+
 ## 1. Captured variable trong async loop
 ```csharp
 // ❌ Bug: tất cả task cùng dùng 1 biến i
@@ -107,10 +110,126 @@ catch
 ```
 
 ## 7. CancellationToken không được pass → request treo
+
 ```csharp
 // ❌ Khi client cancel request, query vẫn chạy đến hết
 var data = await _ctx.Orders.ToListAsync(); // Thiếu ct
 
 // ✅ Luôn pass CancellationToken
 var data = await _ctx.Orders.ToListAsync(cancellationToken);
+```
+
+---
+
+## 8. IEnumerable bị enumerate nhiều lần — silent perf bug
+
+```csharp
+// ❌ orders bị enumerate 2 lần (mỗi lần query DB nếu là IQueryable)
+public void Process(IEnumerable<Order> orders)
+{
+    if (!orders.Any())     // enumerate lần 1
+        return;
+    foreach (var o in orders) // enumerate lần 2
+        Process(o);
+}
+
+// ✅ Materialize trước
+public void Process(IEnumerable<Order> orders)
+{
+    var list = orders.ToList(); // enumerate 1 lần
+    if (!list.Any()) return;
+    foreach (var o in list) Process(o);
+}
+```
+**Triệu chứng:** Query chạy 2 lần trong log, performance thấp hơn mong đợi.
+
+---
+
+## 9. SemaphoreSlim không được dispose — resource leak
+
+```csharp
+// ❌ Tạo SemaphoreSlim mỗi call nhưng không dispose
+public async Task ProcessAsync()
+{
+    var semaphore = new SemaphoreSlim(1, 1); // ❌ leak nếu không dispose
+    await semaphore.WaitAsync();
+    try { ... }
+    finally { semaphore.Release(); }
+}
+
+// ✅ Dùng class-level field và dispose đúng cách
+public class MyService : IDisposable
+{
+    private readonly SemaphoreSlim _lock = new(1, 1);
+
+    public async Task ProcessAsync(CancellationToken ct)
+    {
+        await _lock.WaitAsync(ct);
+        try { ... }
+        finally { _lock.Release(); }
+    }
+
+    public void Dispose() => _lock.Dispose();
+}
+```
+
+---
+
+## 10. DateTime.Now vs DateTime.UtcNow — timezone bug trên server
+
+```csharp
+// ❌ DateTime.Now bị ảnh hưởng bởi server timezone
+// Nếu server ở UTC+7, DateTime.Now trả về giờ Việt Nam
+// Khi deploy lên server UTC → behavior thay đổi
+var createdAt = DateTime.Now; // ❌
+
+// ✅ Luôn dùng UTC trong business logic
+var createdAt = DateTime.UtcNow; // ✅
+
+// ✅ Dùng ITimeProvider để testable (mock trong unit test)
+public class OrderService(TimeProvider timeProvider)
+{
+    public void CreateOrder()
+    {
+        var now = timeProvider.GetUtcNow(); // mockable
+    }
+}
+// Register: services.AddSingleton(TimeProvider.System);
+```
+**Lesson learned:** Bug thường xuất hiện khi deploy lên cloud server có timezone khác với dev machine.
+
+---
+
+## 11. JSON Serialization: System.Text.Json và case sensitivity
+
+```csharp
+// ❌ Deserialize fail silently nếu property name không match (case-sensitive by default)
+var dto = JsonSerializer.Deserialize<OrderDto>(json);
+// json: {"orderId": "123"} + dto: OrderId → dto.OrderId = null (không throw!)
+
+// ✅ Configure case-insensitive hoặc dùng [JsonPropertyName]
+var dto = JsonSerializer.Deserialize<OrderDto>(json, new JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true
+});
+
+// Hoặc explicit mapping:
+public record OrderDto([property: JsonPropertyName("orderId")] string OrderId);
+```
+
+---
+
+## 12. Lazy DI Resolution — không fail fast khi service missing
+
+```csharp
+// ❌ GetService trả về null nếu không register, không throw
+var service = serviceProvider.GetService<IMyService>(); // null nếu chưa register
+service.DoWork(); // NullReferenceException ở runtime
+
+// ✅ GetRequiredService — throw rõ ràng ngay khi resolve
+var service = serviceProvider.GetRequiredService<IMyService>(); // throw nếu missing
+
+// ✅✅ Tốt nhất: Constructor injection → fail at startup
+public class MyController(IMyService service) // throw nếu không register
+{ }
 ```
