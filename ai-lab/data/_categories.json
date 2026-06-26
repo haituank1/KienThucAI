@@ -1,0 +1,9 @@
+{
+  "categories": [
+    { "id": "dotnet", "label": ".NET / C#", "icon": "⚡", "color": "#512BD4", "description": "C#, ASP.NET Core, EF Core, performance" },
+    { "id": "postgresql", "label": "PostgreSQL", "icon": "🐘", "color": "#336791", "description": "Query optimization, indexing, extensions" },
+    { "id": "architecture", "label": "Architecture", "icon": "🏗️", "color": "#F59E0B", "description": "Design patterns, system design, microservices" },
+    { "id": "ai-coding", "label": "AI Coding", "icon": "🤖", "color": "#10B981", "description": "AI tools, prompting, agents, automation" },
+    { "id": "tools", "label": "Tools", "icon": "🔧", "color": "#6366F1", "description": "Dev tools, libraries, frameworks" }
+  ]
+}

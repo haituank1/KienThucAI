@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSS Grid Layout — Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; min-height: 100vh; }
+  h1 { color: #6366f1; margin-bottom: 0.5rem; font-size: 1.5rem; }
+  p { color: #94a3b8; margin-bottom: 2rem; font-size: 0.9rem; }
+  .demo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; padding: 1.5rem; }
+  .card h3 { color: #6366f1; margin-bottom: 0.5rem; }
+  .card p { color: #94a3b8; font-size: 0.85rem; margin: 0; }
+  .layout-demo { display: grid; grid-template-areas: "header header" "sidebar main" "footer footer"; grid-template-columns: 200px 1fr; grid-template-rows: auto 1fr auto; gap: 0.5rem; height: 300px; }
+  .area { border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }
+  .header { grid-area: header; background: #6366f1; color: white; }
+  .sidebar { grid-area: sidebar; background: #334155; }
+  .main { grid-area: main; background: #1e293b; border: 1px solid #334155; }
+  .footer { grid-area: footer; background: #475569; }
+  code { background: #334155; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.8rem; color: #a5b4fc; }
+</style>
+</head>
+<body>
+  <h1>🔧 CSS Grid Layout — Live Demo</h1>
+  <p>Demo frontend knowledge từ ai-lab. Đây là ví dụ về CSS Grid với named areas.</p>
+
+  <div class="demo-grid">
+    <div class="card">
+      <h3>3-Column Grid</h3>
+      <p><code>grid-template-columns: repeat(3, 1fr)</code></p>
+    </div>
+    <div class="card">
+      <h3>Named Areas</h3>
+      <p><code>grid-template-areas: "header header"</code></p>
+    </div>
+    <div class="card">
+      <h3>Gap Control</h3>
+      <p><code>gap: 1rem</code> — row và column cùng lúc</p>
+    </div>
+  </div>
+
+  <h2 style="color:#94a3b8; margin-bottom:1rem; font-size:1rem;">Named Template Areas Layout:</h2>
+  <div class="layout-demo">
+    <div class="area header">Header</div>
+    <div class="area sidebar">Sidebar<br><small style="font-weight:400">200px</small></div>
+    <div class="area main">Main Content<br><small style="font-weight:400">1fr</small></div>
+    <div class="area footer">Footer</div>
+  </div>
+</body>
+</html>

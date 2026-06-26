@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Hub — AI Lab</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root { color-scheme: dark; }
+  body { background: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+  .sidebar { width: 220px; min-height: 100vh; background: #1e293b; border-right: 1px solid #334155; }
+  .nav-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border-radius: 0.375rem; cursor: pointer; color: #94a3b8; transition: all 0.15s; font-size: 0.875rem; }
+  .nav-item:hover { background: #334155; color: #e2e8f0; }
+  .nav-item.active { background: #6366f1; color: white; }
+  .cat-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+  .status-badge { padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+  .status-pending_review { background: #fbbf2440; color: #fbbf24; border: 1px solid #fbbf2460; }
+  .status-validated { background: #10b98140; color: #10b981; border: 1px solid #10b98160; }
+  .status-rejected { background: #ef444440; color: #ef4444; border: 1px solid #ef444460; }
+  .status-needs_rework { background: #f9731640; color: #f97316; border: 1px solid #f9731660; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.25rem; transition: border-color 0.15s; }
+  .card:hover { border-color: #6366f1; }
+  .confidence-bar { height: 4px; border-radius: 9999px; background: #334155; overflow: hidden; }
+  .confidence-fill { height: 100%; border-radius: 9999px; transition: width 0.3s; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; max-width: 760px; width: 100%; max-height: 90vh; overflow-y: auto; }
+  .code-block { background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem; padding: 1rem; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.8rem; white-space: pre-wrap; overflow-x: auto; line-height: 1.6; color: #a5b4fc; }
+  .btn { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.4rem 0.875rem; border-radius: 0.375rem; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: #6366f1; color: white; }
+  .btn-primary:hover { background: #4f46e5; }
+  .btn-success { background: #10b981; color: white; }
+  .btn-success:hover { background: #059669; }
+  .btn-danger { background: #ef4444; color: white; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-ghost { background: #334155; color: #94a3b8; }
+  .btn-ghost:hover { background: #475569; color: #e2e8f0; }
+  .btn-warning { background: #f97316; color: white; }
+  .btn-warning:hover { background: #ea580c; }
+  .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.25rem; text-align: center; }
+  .stat-number { font-size: 2.25rem; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+  .input { background: #0f172a; border: 1px solid #334155; border-radius: 0.375rem; padding: 0.5rem 0.75rem; color: #e2e8f0; font-size: 0.875rem; outline: none; width: 100%; }
+  .input:focus { border-color: #6366f1; }
+  .select { background: #0f172a; border: 1px solid #334155; border-radius: 0.375rem; padding: 0.5rem 0.75rem; color: #e2e8f0; font-size: 0.875rem; outline: none; width: 100%; }
+  .select:focus { border-color: #6366f1; }
+  .textarea { background: #0f172a; border: 1px solid #334155; border-radius: 0.375rem; padding: 0.5rem 0.75rem; color: #e2e8f0; font-size: 0.875rem; outline: none; width: 100%; resize: vertical; min-height: 80px; }
+  .textarea:focus { border-color: #6366f1; }
+  .tag { display: inline-block; background: #334155; color: #94a3b8; border-radius: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.7rem; }
+  .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: #64748b; }
+  .alert-warning { background: #fbbf2420; border: 1px solid #fbbf2460; border-radius: 0.5rem; padding: 0.75rem 1rem; color: #fbbf24; font-size: 0.85rem; }
+  .section-title { font-size: 0.7rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; padding: 0 1rem; margin-top: 1rem; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body class="flex">
+
+<!-- ═══════════════════════════════════════════════════════════ SIDEBAR -->
+<aside class="sidebar flex-shrink-0 flex flex-col p-3">
+  <div class="flex items-center gap-2 px-2 py-3 mb-2">
+    <span class="text-2xl">🧠</span>
+    <div>
+      <div class="font-bold text-sm text-white">Knowledge Hub</div>
+      <div class="text-xs text-slate-500">AI Lab</div>
+    </div>
+  </div>
+
+  <div class="section-title">Navigation</div>
+  <nav id="mainNav" class="flex flex-col gap-1">
+    <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+      <span>📊</span> Dashboard
+    </div>
+    <div class="nav-item" data-view="knowledge" onclick="switchView('knowledge')">
+      <span>📚</span> Knowledge
+      <span id="navPendingBadge" class="ml-auto bg-yellow-500 text-black text-xs rounded-full px-1.5 font-bold" hidden>0</span>
+    </div>
+    <div class="nav-item" data-view="queue" onclick="switchView('queue')">
+      <span>📋</span> Research Queue
+    </div>
+    <div class="nav-item" data-view="settings" onclick="switchView('settings')">
+      <span>⚙️</span> Settings
+    </div>
+  </nav>
+
+  <div class="section-title mt-4">Categories</div>
+  <div id="categoryFilters" class="flex flex-col gap-1">
+    <div class="nav-item cat-filter active" data-cat="" onclick="filterByCategory('')">
+      <span>🗂️</span> Tất cả
+      <span id="catBadgeAll" class="ml-auto text-xs text-slate-500">0</span>
+    </div>
+  </div>
+
+  <div class="mt-auto pt-3 border-t border-slate-700">
+    <div id="connectionStatus" class="text-xs text-slate-500 px-2 py-1 flex items-center gap-1">
+      <span class="w-2 h-2 rounded-full bg-slate-600"></span> Đang kết nối...
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════════ MAIN -->
+<main class="flex-1 overflow-hidden flex flex-col">
+
+  <!-- Top bar -->
+  <div class="flex items-center gap-3 px-6 py-3 border-b border-slate-700 bg-slate-900 flex-shrink-0">
+    <input type="text" id="searchInput" class="input max-w-xs" placeholder="🔍 Tìm kiếm..." oninput="debounceSearch(this.value)">
+    <select id="statusFilter" class="select w-44" onchange="applyFilters()">
+      <option value="">Tất cả status</option>
+      <option value="pending_review">⏳ Pending Review</option>
+      <option value="validated">✅ Validated</option>
+      <option value="rejected">❌ Rejected</option>
+      <option value="needs_rework">🔄 Needs Rework</option>
+    </select>
+    <div class="ml-auto flex gap-2">
+      <button class="btn btn-ghost" onclick="refreshAll()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openAddCategoryModal()">+ Category</button>
+    </div>
+  </div>
+
+  <!-- Content area -->
+  <div class="flex-1 overflow-y-auto p-6">
+
+    <!-- ── DASHBOARD VIEW ───────────────────────────────────── -->
+    <div id="view-dashboard">
+      <!-- Alert row -->
+      <div id="alertRow" class="mb-4" hidden></div>
+
+      <!-- Stat cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="stat-card">
+          <div class="stat-number text-indigo-400" id="statTotal">—</div>
+          <div class="stat-label">Total Items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number text-yellow-400" id="statPending">—</div>
+          <div class="stat-label">Pending Review</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number text-emerald-400" id="statValidated">—</div>
+          <div class="stat-label">Validated</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number text-red-400" id="statRejected">—</div>
+          <div class="stat-label">Rejected</div>
+        </div>
+      </div>
+
+      <!-- Secondary stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="stat-card">
+          <div class="stat-number text-purple-400 text-2xl" id="statConfidence">—%</div>
+          <div class="stat-label">Avg Confidence</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number text-blue-400 text-2xl" id="statWithDemo">—</div>
+          <div class="stat-label">With Demo</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number text-teal-400 text-2xl" id="statThisWeek">—</div>
+          <div class="stat-label">Validated This Week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number text-orange-400 text-2xl" id="statStreak">—🔥</div>
+          <div class="stat-label">Validate Streak</div>
+        </div>
+      </div>
+
+      <!-- Charts row — wrapper div với fixed height là BẮT BUỘC để tránh Chart.js resize loop -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card" style="overflow:hidden;">
+          <div class="text-sm font-medium text-slate-300 mb-3">📊 Breakdown theo Category</div>
+          <div style="position:relative; height:200px; overflow:hidden;">
+            <canvas id="chartCategory"></canvas>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div class="text-sm font-medium text-slate-300 mb-3">📈 Activity Timeline (30 ngày)</div>
+          <div style="position:relative; height:200px; overflow:hidden;">
+            <canvas id="chartTimeline"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending items preview -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm font-medium text-slate-300">⏳ Pending Review gần đây</div>
+          <button class="btn btn-ghost text-xs" onclick="switchView('knowledge'); document.getElementById('statusFilter').value='pending_review'; applyFilters()">Xem tất cả →</button>
+        </div>
+        <div id="pendingPreview" class="flex flex-col gap-2"></div>
+      </div>
+    </div>
+
+    <!-- ── KNOWLEDGE VIEW ───────────────────────────────────── -->
+    <div id="view-knowledge" hidden>
+      <div id="knowledgeList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      <div id="knowledgeEmpty" class="loading text-slate-500" hidden>Không có kết quả</div>
+      <div id="knowledgeLoading" class="loading">Đang tải...</div>
+    </div>
+
+    <!-- ── QUEUE VIEW ────────────────────────────────────────── -->
+    <div id="view-queue" hidden>
+      <div class="card max-w-2xl">
+        <div class="text-sm font-medium text-slate-300 mb-4">📋 Research Queue</div>
+        <div id="queueContent" class="text-slate-400 text-sm">Đang tải...</div>
+        <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-500">
+          Chỉnh sửa trực tiếp tại: <code class="bg-slate-800 px-1 rounded">ai-lab/RESEARCH_QUEUE.md</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS VIEW ─────────────────────────────────────── -->
+    <div id="view-settings" hidden>
+      <div class="max-w-xl">
+        <div class="card mb-4">
+          <div class="text-sm font-medium text-slate-300 mb-4">📁 Categories</div>
+          <div id="categoriesList" class="flex flex-col gap-2 mb-4"></div>
+        </div>
+        <div class="card">
+          <div class="text-sm font-medium text-slate-300 mb-3">🔧 System Info</div>
+          <div id="systemInfo" class="text-xs text-slate-500 space-y-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════ MODALS -->
+
+<!-- Detail Modal -->
+<div id="detailModal" class="modal-overlay" hidden onclick="closeDetailIfOutside(event)">
+  <div class="modal p-6" onclick="event.stopPropagation()">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex-1 mr-3">
+        <div class="flex flex-wrap gap-2 mb-2">
+          <span id="modalCatBadge" class="cat-badge"></span>
+          <span id="modalStatusBadge" class="status-badge"></span>
+          <span id="modalDifficulty" class="cat-badge" style="background:#33415580;color:#94a3b8"></span>
+        </div>
+        <h2 id="modalTopic" class="text-lg font-bold text-white"></h2>
+        <div id="modalDate" class="text-xs text-slate-500 mt-1"></div>
+      </div>
+      <button onclick="closeDetailModal()" class="text-slate-500 hover:text-white text-xl flex-shrink-0">✕</button>
+    </div>
+
+    <!-- Confidence -->
+    <div class="mb-4 flex items-center gap-3">
+      <div class="text-xs text-slate-500 w-24">Confidence</div>
+      <div class="flex-1 confidence-bar">
+        <div id="modalConfidenceFill" class="confidence-fill"></div>
+      </div>
+      <div id="modalConfidenceText" class="text-xs text-slate-400 w-10 text-right"></div>
+    </div>
+
+    <!-- Summary -->
+    <div class="mb-4">
+      <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Summary</div>
+      <div id="modalSummary" class="text-sm text-slate-300"></div>
+    </div>
+
+    <!-- Problem / Solution -->
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div>
+        <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Vấn đề</div>
+        <div id="modalProblem" class="text-sm text-slate-300"></div>
+      </div>
+      <div>
+        <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Giải pháp</div>
+        <div id="modalSolution" class="text-sm text-slate-300"></div>
+      </div>
+    </div>
+
+    <!-- Code Example -->
+    <div id="modalCodeSection" class="mb-4" hidden>
+      <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Code Example</div>
+      <div id="modalCode" class="code-block"></div>
+    </div>
+
+    <!-- Tradeoffs -->
+    <div id="modalTradeoffsSection" class="mb-4" hidden>
+      <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Trade-offs</div>
+      <ul id="modalTradeoffs" class="text-sm text-slate-300 space-y-1"></ul>
+    </div>
+
+    <!-- References -->
+    <div id="modalRefsSection" class="mb-4" hidden>
+      <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">References</div>
+      <div id="modalRefs" class="flex flex-col gap-1"></div>
+    </div>
+
+    <!-- Verification -->
+    <div id="modalVerifSection" class="mb-4 bg-slate-800 rounded-lg p-3" hidden>
+      <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Self Verification</div>
+      <div id="modalVerif" class="text-xs text-slate-400"></div>
+    </div>
+
+    <!-- Demo -->
+    <div id="modalDemoSection" class="mb-4" hidden>
+      <div class="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Demo</div>
+      <div id="modalDemoInfo" class="text-sm text-slate-300 mb-2"></div>
+      <button id="modalDemoBtn" class="btn btn-primary" onclick="openDemoFromModal()">🚀 Xem Demo</button>
+    </div>
+
+    <!-- Tags -->
+    <div class="mb-4">
+      <div id="modalTags" class="flex flex-wrap gap-1"></div>
+    </div>
+
+    <!-- Toolkit target -->
+    <div id="modalToolkitSection" class="mb-4 text-xs text-slate-500" hidden>
+      <span class="font-medium text-slate-400">Toolkit target:</span>
+      <code id="modalToolkitTarget" class="bg-slate-800 px-1 rounded ml-1"></code>
+    </div>
+
+    <!-- Actions -->
+    <div id="modalActions" class="flex flex-wrap gap-2 pt-4 border-t border-slate-700"></div>
+
+    <!-- Validation form -->
+    <div id="validateForm" class="mt-4 pt-4 border-t border-slate-700" hidden>
+      <div class="text-sm font-medium text-slate-300 mb-2">Validation Notes</div>
+      <textarea id="validationNotes" class="textarea mb-3" placeholder="Ghi chú sau khi validate..."></textarea>
+      <select id="validationStatus" class="select mb-3">
+        <option value="validated">✅ Validate — kiến thức chính xác</option>
+        <option value="rejected">❌ Reject — không chính xác hoặc không relevant</option>
+        <option value="needs_rework">🔄 Needs Rework — cần bổ sung thêm</option>
+      </select>
+      <div class="flex gap-2">
+        <button class="btn btn-success" onclick="submitValidation()">✓ Xác nhận</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('validateForm').hidden=true">Huỷ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div id="catModal" class="modal-overlay" hidden onclick="closeCatIfOutside(event)">
+  <div class="modal p-6 max-w-sm" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-semibold text-white">➕ Thêm Category</h3>
+      <button onclick="closeCatModal()" class="text-slate-500 hover:text-white">✕</button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">ID (lowercase, no space)</label>
+        <input id="catId" class="input" placeholder="vd: security, devops">
+      </div>
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Label</label>
+        <input id="catLabel" class="input" placeholder="vd: Security & Auth">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs text-slate-500 mb-1 block">Icon</label>
+          <input id="catIcon" class="input" placeholder="🔒" value="📚">
+        </div>
+        <div>
+          <label class="text-xs text-slate-500 mb-1 block">Color</label>
+          <input id="catColor" class="input" type="color" value="#6366f1" style="padding:0.25rem">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Description</label>
+        <input id="catDesc" class="input" placeholder="Mô tả ngắn">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button class="btn btn-primary flex-1" onclick="submitAddCategory()">Thêm</button>
+        <button class="btn btn-ghost" onclick="closeCatModal()">Huỷ</button>
+      </div>
+      <div id="catError" class="text-red-400 text-xs" hidden></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ SCRIPTS -->
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+// Nếu mở từ file:// → dùng full URL; nếu từ localhost → dùng relative
+const API_BASE = window.location.protocol === 'file:'
+    ? 'http://localhost:5001'
+    : '';
+
+// ── State ────────────────────────────────────────────────────────────────────
+const state = {
+  currentView: 'dashboard',
+  currentCategory: '',
+  currentStatus: '',
+  currentSearch: '',
+  categories: [],
+  stats: null,
+  items: [],
+  currentItem: null,
+  categoryChart: null,
+  timelineChart: null,
+  searchTimer: null,
+  loadingKnowledge: false   // guard: tránh concurrent loadKnowledge calls
+};
+
+// ── API ──────────────────────────────────────────────────────────────────────
+const api = {
+  async get(path) {
+    const r = await fetch(API_BASE + path);
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return r.json();
+  },
+  async post(path, body) {
+    const r = await fetch(API_BASE + path, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!r.ok) { const t = await r.text(); throw new Error(t || r.statusText); }
+    return r.json();
+  },
+  async put(path, body) {
+    const r = await fetch(API_BASE + path, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!r.ok) { const t = await r.text(); throw new Error(t || r.statusText); }
+    return r.json();
+  },
+  async del(path) {
+    const r = await fetch(API_BASE + path, { method: 'DELETE' });
+    return r.ok;
+  }
+};
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    await api.get('/api/health');
+    setConnectionStatus(true);
+  } catch {
+    setConnectionStatus(false);
+    return;
+  }
+  await Promise.all([loadCategories(), loadStats(), loadKnowledge()]);
+}
+
+function setConnectionStatus(ok) {
+  const el = document.getElementById('connectionStatus');
+  if (ok) {
+    el.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> <span class="text-emerald-400">Connected</span>';
+  } else {
+    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+      <span class="text-red-400">Offline</span>`;
+    // Show full error in main area
+    document.getElementById('view-dashboard').innerHTML = `
+      <div class="max-w-lg mx-auto mt-10 card border-red-800">
+        <div class="text-red-400 font-bold text-lg mb-3">⚠️ Không kết nối được DemoEngine</div>
+        <div class="text-slate-300 text-sm space-y-2 mb-4">
+          <div>1. Mở terminal, chạy lệnh:</div>
+          <div class="code-block text-xs">cd C:\\_Claude_code\\KienThucAI\\ai-lab\\demo-engine
+dotnet run --project src\\DemoEngine.API</div>
+          <div class="mt-2">2. Chờ thấy dòng: <code class="bg-slate-800 px-1 rounded text-indigo-400">DemoEngine → http://localhost:5001</code></div>
+          <div>3. Mở browser tại: <a href="http://localhost:5001" class="text-indigo-400 underline" target="_self">http://localhost:5001</a></div>
+          <div class="text-yellow-400 text-xs mt-3">⚠️ Không mở file index.html trực tiếp — phải mở qua localhost:5001</div>
+        </div>
+        <button class="btn btn-primary" onclick="location.reload()">🔄 Thử lại</button>
+        <span class="ml-3 text-xs text-slate-500">Đang kết nối tới: <code>${API_BASE || window.location.origin}</code></span>
+      </div>`;
+  }
+}
+
+// ── View switching ────────────────────────────────────────────────────────────
+function switchView(view) {
+  state.currentView = view;
+  document.querySelectorAll('[data-view]').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  document.querySelectorAll('[id^="view-"]').forEach(el => {
+    el.hidden = el.id !== `view-${view}`;
+  });
+  if (view === 'settings') loadSettings();
+  if (view === 'queue') loadQueue();
+  if (view === 'knowledge') renderKnowledge();
+}
+
+// ── Categories ────────────────────────────────────────────────────────────────
+async function loadCategories() {
+  state.categories = await api.get('/api/categories');
+  renderCategoryFilters();
+}
+
+function renderCategoryFilters() {
+  const container = document.getElementById('categoryFilters');
+  const items = state.items;
+
+  const allCount = items.length;
+  document.getElementById('catBadgeAll').textContent = allCount;
+
+  const existing = container.querySelectorAll('.cat-filter:not([data-cat=""])');
+  existing.forEach(e => e.remove());
+
+  state.categories.forEach(cat => {
+    const count = items.filter(i => i.category === cat.id).length;
+    const div = document.createElement('div');
+    div.className = `nav-item cat-filter ${state.currentCategory === cat.id ? 'active' : ''}`;
+    div.dataset.cat = cat.id;
+    div.onclick = () => filterByCategory(cat.id);
+    div.innerHTML = `<span>${cat.icon}</span> <span class="truncate">${cat.label}</span>
+      <span class="ml-auto text-xs" style="color:${cat.color}">${count}</span>`;
+    container.appendChild(div);
+  });
+}
+
+function filterByCategory(catId) {
+  state.currentCategory = catId;
+  document.querySelectorAll('.cat-filter').forEach(el => {
+    el.classList.toggle('active', el.dataset.cat === catId);
+  });
+  applyFilters();
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  state.stats = await api.get('/api/stats');
+  renderStats();
+}
+
+function renderStats() {
+  const s = state.stats;
+  if (!s) return;
+
+  document.getElementById('statTotal').textContent = s.total;
+  document.getElementById('statPending').textContent = s.pendingReview;
+  document.getElementById('statValidated').textContent = s.validated;
+  document.getElementById('statRejected').textContent = s.rejected;
+  document.getElementById('statConfidence').textContent = s.avgConfidence + '%';
+  document.getElementById('statWithDemo').textContent = s.withDemo;
+  document.getElementById('statThisWeek').textContent = s.validatedThisWeek;
+  document.getElementById('statStreak').textContent = s.validatedStreak;
+
+  // Nav badge
+  const badge = document.getElementById('navPendingBadge');
+  badge.hidden = s.pendingReview === 0;
+  badge.textContent = s.pendingReview;
+
+  // Alert
+  const alertRow = document.getElementById('alertRow');
+  if (s.pendingOver7Days > 0) {
+    alertRow.hidden = false;
+    alertRow.innerHTML = `<div class="alert-warning">⚠️ Có <strong>${s.pendingOver7Days}</strong> items pending > 7 ngày chưa validate.</div>`;
+  } else alertRow.hidden = true;
+
+  renderCategoryChart(s.byCategory);
+  renderTimelineChart(s.timeline);
+}
+
+function renderCategoryChart(data) {
+  const ctx = document.getElementById('chartCategory');
+  if (!ctx) return;                        // canvas chưa có trong DOM
+  if (state.categoryChart) { state.categoryChart.destroy(); state.categoryChart = null; }
+  if (!data || !data.length) return;
+
+  state.categoryChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [
+        { label: 'Pending',   data: data.map(d => d.pending),   backgroundColor: '#fbbf2480', borderColor: '#fbbf24', borderWidth: 1 },
+        { label: 'Validated', data: data.map(d => d.validated), backgroundColor: '#10b98180', borderColor: '#10b981', borderWidth: 1 },
+        { label: 'Rejected',  data: data.map(d => d.rejected),  backgroundColor: '#ef444480', borderColor: '#ef4444', borderWidth: 1 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,   // tắt animation — tránh re-render loop
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
+        y: { stacked: true, ticks: { color: '#94a3b8', stepSize: 1 },        grid: { color: '#334155' } }
+      }
+    }
+  });
+}
+
+function renderTimelineChart(data) {
+  const ctx = document.getElementById('chartTimeline');
+  if (!ctx) return;                         // canvas chưa có trong DOM
+  if (state.timelineChart) { state.timelineChart.destroy(); state.timelineChart = null; }
+  if (!data || !data.length) return;
+
+  const labels = data.map(d => d.date.substring(5)); // MM-DD
+  state.timelineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Researched', data: data.map(d => d.researched), borderColor: '#6366f1', backgroundColor: '#6366f120', tension: 0.3, fill: true },
+        { label: 'Validated',  data: data.map(d => d.validated),  borderColor: '#10b981', backgroundColor: '#10b98120', tension: 0.3, fill: true }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,   // tắt animation — tránh re-render loop
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', font: { size: 9 }, maxTicksLimit: 10 }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#94a3b8', stepSize: 1 },                          grid: { color: '#334155' } }
+      }
+    }
+  });
+}
+
+// ── Knowledge List ────────────────────────────────────────────────────────────
+async function loadKnowledge() {
+  if (state.loadingKnowledge) return;   // guard: bỏ qua nếu đang load
+  state.loadingKnowledge = true;
+  try {
+    const params = new URLSearchParams();
+    if (state.currentCategory) params.set('category', state.currentCategory);
+    if (state.currentStatus)   params.set('status', state.currentStatus);
+    if (state.currentSearch)   params.set('search', state.currentSearch);
+
+    state.items = await api.get('/api/knowledge?' + params);
+    renderCategoryFilters();
+    renderKnowledge();
+    renderPendingPreview();
+  } finally {
+    state.loadingKnowledge = false;
+  }
+}
+
+function renderKnowledge() {
+  const container = document.getElementById('knowledgeList');
+  const empty = document.getElementById('knowledgeEmpty');
+  const loading = document.getElementById('knowledgeLoading');
+  loading.hidden = true;
+
+  if (!state.items.length) {
+    container.innerHTML = '';
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+  container.innerHTML = state.items.map(item => renderKnowledgeCard(item)).join('');
+}
+
+function renderKnowledgeCard(item) {
+  const cat = state.categories.find(c => c.id === item.category) || { label: item.category, icon: '📚', color: '#6366f1' };
+  const conf = Math.round(item.confidence * 100);
+  const confColor = conf >= 80 ? '#10b981' : conf >= 60 ? '#fbbf24' : '#ef4444';
+  const dateStr = new Date(item.researchedAt).toLocaleDateString('vi-VN');
+
+  return `
+  <div class="card cursor-pointer" onclick="openDetail('${item.id}')">
+    <div class="flex items-start justify-between mb-2">
+      <span class="cat-badge" style="background:${cat.color}30;color:${cat.color};border:1px solid ${cat.color}50">${cat.icon} ${cat.label}</span>
+      <span class="status-badge status-${item.status}">${statusLabel(item.status)}</span>
+    </div>
+    <h3 class="font-semibold text-white text-sm mb-1 leading-snug">${esc(item.topic)}</h3>
+    <p class="text-xs text-slate-400 mb-2 line-clamp-2">${esc(item.summary)}</p>
+    <div class="confidence-bar mb-2">
+      <div class="confidence-fill" style="width:${conf}%;background:${confColor}"></div>
+    </div>
+    <div class="flex items-center justify-between">
+      <div class="flex flex-wrap gap-1">
+        ${item.tags.slice(0,3).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+        ${item.hasDemo ? `<span class="text-xs text-indigo-400">🚀 Demo</span>` : ''}
+        <span class="text-xs text-slate-600">${dateStr}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderPendingPreview() {
+  const pending = state.items.filter(i => i.status === 'pending_review').slice(0, 3);
+  const container = document.getElementById('pendingPreview');
+  if (!pending.length) {
+    container.innerHTML = '<div class="text-sm text-slate-500">Không có item pending 🎉</div>';
+    return;
+  }
+  container.innerHTML = pending.map(item => {
+    const cat = state.categories.find(c => c.id === item.category) || { label: item.category, icon: '📚', color: '#6366f1' };
+    const days = Math.floor((Date.now() - new Date(item.researchedAt)) / 86400000);
+    return `
+    <div class="flex items-center gap-3 py-2 border-b border-slate-700 last:border-0 cursor-pointer hover:bg-slate-800 rounded px-1 -mx-1" onclick="openDetail('${item.id}')">
+      <span style="color:${cat.color}">${cat.icon}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm text-white truncate">${esc(item.topic)}</div>
+        <div class="text-xs text-slate-500">${days} ngày trước</div>
+      </div>
+      <span class="text-xs text-yellow-400">${Math.round(item.confidence*100)}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Filters ──────────────────────────────────────────────────────────────────
+function applyFilters() {
+  state.currentStatus = document.getElementById('statusFilter').value;
+  loadKnowledge();
+}
+
+function debounceSearch(val) {
+  clearTimeout(state.searchTimer);
+  state.searchTimer = setTimeout(() => {
+    state.currentSearch = val;
+    loadKnowledge();
+  }, 400);
+}
+
+async function refreshAll() {
+  await Promise.all([loadCategories(), loadStats(), loadKnowledge()]);
+}
+
+// ── Detail Modal ──────────────────────────────────────────────────────────────
+async function openDetail(id) {
+  const item = await api.get(`/api/knowledge/${id}`);
+  state.currentItem = item;
+  const cat = state.categories.find(c => c.id === item.category) || { label: item.category, icon: '📚', color: '#6366f1' };
+
+  // Header
+  const catBadge = document.getElementById('modalCatBadge');
+  catBadge.textContent = `${cat.icon} ${cat.label}`;
+  catBadge.style.cssText = `background:${cat.color}30;color:${cat.color};border:1px solid ${cat.color}50`;
+
+  const statusBadge = document.getElementById('modalStatusBadge');
+  statusBadge.textContent = statusLabel(item.status);
+  statusBadge.className = `status-badge status-${item.status}`;
+
+  document.getElementById('modalDifficulty').textContent = '📊 ' + (item.difficulty || 'intermediate');
+  document.getElementById('modalTopic').textContent = item.topic;
+  document.getElementById('modalDate').textContent =
+    `Researched: ${new Date(item.researchedAt).toLocaleDateString('vi-VN')}` +
+    (item.validatedAt ? ` · Validated: ${new Date(item.validatedAt).toLocaleDateString('vi-VN')} by ${item.validatedBy}` : '');
+
+  // Confidence
+  const conf = Math.round(item.confidence * 100);
+  const confColor = conf >= 80 ? '#10b981' : conf >= 60 ? '#fbbf24' : '#ef4444';
+  document.getElementById('modalConfidenceFill').style.cssText = `width:${conf}%;background:${confColor}`;
+  document.getElementById('modalConfidenceText').textContent = conf + '%';
+
+  document.getElementById('modalSummary').textContent = item.summary;
+  document.getElementById('modalProblem').textContent = item.problem;
+  document.getElementById('modalSolution').textContent = item.solution;
+
+  // Code
+  const codeSection = document.getElementById('modalCodeSection');
+  if (item.codeExample) {
+    codeSection.hidden = false;
+    const raw = item.codeExample.replace(/^```\w*\n?/, '').replace(/```$/, '').trim();
+    document.getElementById('modalCode').textContent = raw;
+  } else codeSection.hidden = true;
+
+  // Tradeoffs
+  const tradeoffsSection = document.getElementById('modalTradeoffsSection');
+  if (item.tradeoffs && item.tradeoffs.length) {
+    tradeoffsSection.hidden = false;
+    document.getElementById('modalTradeoffs').innerHTML =
+      item.tradeoffs.map(t => `<li>${esc(t)}</li>`).join('');
+  } else tradeoffsSection.hidden = true;
+
+  // References
+  const refsSection = document.getElementById('modalRefsSection');
+  if (item.references && item.references.length) {
+    refsSection.hidden = false;
+    document.getElementById('modalRefs').innerHTML =
+      item.references.map(r =>
+        `<a href="${r.url}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1">
+          🔗 ${esc(r.title)}</a>`).join('');
+  } else refsSection.hidden = true;
+
+  // Verification
+  const verifSection = document.getElementById('modalVerifSection');
+  if (item.selfVerification && item.selfVerification.method) {
+    verifSection.hidden = false;
+    document.getElementById('modalVerif').innerHTML =
+      `<div><span class="text-emerald-400">${item.selfVerification.verified ? '✅' : '⚠️'}</span> ${esc(item.selfVerification.method)}</div>` +
+      (item.selfVerification.caveats ? `<div class="text-yellow-400 mt-1">⚠️ ${esc(item.selfVerification.caveats)}</div>` : '');
+  } else verifSection.hidden = true;
+
+  // Demo
+  const demoSection = document.getElementById('modalDemoSection');
+  if (item.demo && item.demo.exists) {
+    demoSection.hidden = false;
+    document.getElementById('modalDemoInfo').textContent = item.demo.description;
+  } else demoSection.hidden = true;
+
+  // Tags
+  document.getElementById('modalTags').innerHTML =
+    (item.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+
+  // Toolkit target
+  const tkSection = document.getElementById('modalToolkitSection');
+  if (item.validation && item.validation.toolkitTarget) {
+    tkSection.hidden = false;
+    document.getElementById('modalToolkitTarget').textContent = item.validation.toolkitTarget;
+  } else tkSection.hidden = true;
+
+  // Actions
+  const actions = document.getElementById('modalActions');
+  const isPending = item.status === 'pending_review' || item.status === 'needs_rework';
+  actions.innerHTML = `
+    ${isPending ? `<button class="btn btn-success" onclick="showValidateForm('validated')">✅ Validate</button>
+    <button class="btn btn-danger" onclick="showValidateForm('rejected')">❌ Reject</button>
+    <button class="btn btn-warning" onclick="showValidateForm('needs_rework')">🔄 Needs Rework</button>` : ''}
+    ${item.demo && item.demo.exists ? `<button class="btn btn-primary" onclick="openDemoFromModal()">🚀 Xem Demo</button>` : ''}
+    ${item.status === 'validated' ? `<button class="btn btn-ghost" onclick="showValidateForm('pending_review')">↩ Reset to Pending</button>` : ''}
+  `;
+
+  document.getElementById('validateForm').hidden = true;
+  document.getElementById('detailModal').hidden = false;
+}
+
+function showValidateForm(preset) {
+  document.getElementById('validateForm').hidden = false;
+  document.getElementById('validationStatus').value = preset;
+  document.getElementById('validationNotes').focus();
+}
+
+async function submitValidation() {
+  const status = document.getElementById('validationStatus').value;
+  const notes = document.getElementById('validationNotes').value;
+  if (!state.currentItem) return;
+
+  await api.put(`/api/knowledge/${state.currentItem.id}/status`, { status, notes });
+  closeDetailModal();
+  await refreshAll();
+}
+
+async function openDemoFromModal() {
+  if (!state.currentItem) return;
+  try {
+    const demoInfo = await api.get(`/api/demo/${state.currentItem.id}`);
+    if (demoInfo.exists && demoInfo.url) window.open(demoInfo.url, '_blank');
+    else alert(demoInfo.message || 'Demo chưa được tạo.');
+  } catch(e) { alert('Không thể load demo: ' + e.message); }
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').hidden = true;
+  document.getElementById('validateForm').hidden = true;
+  document.getElementById('validationNotes').value = '';
+}
+function closeDetailIfOutside(e) { if (e.target === document.getElementById('detailModal')) closeDetailModal(); }
+
+// ── Queue View ────────────────────────────────────────────────────────────────
+async function loadQueue() {
+  // Queue is just displayed as text since it's a markdown file
+  const items = state.items;
+  const pending = items.filter(i => i.status === 'pending_review');
+  const validated = items.filter(i => i.status === 'validated');
+
+  document.getElementById('queueContent').innerHTML = `
+    <div class="space-y-3">
+      <div class="text-slate-300 font-medium">📊 Tóm tắt hiện tại</div>
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="bg-slate-800 rounded p-2">
+          <div class="text-yellow-400 font-bold">${pending.length}</div>
+          <div class="text-xs text-slate-500">Pending</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2">
+          <div class="text-emerald-400 font-bold">${validated.length}</div>
+          <div class="text-xs text-slate-500">Validated</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2">
+          <div class="text-indigo-400 font-bold">${items.length}</div>
+          <div class="text-xs text-slate-500">Total</div>
+        </div>
+      </div>
+      <hr class="border-slate-700">
+      <div class="text-slate-300 font-medium">📋 Items đang chờ validate</div>
+      ${pending.length === 0 ? '<div class="text-slate-500">Không có item pending 🎉</div>' :
+        pending.map(i => `
+        <div class="flex items-center gap-2 py-1 cursor-pointer hover:text-white" onclick="switchView('knowledge'); openDetail('${i.id}')">
+          <span class="text-yellow-400">⏳</span>
+          <span>${esc(i.topic)}</span>
+          <span class="ml-auto text-xs text-slate-500">${Math.round(i.confidence*100)}%</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── Settings View ─────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const cats = await api.get('/api/categories');
+  state.categories = cats;
+  const list = document.getElementById('categoriesList');
+  list.innerHTML = cats.map(cat => `
+    <div class="flex items-center gap-2 p-2 bg-slate-800 rounded-lg">
+      <span>${cat.icon}</span>
+      <span class="flex-1 text-sm font-medium" style="color:${cat.color}">${cat.label}</span>
+      <span class="text-xs text-slate-500">${cat.id}</span>
+      <button class="btn btn-ghost text-xs py-1" onclick="deleteCategory('${cat.id}','${cat.label}')">🗑️</button>
+    </div>`).join('');
+
+  const health = await api.get('/api/health');
+  document.getElementById('systemInfo').innerHTML = `
+    <div>Data path: <code class="bg-slate-800 px-1 rounded">${health.dataPath}</code></div>
+    <div>Hub path: <code class="bg-slate-800 px-1 rounded">${health.hubPath}</code></div>
+    <div>Data exists: <span class="${health.dataPathExists ? 'text-emerald-400' : 'text-red-400'}">${health.dataPathExists}</span></div>
+    <div>Hub exists: <span class="${health.hubPathExists ? 'text-emerald-400' : 'text-red-400'}">${health.hubPathExists}</span></div>`;
+}
+
+async function deleteCategory(id, label) {
+  if (!confirm(`Xoá category "${label}"? Items trong category này sẽ không bị xoá.`)) return;
+  await api.del(`/api/categories/${id}`);
+  await Promise.all([loadSettings(), loadCategories()]);
+}
+
+// ── Add Category Modal ────────────────────────────────────────────────────────
+function openAddCategoryModal() { document.getElementById('catModal').hidden = false; }
+function closeCatModal() {
+  document.getElementById('catModal').hidden = true;
+  document.getElementById('catError').hidden = true;
+  ['catId','catLabel','catDesc'].forEach(id => document.getElementById(id).value = '');
+}
+function closeCatIfOutside(e) { if (e.target === document.getElementById('catModal')) closeCatModal(); }
+
+async function submitAddCategory() {
+  const errEl = document.getElementById('catError');
+  errEl.hidden = true;
+  const cat = {
+    id: document.getElementById('catId').value.trim().toLowerCase().replace(/\s+/g, '-'),
+    label: document.getElementById('catLabel').value.trim(),
+    icon: document.getElementById('catIcon').value.trim() || '📚',
+    color: document.getElementById('catColor').value,
+    description: document.getElementById('catDesc').value.trim()
+  };
+  if (!cat.id || !cat.label) { errEl.textContent = 'Id và Label là bắt buộc'; errEl.hidden = false; return; }
+  try {
+    await api.post('/api/categories', cat);
+    closeCatModal();
+    await Promise.all([loadCategories(), loadSettings()]);
+  } catch(e) { errEl.textContent = e.message; errEl.hidden = false; }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function statusLabel(s) {
+  return { pending_review: '⏳ Pending', validated: '✅ Validated', rejected: '❌ Rejected', needs_rework: '🔄 Rework' }[s] || s;
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+{
+  "id": "postgresql-skip-locked-job-queue-20260627",
+  "topic": "PostgreSQL SKIP LOCKED — Job Queue Pattern",
+  "category": "postgresql",
+  "subcategory": "patterns",
+  "tags": ["postgresql", "locking", "queue", "concurrency", "performance"],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-27T10:30:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "SKIP LOCKED cho phép nhiều worker process lấy jobs song song từ DB mà không bị block nhau — alternative đơn giản cho message queue khi scale vừa.",
+  "problem": "Khi nhiều worker cùng SELECT job để xử lý, nếu dùng FOR UPDATE thông thường, worker B phải đợi worker A release lock. Với SKIP LOCKED, worker B tự động skip rows đang bị lock và lấy row tiếp theo — zero wait time.",
+  "solution": "Dùng SELECT ... FOR UPDATE SKIP LOCKED trong transaction để implement concurrent-safe job queue trực tiếp trên PostgreSQL. Kết hợp với partial index trên status để query nhanh.",
+  "codeExample": "```sql\n-- Setup table\nCREATE TABLE jobs (\n    id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n    payload     JSONB NOT NULL,\n    status      TEXT NOT NULL DEFAULT 'pending',\n    attempts    INT  NOT NULL DEFAULT 0,\n    created_at  TIMESTAMPTZ DEFAULT NOW(),\n    scheduled_at TIMESTAMPTZ DEFAULT NOW()\n);\n\n-- Partial index — chỉ index pending jobs\nCREATE INDEX idx_jobs_pending ON jobs(scheduled_at)\nWHERE status = 'pending';\n\n-- Worker query — lấy batch và skip locked rows\nBEGIN;\n\nSELECT id, payload\nFROM jobs\nWHERE status = 'pending'\n  AND scheduled_at <= NOW()\nORDER BY scheduled_at\nLIMIT 10\nFOR UPDATE SKIP LOCKED;  -- ← magic: không đợi, bỏ qua\n\n-- Cập nhật status ngay trong cùng transaction\nUPDATE jobs\nSET status = 'processing', attempts = attempts + 1\nWHERE id = ANY(ARRAY[...ids từ SELECT...]);\n\nCOMMIT;\n```\n\n```csharp\n// .NET implementation với Npgsql\npublic async Task<List<Job>> DequeueAsync(int batchSize, CancellationToken ct)\n{\n    await using var tx = await _conn.BeginTransactionAsync(ct);\n    \n    var jobs = await _conn.QueryAsync<Job>(\n        \"\"\"SELECT id, payload FROM jobs\n           WHERE status = 'pending' AND scheduled_at <= NOW()\n           ORDER BY scheduled_at LIMIT @batch\n           FOR UPDATE SKIP LOCKED\"\"\",\n        new { batch = batchSize });\n    \n    var ids = jobs.Select(j => j.Id).ToArray();\n    if (ids.Length > 0)\n        await _conn.ExecuteAsync(\n            \"UPDATE jobs SET status='processing' WHERE id = ANY(@ids)\",\n            new { ids });\n    \n    await tx.CommitAsync(ct);\n    return jobs.ToList();\n}\n```",
+  "tradeoffs": [
+    "✅ Zero dependency — chỉ cần PostgreSQL, không cần RabbitMQ/Redis",
+    "✅ ACID — job state consistent với business data trong cùng transaction",
+    "✅ Visibility — query job queue trực tiếp bằng SQL",
+    "⚠️ Scale limit: ~1K-10K jobs/s — đủ cho hầu hết use case, không bằng Kafka",
+    "⚠️ Polling overhead — worker liên tục query dù không có job",
+    "❌ Không built-in: dead letter queue, retry scheduling, priority queue (cần tự implement)"
+  ],
+  "references": [
+    { "title": "PostgreSQL SKIP LOCKED docs", "url": "https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE" },
+    { "title": "Job queue in PostgreSQL", "url": "https://blog.crunchydata.com/blog/message-queuing-using-native-postgresql" }
+  ],
+  "selfVerification": {
+    "verified": true,
+    "method": "Demo chạy 5 concurrent workers, verify mỗi job chỉ được process 1 lần, check pg_locks table",
+    "caveats": "Tested với PostgreSQL 15, Npgsql 8.x"
+  },
+  "demo": {
+    "exists": true,
+    "type": "backend",
+    "path": "PostgreSQL/SkipLockedQueue",
+    "description": "POST /api/demo/skip-locked — seed 20 jobs, chạy 5 concurrent workers, trả về kết quả xử lý"
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/query-patterns.md",
+    "action": "append"
+  }
+}
