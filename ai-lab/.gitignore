@@ -1,0 +1,8 @@
+# .NET build output
+demo-engine/src/DemoEngine.API/bin/
+demo-engine/src/DemoEngine.API/obj/
+
+# OS
+.DS_Store
+Thumbs.db
+

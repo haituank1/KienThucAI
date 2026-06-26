@@ -1,18 +1,14 @@
 # EF Core — Battle-tested Patterns
 
-> Format: Context → Code → Lesson / Gotcha
-> Cập nhật khi tìm ra pattern mới hoặc bị lỗi do pattern sai.
-
 ## 1. Projection với nested object (tránh N+1)
 ```csharp
-// ✅ Load order + items trong 1 query
 var order = await _ctx.Orders
     .AsNoTracking()
     .Where(o => o.Id == orderId)
     .Select(o => new OrderDetailDto
     {
         Id = o.Id,
-        CustomerName = o.Customer.FullName,  // JOIN tự động
+        CustomerName = o.Customer.FullName,
         Items = o.OrderItems.Select(i => new OrderItemDto
         {
             ProductName = i.Product.Name,
@@ -21,29 +17,22 @@ var order = await _ctx.Orders
         }).ToList()
     })
     .FirstOrDefaultAsync(ct);
-// SQL: 1 query với JOIN, không phải N+1
 ```
 
-## 2. Bulk update không load entity
+## 2. Bulk update không load entity (EF Core 7+)
 ```csharp
-// ✅ EF Core 7+ ExecuteUpdateAsync
 await _ctx.Orders
     .Where(o => o.Status == OrderStatus.Pending 
              && o.CreatedAt < DateTime.UtcNow.AddDays(-7))
     .ExecuteUpdateAsync(s => s
         .SetProperty(o => o.Status, OrderStatus.Expired)
-        .SetProperty(o => o.UpdatedAt, DateTime.UtcNow),
-        ct);
-// SQL: UPDATE orders SET status=... WHERE ... (không load 1 record nào)
+        .SetProperty(o => o.UpdatedAt, DateTime.UtcNow), ct);
 ```
 
-## 3. Batch insert (tránh SaveChanges per item)
+## 3. Batch insert
 ```csharp
-// ✅ Batch theo chunk, không insert all-at-once
 const int batchSize = 1000;
-var batches = items.Chunk(batchSize);
-
-foreach (var batch in batches)
+foreach (var batch in items.Chunk(batchSize))
 {
     _ctx.ChangeTracker.Clear(); // Reset tracker mỗi batch
     await _ctx.Items.AddRangeAsync(batch, ct);
@@ -53,7 +42,6 @@ foreach (var batch in batches)
 
 ## 4. Streaming large result (tránh OOM)
 ```csharp
-// ✅ IAsyncEnumerable — không load all vào memory
 public async IAsyncEnumerable<ReportRowDto> StreamReportAsync(
     DateRange range,
     [EnumeratorCancellation] CancellationToken ct)
@@ -69,126 +57,85 @@ public async IAsyncEnumerable<ReportRowDto> StreamReportAsync(
         yield return row;
     }
 }
-
-// Consumer:
-await foreach (var row in _repo.StreamReportAsync(range, ct))
-{
-    await writer.WriteRowAsync(row, ct);
-}
 ```
 
-## 5. Optimistic Concurrency
+## 5. Optimistic Concurrency (PostgreSQL xmin)
 ```csharp
 // Entity:
-public class Order
-{
-    public uint Version { get; private set; } // xmin (PostgreSQL)
-}
+public uint Version { get; private set; } // xmin
 
 // Config:
-builder.Property(o => o.Version)
-    .IsRowVersion()
-    .HasColumnName("xmin")
-    .HasColumnType("xid");
+builder.Property(o => o.Version).IsRowVersion()
+    .HasColumnName("xmin").HasColumnType("xid");
 
-// Handle conflict:
-try
+// Handle:
+try { await _ctx.SaveChangesAsync(ct); }
+catch (DbUpdateConcurrencyException)
 {
-    await _ctx.SaveChangesAsync(ct);
-}
-catch (DbUpdateConcurrencyException ex)
-{
-    // Reload và retry, hoặc return conflict error
     throw new ConflictException("Order was modified by another request");
 }
 ```
 
-## 6. Raw SQL khi LINQ không đủ mạnh
+## 6. Raw SQL — Typed SqlQuery<T> (EF Core 8+)
 ```csharp
-// ✅ Typed raw SQL (EF Core 8)
+// ✅ Không cần Entity setup; {params} tự động parameterized (SQL injection safe)
+// ⚠️ Column name trong SQL phải match property name (case-insensitive)
+// ⚠️ Không compose được với LINQ navigation property
+public record RevenueByMonth(DateOnly Month, decimal Revenue, int OrderCount);
+
 var results = await _ctx.Database
-    .SqlQuery<RevenueByMonthDto>($"""
-        SELECT 
-            DATE_TRUNC('month', created_at) as month,
-            SUM(total_amount) as revenue,
-            COUNT(*) as order_count
+    .SqlQuery<RevenueByMonth>($"""
+        SELECT
+            DATE_TRUNC('month', created_at)::date AS month,
+            SUM(total_amount)                     AS revenue,
+            COUNT(*)::int                         AS order_count
         FROM orders
         WHERE tenant_id = {tenantId}
           AND created_at BETWEEN {from} AND {to}
-        GROUP BY 1
-        ORDER BY 1
+        GROUP BY 1 ORDER BY 1
         """)
     .ToListAsync(ct);
+// Có thể chain: .Where(), .OrderBy(), .Skip().Take() sau SqlQuery
 ```
 
 ## 7. Global Query Filter — Soft delete & Multi-tenancy
-
 ```csharp
-// DbContext — auto-apply cho mọi query trên entity
 protected override void OnModelCreating(ModelBuilder builder)
 {
-    // Soft delete: tất cả query tự động filter IsDeleted = false
     builder.Entity<Order>().HasQueryFilter(o => !o.IsDeleted);
-
-    // Multi-tenancy: tự động filter theo tenant hiện tại
     builder.Entity<Order>().HasQueryFilter(
         o => o.TenantId == _currentTenantService.TenantId);
 }
 
-// Bypass filter khi cần (admin query, migration):
-var allOrders = await _ctx.Orders
-    .IgnoreQueryFilters()
-    .Where(o => o.IsDeleted)
-    .ToListAsync(ct);
+// Bypass (admin/migration):
+var allOrders = await _ctx.Orders.IgnoreQueryFilters().ToListAsync(ct);
 ```
-**Lesson learned:** Global filter invisible — dễ bị quên khi debug "tại sao query không trả về record". Luôn check IgnoreQueryFilters() khi admin report "không thấy data".
+**Lesson learned:** Global filter invisible — khi admin "không thấy data", check IgnoreQueryFilters() trước.
 
----
-
-## 8. Compiled Query — Giảm overhead cho hot query
-
+## 8. Compiled Query — Hot query >100 req/s (~30% faster)
 ```csharp
-// Định nghĩa 1 lần, reuse nhiều lần (skip query compilation overhead)
 public static class CompiledQueries
 {
     public static readonly Func<AppDbContext, Guid, Task<OrderDetailDto?>> GetOrderById =
         EF.CompileAsyncQuery((AppDbContext ctx, Guid id) =>
-            ctx.Orders
-                .AsNoTracking()
+            ctx.Orders.AsNoTracking()
                 .Where(o => o.Id == id)
-                .Select(o => new OrderDetailDto
-                {
-                    Id = o.Id,
-                    CustomerName = o.Customer.FullName,
-                    TotalAmount = o.TotalAmount
-                })
+                .Select(o => new OrderDetailDto { Id = o.Id, CustomerName = o.Customer.FullName, TotalAmount = o.TotalAmount })
                 .FirstOrDefault());
 }
 
-// Dùng:
 var order = await CompiledQueries.GetOrderById(_ctx, orderId);
 ```
-**Khi dùng:** Query chạy >100 lần/giây. Benchmark: compiled query ~30% nhanh hơn do skip model-to-SQL compilation.
-
----
 
 ## 9. Interceptor — Audit trail tự động
-
 ```csharp
-// Tự động set CreatedAt/UpdatedAt khi SaveChanges
 public class AuditInterceptor(ICurrentUserService currentUser) : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(
         DbContextEventData eventData, InterceptionResult<int> result)
     {
-        ApplyAudit(eventData.Context!);
-        return base.SavingChanges(eventData, result);
-    }
-
-    private void ApplyAudit(DbContext ctx)
-    {
         var now = DateTime.UtcNow;
-        foreach (var entry in ctx.ChangeTracker.Entries<IAuditableEntity>())
+        foreach (var entry in eventData.Context!.ChangeTracker.Entries<IAuditableEntity>())
         {
             if (entry.State == EntityState.Added)
             {
@@ -201,28 +148,17 @@ public class AuditInterceptor(ICurrentUserService currentUser) : SaveChangesInte
                 entry.Entity.UpdatedBy = currentUser.UserId;
             }
         }
+        return base.SavingChanges(eventData, result);
     }
 }
 
-// Register:
 services.AddDbContext<AppDbContext>((sp, opt) =>
-    opt.UseNpgsql(connStr)
-       .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+    opt.UseNpgsql(connStr).AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 ```
 
----
-
 ## 10. Owned Entity — Value Object mapping
-
 ```csharp
-// Domain: Value Object
 public record Money(decimal Amount, string Currency);
-
-// Entity:
-public class Order
-{
-    public Money Price { get; private set; } = default!;
-}
 
 // EF Core config — map thành columns, không phải separate table
 builder.Entity<Order>().OwnsOne(o => o.Price, money =>
@@ -232,9 +168,6 @@ builder.Entity<Order>().OwnsOne(o => o.Price, money =>
     money.Property(m => m.Currency).HasColumnName("price_currency")
          .HasMaxLength(3).IsRequired();
 });
-// SQL: orders.price_amount, orders.price_currency — không có table riêng
 ```
 
----
-
-**Master Lesson:** Chạy `context.Database.Log = Console.WriteLine` hoặc enable `EnableSensitiveDataLogging()` trong dev để thấy SQL thực tế. Không bao giờ assume LINQ → SQL mapping là đúng mà không verify.
+**Master Lesson:** Enable `EnableSensitiveDataLogging()` trong dev để thấy SQL thực tế — không assume LINQ → SQL mapping đúng mà không verify.

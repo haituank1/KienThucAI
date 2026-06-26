@@ -1,26 +1,19 @@
-# Prompt: Lập kế hoạch Migration PostgreSQL
+# Lập kế hoạch Migration PostgreSQL
 
-> Dùng khi cần thay đổi schema trên production — nơi downtime và data loss là không chấp nhận được.
-
----
-
-## PROMPT
-
-Tôi cần thực hiện migration PostgreSQL sau trên production database.
+Thực hiện migration PostgreSQL sau trên production. Downtime và data loss không chấp nhận.
 
 **Thay đổi cần làm:**
 ```sql
-[Mô tả hoặc DDL thay đổi — vd: thêm column, rename, thêm index, thay đổi type]
+[DDL thay đổi — thêm column, rename, thêm index, thay đổi type]
 ```
 
 **Current schema:**
 ```sql
-[PASTE DDL hiện tại của table bị ảnh hưởng]
+[PASTE DDL table bị ảnh hưởng]
 ```
 
 **Database stats:**
 ```sql
--- Chạy để lấy:
 SELECT reltuples::bigint as rows,
        pg_size_pretty(pg_total_relation_size(oid)) as size
 FROM pg_class WHERE relname = 'your_table';
@@ -30,39 +23,29 @@ FROM pg_class WHERE relname = 'your_table';
 ```
 
 **Constraint:**
-- Downtime cho phép: [không có / <X phút / maintenance window lúc X giờ]
-- PostgreSQL version: [15 / 16 / ...]
+- Downtime: [không có / <X phút / maintenance window X giờ]
+- PostgreSQL: [15 / 16]
 - Replication: [standalone / primary + replica]
-- Application: [có thể deploy lại ngay / deploy window riêng]
+- App deploy: [ngay / window riêng]
 
-Hãy lập kế hoạch migration:
+Lập kế hoạch:
 
-1. **Risk assessment**
-   - Lock type và duration ước lượng
-   - Replication lag risk
-   - Data loss risk
-   - Rollback có dễ không?
+1. **Risk assessment** — lock type + duration | replication lag | data loss risk | rollback dễ không?
 
-2. **Migration steps** — chi tiết từng bước
+2. **Migration steps:**
    ```sql
    -- Step 1: [mô tả]
    [SQL]
-
-   -- Step 2: [mô tả]
-   [SQL]
    ```
 
-3. **Zero-downtime approach** (nếu cần)
-   - Expand-Contract pattern
-   - Blue-Green deployment consideration
-   - Feature flag để cut-over dần
+3. **Zero-downtime approach** (nếu cần) — Expand-Contract | Blue-Green | Feature flag
 
-4. **Verification queries** — chạy sau migration để confirm
+4. **Verification queries:**
    ```sql
-   [SQL để verify]
+   [SQL verify sau migration]
    ```
 
-5. **Rollback plan** — nếu có vấn đề sau deploy
+5. **Rollback plan:**
    ```sql
    [Rollback SQL]
    ```
@@ -74,27 +57,24 @@ Hãy lập kế hoạch migration:
 ```
 ADD COLUMN NOT NULL (no default)
   → Lock toàn bộ bảng, rewrite tất cả rows
-  → Fix: ADD COLUMN nullable trước, backfill, rồi SET NOT NULL
+  → Fix: ADD COLUMN nullable → backfill → SET NOT NULL
 
 ADD COLUMN NOT NULL WITH DEFAULT (PG 11+)
   → Không rewrite nếu default là constant — safe
 
 CREATE INDEX
   → Lock writes
-  → Fix: CREATE INDEX CONCURRENTLY (không lock writes, chậm hơn)
+  → Fix: CREATE INDEX CONCURRENTLY
 
-DROP COLUMN
-  → Fast (chỉ mark deleted), nhưng reclaim space cần VACUUM FULL
+DROP COLUMN → Fast (mark deleted); reclaim space cần VACUUM FULL
 
 ALTER COLUMN TYPE
   → Rewrite toàn bộ bảng → lock lâu
-  → Fix: add new column, backfill, swap, drop old
+  → Fix: add new column → backfill → swap → drop old
 
-RENAME TABLE / COLUMN
-  → Lock, nhưng fast
-  → Risk: application code + views + functions reference tên cũ
+RENAME TABLE / COLUMN → Lock fast; risk: app code + views reference tên cũ
 
 ADD FOREIGN KEY
-  → Scan toàn bộ bảng để validate → lock reads + writes
-  → Fix: ADD CONSTRAINT ... NOT VALID (skip validation), rồi VALIDATE riêng
+  → Scan toàn bộ bảng → lock
+  → Fix: ADD CONSTRAINT ... NOT VALID → VALIDATE riêng
 ```

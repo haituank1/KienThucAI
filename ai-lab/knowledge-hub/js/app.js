@@ -518,13 +518,119 @@ async function submitValidation() {
   if (!state.currentItem) return;
 
   try {
-    await api.put(`/api/knowledge/${state.currentItem.id}/status`, { status, notes });
+    const updated = await api.put(`/api/knowledge/${state.currentItem.id}/status`, { status, notes });
     closeDetailModal();
     state.loadingKnowledge = false;
     await Promise.all([loadStats(), loadKnowledge()]);
+
+    // Nếu vừa validate (không phải reject/rework) → show toolkit preview
+    if (status === 'validated' && updated.validation && updated.validation.toolkitTarget) {
+      await showToolkitPreview(updated);
+    }
   } catch(e) {
     alert('Lỗi khi lưu: ' + e.message);
   }
+}
+
+// ── Toolkit Merge flow ────────────────────────────────────────────────────────
+
+let _currentPreview = null; // lưu preview object hiện tại
+
+async function showToolkitPreview(item) {
+  try {
+    const preview = await api.get(`/api/knowledge/${item.id}/toolkit-preview`);
+    _currentPreview = { ...preview, itemId: item.id };
+
+    // Target path
+    document.getElementById('previewTargetPath').textContent =
+      `my-ai-toolkit / ${preview.targetRelPath}`;
+
+    // File info
+    const fileInfo = document.getElementById('previewFileInfo');
+    if (preview.fileExists) {
+      fileInfo.innerHTML = `📄 File tồn tại — hiện có <strong>${preview.existingLineCount}</strong> dòng. Nội dung mới sẽ được <strong>append</strong> xuống cuối.`;
+    } else {
+      fileInfo.innerHTML = `🆕 File chưa tồn tại — sẽ được <strong>tạo mới</strong>.`;
+    }
+
+    // Duplicate warning
+    const dupEl = document.getElementById('previewDupWarning');
+    if (preview.hasDuplicate) {
+      dupEl.hidden = false;
+      dupEl.textContent = preview.duplicateWarning;
+    } else {
+      dupEl.hidden = true;
+    }
+
+    // Editable content
+    document.getElementById('previewContent').value = preview.content;
+
+    // Reset status
+    document.getElementById('mergeStatus').textContent = '';
+    document.getElementById('btnConfirmMerge').disabled = false;
+
+    document.getElementById('toolkitPreviewModal').hidden = false;
+  } catch(e) {
+    // toolkitTarget không set → không show modal, đó là bình thường
+    console.info('No toolkit preview:', e.message);
+  }
+}
+
+async function confirmMergeToToolkit() {
+  if (!_currentPreview) return;
+
+  const btn     = document.getElementById('btnConfirmMerge');
+  const statusEl = document.getElementById('mergeStatus');
+  const content = document.getElementById('previewContent').value;
+
+  btn.disabled = true;
+  statusEl.textContent = '⏳ Đang lưu...';
+  statusEl.style.color = '#94a3b8';
+
+  try {
+    // Cần item ID — lưu trong _currentPreview.itemId (set khi showToolkitPreview)
+    const result = await _mergeToToolkit(_currentPreview.itemId, {
+      targetAbsPath: _currentPreview.targetAbsPath,
+      targetRelPath: _currentPreview.targetRelPath,
+      content
+    });
+
+    if (result.success) {
+      statusEl.textContent = `✅ ${result.message}`;
+      statusEl.style.color = '#34d399';
+      btn.textContent = '✅ Đã lưu';
+      setTimeout(() => closeToolkitPreview(), 2000);
+    } else {
+      statusEl.textContent = `❌ ${result.message}`;
+      statusEl.style.color = '#f87171';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    statusEl.textContent = `❌ Lỗi: ${e.message}`;
+    statusEl.style.color = '#f87171';
+    btn.disabled = false;
+  }
+}
+
+// Merge endpoint path cần item ID — fix lại route call
+// Override api.post với path correct
+async function _mergeToToolkit(itemId, req) {
+  const r = await fetch(`${API_BASE}/api/knowledge/${itemId}/merge-to-toolkit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error(t || r.statusText); }
+  return r.json();
+}
+
+function closeToolkitPreview() {
+  document.getElementById('toolkitPreviewModal').hidden = true;
+  _currentPreview = null;
+}
+
+function closeToolkitPreviewIfOutside(e) {
+  if (e.target === document.getElementById('toolkitPreviewModal')) closeToolkitPreview();
 }
 
 async function openDemoFromModal() {

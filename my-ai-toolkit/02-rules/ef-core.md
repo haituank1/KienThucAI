@@ -1,27 +1,20 @@
 # EF Core 8 Rules
 
----
+## Query Checklist
 
-## Query — Checklist bắt buộc
-
-| Rule | Lý do |
-|------|-------|
-| `.AsNoTracking()` cho mọi read-only query | Tiết kiệm memory, tắt change tracking không cần |
-| `.Select(x => new Dto{})` thay vì load full entity | Chỉ pull columns cần thiết từ DB |
-| Explicit `.Include()` — không `virtual` navigation property | Tránh lazy loading N+1 ẩn |
-| Pass `CancellationToken` vào mọi `*Async()` | Client cancel → query stop |
-| Verify SQL bằng `.ToQueryString()` khi viết query mới | Tránh surprise client-side evaluation |
-
----
+| Rule | Note |
+|------|------|
+| `.AsNoTracking()` on all read-only queries | Saves memory, disables change tracking |
+| `.Select(x => new Dto{})` instead of full entity | Pulls only needed columns |
+| Explicit `.Include()` — no `virtual` nav props | Prevents hidden lazy loading N+1 |
+| Pass `CancellationToken` to all `*Async()` | Client cancel stops query |
+| Verify SQL with `.ToQueryString()` on new queries | Catches surprise client-side eval |
 
 ## Tracking vs No-Tracking
 
 ```csharp
-// ❌ Load full entity + track khi chỉ cần read
-var orders = await _ctx.Orders
-    .Include(o => o.Items)        // load columns không cần
-    .Include(o => o.Customer)     // N+1 risk nếu thiếu Include
-    .ToListAsync(ct);             // track tất cả → memory waste
+// ❌ Full entity + tracking for read-only
+var orders = await _ctx.Orders.Include(o => o.Items).Include(o => o.Customer).ToListAsync(ct);
 
 // ✅ Projection + no-tracking
 var orders = await _ctx.Orders
@@ -30,145 +23,105 @@ var orders = await _ctx.Orders
     .Select(o => new OrderSummaryDto
     {
         Id = o.Id,
-        CustomerName = o.Customer.FullName,   // EF tự JOIN
+        CustomerName = o.Customer.FullName, // EF auto-JOINs
         TotalAmount = o.TotalAmount,
-        ItemCount = o.Items.Count             // EF tự subquery/JOIN
+        ItemCount = o.Items.Count           // EF auto-subquery
     })
     .OrderByDescending(o => o.CreatedAt)
     .ToListAsync(ct);
-// SQL: 1 query, chỉ SELECT columns cần thiết
 ```
 
----
-
-## Bulk Operations — Không load entity để update/delete
+## Bulk Operations
 
 ```csharp
-// ❌ Load entity rồi update từng cái — N+1 writes
-var orders = await _ctx.Orders
-    .Where(o => o.Status == OrderStatus.Pending && o.CreatedAt < cutoff)
-    .ToListAsync(ct);
-foreach (var o in orders) o.Status = OrderStatus.Expired; // track từng cái
-await _ctx.SaveChangesAsync(ct); // nhiều UPDATE statements
+// ❌ Load then update — N+1 writes
+var orders = await _ctx.Orders.Where(...).ToListAsync(ct);
+foreach (var o in orders) o.Status = OrderStatus.Expired;
+await _ctx.SaveChangesAsync(ct);
 
-// ✅ EF Core 7+: ExecuteUpdateAsync — 1 SQL UPDATE
+// ✅ EF Core 7+: 1 SQL UPDATE
 await _ctx.Orders
     .Where(o => o.Status == OrderStatus.Pending && o.CreatedAt < cutoff)
     .ExecuteUpdateAsync(s => s
         .SetProperty(o => o.Status, OrderStatus.Expired)
         .SetProperty(o => o.UpdatedAt, DateTime.UtcNow), ct);
 
-// ✅ ExecuteDeleteAsync — 1 SQL DELETE
-await _ctx.AuditLogs
-    .Where(l => l.CreatedAt < DateTime.UtcNow.AddYears(-1))
-    .ExecuteDeleteAsync(ct);
+// ✅ 1 SQL DELETE
+await _ctx.AuditLogs.Where(l => l.CreatedAt < DateTime.UtcNow.AddYears(-1)).ExecuteDeleteAsync(ct);
 ```
-
----
 
 ## Batch Insert
 
 ```csharp
-// ✅ Batch theo chunk, clear tracker giữa các batch
-const int batchSize = 500; // PostgreSQL: 500-1000 optimal
+// ✅ Chunk + clear tracker between batches
+const int batchSize = 500; // PostgreSQL optimal: 500-1000
 
 foreach (var batch in items.Chunk(batchSize))
 {
-    _ctx.ChangeTracker.Clear(); // reset tracker — tránh memory tích lũy
+    _ctx.ChangeTracker.Clear(); // prevent memory accumulation
     await _ctx.Items.AddRangeAsync(batch, ct);
     await _ctx.SaveChangesAsync(ct);
 }
-
-// ⚠️ Với số lượng rất lớn (>100K rows): cân nhắc COPY command qua Npgsql
-// Benchmark: EF AddRange ~5K rows/s, Npgsql COPY ~100K rows/s
+// >100K rows: consider Npgsql COPY (~100K rows/s vs EF ~5K rows/s)
 ```
 
----
-
-## Split Query — Khi Include nhiều collection
+## Split Query
 
 ```csharp
-// ❌ Cartesian explosion: Order × Items × Tags = nhiều rows trùng
-var orders = await _ctx.Orders
-    .Include(o => o.Items)   // collection
-    .Include(o => o.Tags)    // collection → cartesian product
-    .ToListAsync(ct);
+// ❌ Cartesian explosion: Orders × Items × Tags = duplicate rows
+var orders = await _ctx.Orders.Include(o => o.Items).Include(o => o.Tags).ToListAsync(ct);
 
-// ✅ Split query — 3 SQL riêng biệt, tránh cartesian
-var orders = await _ctx.Orders
-    .Include(o => o.Items)
-    .Include(o => o.Tags)
-    .AsSplitQuery()          // ← thêm dòng này
-    .ToListAsync(ct);
-
-// Note: Split query không atomic — dữ liệu có thể inconsistent nếu có concurrent write
-// Dùng khi: data volume lớn + read-only + eventual consistency chấp nhận được
+// ✅ 3 separate SQLs, no cartesian
+var orders = await _ctx.Orders.Include(o => o.Items).Include(o => o.Tags)
+    .AsSplitQuery().ToListAsync(ct);
+// Note: not atomic — data may be inconsistent under concurrent writes
+// Use when: high volume + read-only + eventual consistency acceptable
 ```
 
----
-
-## Global Query Filter — Soft delete, Multi-tenancy
+## Global Query Filter
 
 ```csharp
-// DbContext:
 protected override void OnModelCreating(ModelBuilder builder)
 {
-    // Soft delete filter — tự động apply cho mọi query
-    builder.Entity<Order>().HasQueryFilter(o => !o.IsDeleted);
-
-    // Multi-tenancy filter
-    builder.Entity<Order>().HasQueryFilter(o => o.TenantId == _currentTenantId);
+    builder.Entity<Order>().HasQueryFilter(o => !o.IsDeleted);         // soft delete
+    builder.Entity<Order>().HasQueryFilter(o => o.TenantId == _currentTenantId); // multi-tenancy
 }
 
-// Bypass filter khi cần (admin, migration):
-var allOrders = await _ctx.Orders
-    .IgnoreQueryFilters()
-    .Where(o => o.IsDeleted)
-    .ToListAsync(ct);
+// Bypass (admin/migration):
+var allOrders = await _ctx.Orders.IgnoreQueryFilters().Where(o => o.IsDeleted).ToListAsync(ct);
 ```
-
----
 
 ## Migration Rules
 
 ```
-✅ Mỗi migration làm 1 việc — không mix schema + data migration
-✅ Luôn implement Down() đúng để rollback được
-✅ Review generated migration file trước khi commit
-✅ Data migration: tách thành idempotent SQL script riêng
-✅ Index lớn: thêm vào migration riêng, dùng CONCURRENTLY ở PostgreSQL
-❌ Không rename column trực tiếp (EF hiểu là drop + add) — dùng .HasColumnName()
+✅ One migration = one concern — no mixing schema + data migration
+✅ Always implement Down() correctly for rollback
+✅ Review generated migration file before commit
+✅ Data migration: separate idempotent SQL script
+✅ Large index: separate migration, use CONCURRENTLY in PostgreSQL
+❌ No direct column rename (EF treats as drop+add) — use .HasColumnName()
 ```
 
 ```csharp
-// Migration với raw SQL (ví dụ: data backfill)
 public partial class AddDefaultCurrencyToOrders : Migration
 {
     protected override void Up(MigrationBuilder mb)
     {
         mb.AddColumn<string>("currency", "orders", maxLength: 3, nullable: false, defaultValue: "VND");
-
-        // Data migration: idempotent
-        mb.Sql("""
-            UPDATE orders SET currency = 'VND' WHERE currency IS NULL OR currency = '';
-            """);
+        mb.Sql("UPDATE orders SET currency = 'VND' WHERE currency IS NULL OR currency = '';"); // idempotent
     }
-
-    protected override void Down(MigrationBuilder mb)
-        => mb.DropColumn("currency", "orders");
+    protected override void Down(MigrationBuilder mb) => mb.DropColumn("currency", "orders");
 }
 ```
-
----
 
 ## DbContext Lifetime & Concurrency
 
 ```csharp
-// ✅ DbContext là NOT thread-safe — không share giữa các thread
-// Web: Scoped (1 instance per request) — default đúng
-services.AddDbContext<AppDbContext>(opt => ...); // Scoped by default
+// DbContext is NOT thread-safe — never share across threads
+// Web: Scoped (1 per request) — default is correct
+services.AddDbContext<AppDbContext>(opt => ...);
 
-// ✅ Worker Service: tạo scope mới mỗi job
+// Worker Service: new scope per job
 public class OrderProcessingWorker(IServiceScopeFactory scopeFactory) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -183,10 +136,7 @@ public class OrderProcessingWorker(IServiceScopeFactory scopeFactory) : Backgrou
     }
 }
 
-// ❌ Parallel operations trên cùng DbContext instance
-await Task.WhenAll(
-    _ctx.Orders.ToListAsync(),    // ❌ concurrent ops trên cùng context
-    _ctx.Products.ToListAsync()   // → InvalidOperationException
-);
-// ✅ Tạo 2 context riêng, hoặc query tuần tự
+// ❌ Parallel ops on same DbContext → InvalidOperationException
+await Task.WhenAll(_ctx.Orders.ToListAsync(), _ctx.Products.ToListAsync());
+// ✅ Create 2 contexts, or query sequentially
 ```

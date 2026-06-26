@@ -1,33 +1,26 @@
-# Prompt: Giải thích Code
+# Giải thích Code
 
-> Dùng khi tiếp cận codebase mới, đọc code người khác, hoặc cần hiểu sâu một pattern.
+Stack: .NET 8, Clean Architecture. Level: Senior dev — bỏ qua basic, focus vào intent và trade-off.
 
 ---
 
-## TEMPLATE 1 — Explain codebase / feature
+## Explain codebase / feature
 
-Tôi cần hiểu đoạn code C# sau. Stack: .NET 8, Clean Architecture.
-
-**Code:**
 ```csharp
 [PASTE]
 ```
 
-**Tôi muốn hiểu:**
+Tôi muốn hiểu:
 - [ ] Flow tổng thể — data đi qua đâu, theo thứ tự nào
 - [ ] Tại sao code được viết theo cách này (design decision)
-- [ ] Potential issue / gotcha nào không rõ ràng
-- [ ] Interaction với DB / external service như thế nào
+- [ ] Potential issue / gotcha không rõ ràng
+- [ ] Interaction với DB / external service
 
-**Level giải thích:** Senior developer — bỏ qua basic concept, focus vào intent và trade-off.
-
-Format: Prose ngắn + diagram ASCII nếu cần, không bullet point dày đặc.
+Format: Prose ngắn + ASCII diagram nếu cần.
 
 ---
 
-## TEMPLATE 2 — Explain execution plan PostgreSQL
-
-Giải thích execution plan PostgreSQL sau cho tôi:
+## Explain execution plan PostgreSQL
 
 ```
 [PASTE EXPLAIN ANALYZE OUTPUT ĐẦY ĐỦ]
@@ -38,28 +31,24 @@ Giải thích execution plan PostgreSQL sau cho tôi:
 [PASTE QUERY]
 ```
 
-Tôi muốn hiểu:
 1. Plan đọc từ đâu (inner → outer hay leaf → root)?
-2. Node nào đang tốn thời gian nhất và tại sao?
-3. "rows=X" là estimate hay actual? Nếu chênh lệch lớn → ý nghĩa gì?
-4. Buffer hits/reads nói lên điều gì về cache?
-5. Planner đang làm gì đúng / sai ở plan này?
+2. Node nào tốn thời gian nhất và tại sao?
+3. "rows=X" là estimate hay actual? Chênh lệch lớn → ý nghĩa gì?
+4. Buffer hits/reads nói lên gì về cache?
+5. Planner đang làm gì đúng / sai?
 
 ---
 
-## TEMPLATE 3 — Explain pattern / concept trong context cụ thể
+## Explain pattern / concept
 
 Tôi đang implement [tên feature] và thấy code dùng [pattern/approach].
 
-**Code ví dụ:**
+**Code:**
 ```csharp
 [PASTE]
 ```
 
-Giải thích:
-1. Pattern này giải quyết vấn đề gì cụ thể?
+1. Pattern giải quyết vấn đề gì cụ thể?
 2. Tại sao chọn cách này thay vì cách đơn giản hơn?
-3. Nhược điểm / trade-off là gì?
-4. Khi nào thì không nên dùng pattern này?
-
-Giả sử tôi là senior dev C# — không cần giải thích syntax, focus vào why và when.
+3. Nhược điểm / trade-off?
+4. Khi nào không nên dùng?

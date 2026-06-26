@@ -1,71 +1,63 @@
-# Prompt: Refactor
+# Refactor
+
+Stack: .NET 8, Clean Architecture. Giữ nguyên behavior, cải thiện quality.
 
 ---
 
-## TEMPLATE 1 — General Refactor
-
-Stack: .NET 8, Clean Architecture. Giữ nguyên behavior, cải thiện quality.
+## General Refactor
 
 **Code hiện tại:**
 ```csharp
 [PASTE]
 ```
 
-**Vấn đề tôi thấy (điền nếu biết):**
+**Vấn đề:**
 - [ ] Method quá dài / làm nhiều việc
-- [ ] Logic lặp lại (duplicate code)
-- [ ] Primitive obsession (dùng string/int thay vì Value Object)
-- [ ] Nested if phức tạp (cyclomatic complexity cao)
-- [ ] Thiếu abstraction (cần tách interface)
+- [ ] Logic lặp lại
+- [ ] Primitive obsession
+- [ ] Nested if phức tạp
+- [ ] Thiếu abstraction
 - [ ] Khác: [...]
 
 **Constraint:**
-- [ ] Không được thay đổi public API (caller code không sửa được)
+- [ ] Không được thay đổi public API
 - [ ] Phải giữ nguyên method signature
-- [ ] [constraint khác]
+- [ ] [khác]
 
-**Tôi muốn:**
-1. Code sau refactor — hoàn chỉnh, không viết tắt
-2. Giải thích những thay đổi quan trọng và lý do (ngắn)
-3. Nếu bạn thay đổi behavior vô tình — cảnh báo rõ ràng
-4. Nếu có nhiều approach → recommend 1 cái tốt nhất thay vì list tất cả
+Tôi muốn: 1) Code sau refactor — hoàn chỉnh. 2) Giải thích thay đổi quan trọng (ngắn). 3) Cảnh báo nếu thay đổi behavior. 4) Nếu có nhiều approach → recommend 1 cái tốt nhất.
 
 ---
 
-## TEMPLATE 2 — Refactor EF Core Query
-
-LINQ query / EF Core code sau cần optimize. Giữ đúng kết quả, cải thiện performance.
+## Refactor EF Core Query
 
 **Code hiện tại:**
 ```csharp
 [PASTE LINQ/EF CODE]
 ```
 
-**Generated SQL hiện tại (nếu có):**
+**Generated SQL (nếu có):**
 ```sql
-[PASTE — lấy bằng .ToQueryString() hoặc DB log]
+[PASTE]
 ```
 
 **Entity / DbContext config:**
 ```csharp
-[PASTE — quan trọng để AI hiểu relationship]
+[PASTE]
 ```
 
 **Vấn đề:**
-- [ ] N+1 query (load navigation property trong loop)
+- [ ] N+1 query
 - [ ] Load full entity, chỉ cần vài column
-- [ ] Client-side evaluation (filter sau ToList)
+- [ ] Client-side evaluation
 - [ ] Missing AsNoTracking
-- [ ] Query quá phức tạp, cần tách hoặc dùng raw SQL
-- [ ] Cartesian explosion (Include nhiều collection)
+- [ ] Query quá phức tạp
+- [ ] Cartesian explosion
 
-Sau refactor, paste generated SQL mới để tôi verify.
+Sau refactor, paste generated SQL mới để verify.
 
 ---
 
-## TEMPLATE 3 — Extract Pattern
-
-Code sau cần áp dụng design pattern. Không biết pattern nào phù hợp — bạn suggest.
+## Extract Pattern
 
 **Code hiện tại:**
 ```csharp
@@ -73,12 +65,8 @@ Code sau cần áp dụng design pattern. Không biết pattern nào phù hợp 
 ```
 
 **Context:**
-- Số lượng variant hiện tại: [N loại]
+- Số variant hiện tại: [N]
 - Dự kiến tương lai: [có thể thêm nhiều không?]
 - Frequency thay đổi: [thường xuyên / hiếm khi]
 
-Hãy:
-1. Identify pattern phù hợp (Strategy / Factory / Chain of Responsibility / ...)
-2. Giải thích ngắn tại sao pattern đó fit
-3. Code refactored hoàn chỉnh
-4. Trade-off: khi nào nên dùng pattern này, khi nào over-engineering
+Hãy: 1) Identify pattern phù hợp. 2) Giải thích tại sao fit. 3) Code refactored hoàn chỉnh. 4) Trade-off: khi nào nên / không nên dùng.

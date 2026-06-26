@@ -10,11 +10,7 @@ public static class KnowledgeEndpoints
         var group = app.MapGroup("/api/knowledge");
 
         // GET /api/knowledge?category=&status=&search=
-        group.MapGet("", async (
-            string? category,
-            string? status,
-            string? search,
-            KnowledgeService svc) =>
+        group.MapGet("", async (string? category, string? status, string? search, KnowledgeService svc) =>
         {
             var items = await svc.GetAllAsync(category, status, search);
             var list = items.Select(i => new
@@ -22,8 +18,8 @@ public static class KnowledgeEndpoints
                 i.Id, i.Topic, i.Category, i.Subcategory, i.Tags,
                 i.Difficulty, i.Relevance, i.Status, i.Confidence,
                 i.ResearchedAt, i.ValidatedAt, i.Summary,
-                HasDemo   = i.Demo.Exists,
-                DemoType  = i.Demo.Type
+                HasDemo  = i.Demo.Exists,
+                DemoType = i.Demo.Type
             });
             return Results.Ok(list);
         });
@@ -46,13 +42,43 @@ public static class KnowledgeEndpoints
             return updated is null ? Results.NotFound() : Results.Ok(updated);
         });
 
-        // POST /api/knowledge
+        // GET /api/knowledge/{id}/toolkit-preview
+        // Tạo preview markdown sẽ được append vào my-ai-toolkit
+        group.MapGet("{id}/toolkit-preview", async (string id, KnowledgeService svc, ToolkitService toolkitSvc) =>
+        {
+            var item = await svc.GetByIdAsync(id);
+            if (item is null) return Results.NotFound();
+
+            if (string.IsNullOrWhiteSpace(item.Validation.ToolkitTarget))
+                return Results.BadRequest(new { error = "toolkitTarget chưa được set cho item này. Thêm vào JSON field 'validation.toolkitTarget'." });
+
+            try
+            {
+                var preview = await toolkitSvc.GeneratePreviewAsync(item);
+                return Results.Ok(preview);
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST /api/knowledge/{id}/merge-to-toolkit
+        // Thực sự append content vào file my-ai-toolkit
+        group.MapPost("{id}/merge-to-toolkit", async (string id, MergeToToolkitRequest req, KnowledgeService svc, ToolkitService toolkitSvc) =>
+        {
+            var item = await svc.GetByIdAsync(id);
+            if (item is null) return Results.NotFound();
+
+            var result = await toolkitSvc.MergeAsync(req);
+            return result.Success ? Results.Ok(result) : Results.UnprocessableEntity(result);
+        });
+
+        // POST /api/knowledge — tạo item mới
         group.MapPost("", async (KnowledgeItem item, KnowledgeService svc) =>
         {
-            if (string.IsNullOrWhiteSpace(item.Topic))
-                return Results.BadRequest("Topic is required");
-            if (string.IsNullOrWhiteSpace(item.Category))
-                return Results.BadRequest("Category is required");
+            if (string.IsNullOrWhiteSpace(item.Topic))    return Results.BadRequest("Topic is required");
+            if (string.IsNullOrWhiteSpace(item.Category)) return Results.BadRequest("Category is required");
 
             var created = await svc.CreateAsync(item);
             return Results.Created($"/api/knowledge/{created.Id}", created);

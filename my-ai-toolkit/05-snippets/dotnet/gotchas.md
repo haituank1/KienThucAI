@@ -1,31 +1,25 @@
 # .NET Gotchas — Những lỗi đã gặp
 
-> Format: [Tên gotcha] → Triệu chứng → Root cause → Fix
-> Thêm vào đây mỗi khi phát hiện gotcha mới từ thực tế.
-
 ## 1. Captured variable trong async loop
 ```csharp
-// ❌ Bug: tất cả task cùng dùng 1 biến i
+// ❌ tất cả task cùng dùng 1 biến i (capture by reference)
 for (int i = 0; i < 10; i++)
-{
-    tasks.Add(Task.Run(() => Process(i))); // i bị capture by reference
-}
+    tasks.Add(Task.Run(() => Process(i)));
 
-// ✅ Fix: capture local copy
+// ✅ capture local copy
 for (int i = 0; i < 10; i++)
 {
     var localI = i;
     tasks.Add(Task.Run(() => Process(localI)));
 }
-// Hoặc dùng Parallel.ForEachAsync (tốt hơn)
 ```
 
 ## 2. ConfigureAwait trong library
 ```csharp
-// ❌ Có thể deadlock trong ASP.NET classic hoặc WinForms
-var result = GetDataAsync().Result; // deadlock nếu context bị captured
+// ❌ deadlock trong ASP.NET classic / WinForms
+var result = GetDataAsync().Result;
 
-// ✅ Trong library code: ConfigureAwait(false)
+// ✅ library code phải ConfigureAwait(false)
 public async Task<Data> GetDataAsync()
 {
     var data = await _repo.FetchAsync().ConfigureAwait(false);
@@ -33,203 +27,137 @@ public async Task<Data> GetDataAsync()
 }
 ```
 
-## 3. DbContext trong background service
+## 3. DbContext trong background service (captive dependency)
 ```csharp
-// ❌ DbContext là Scoped — inject vào Singleton → captive dependency
+// ❌ DbContext là Scoped — inject vào Singleton
 public class MyBackgroundService : BackgroundService
 {
-    private readonly AppDbContext _ctx; // ❌ WRONG
+    private readonly AppDbContext _ctx; // WRONG
 }
 
-// ✅ Tạo scope mới mỗi lần cần
-public class MyBackgroundService : BackgroundService
+// ✅ Tạo scope mỗi iteration
+protected override async Task ExecuteAsync(CancellationToken ct)
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    
-    protected override async Task ExecuteAsync(CancellationToken ct)
+    while (!ct.IsCancellationRequested)
     {
-        while (!ct.IsCancellationRequested)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            await ProcessAsync(ctx, ct);
-            await Task.Delay(TimeSpan.FromMinutes(1), ct);
-        }
+        using var scope = _scopeFactory.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await ProcessAsync(ctx, ct);
+        await Task.Delay(TimeSpan.FromMinutes(1), ct);
     }
 }
 ```
 
 ## 4. HttpClient socket exhaustion
 ```csharp
-// ❌ Tạo mới HttpClient mỗi request → socket exhaustion sau vài giờ
-public async Task<string> GetAsync(string url)
-{
-    using var client = new HttpClient(); // ❌ NEVER DO THIS
-    return await client.GetStringAsync(url);
-}
+// ❌ socket exhaustion sau vài giờ
+using var client = new HttpClient(); // NEVER DO THIS per request
 
 // ✅ IHttpClientFactory
 // DI: services.AddHttpClient<MyService>();
-public class MyService
-{
-    private readonly HttpClient _client; // Injected, managed by factory
-    public MyService(HttpClient client) => _client = client;
-}
+public class MyService(HttpClient client) { } // factory-managed
 ```
 
 ## 5. EF Core LEFT JOIN bị thành INNER JOIN
 ```csharp
-// ❌ Bị thành INNER JOIN vì navigation property non-nullable
-var orders = _ctx.Orders
-    .Include(o => o.Coupon) // Coupon nullable, nhưng vẫn bị INNER JOIN
-    .ToList();
+// ❌ Coupon nullable nhưng Include vẫn tạo INNER JOIN
+_ctx.Orders.Include(o => o.Coupon).ToList();
 
 // ✅ Fix: check relationship config
 // modelBuilder: HasOne(o => o.Coupon).WithMany().IsRequired(false)
-// Và verify với .ToQueryString()
+// Verify bằng .ToQueryString()
 ```
 
-## 6. Task.WhenAll không propagate tất cả exception
+## 6. Task.WhenAll chỉ propagate 1 exception
 ```csharp
-// ❌ Chỉ catch 1 exception đầu tiên
-try
-{
-    await Task.WhenAll(task1, task2, task3);
-}
-catch (Exception ex) // chỉ nhận 1 trong nhiều exception
-{ }
+// ❌ catch chỉ nhận exception đầu tiên
+try { await Task.WhenAll(task1, task2, task3); }
+catch (Exception ex) { }
 
-// ✅ Catch AggregateException
+// ✅ Lấy tất cả exception
 var allTasks = Task.WhenAll(task1, task2, task3);
 try { await allTasks; }
-catch
-{
-    var allExceptions = allTasks.Exception?.InnerExceptions;
-    // Handle tất cả
-}
+catch { var all = allTasks.Exception?.InnerExceptions; }
 ```
 
 ## 7. CancellationToken không được pass → request treo
-
 ```csharp
-// ❌ Khi client cancel request, query vẫn chạy đến hết
-var data = await _ctx.Orders.ToListAsync(); // Thiếu ct
+// ❌ query chạy đến hết dù client cancel
+var data = await _ctx.Orders.ToListAsync();
 
-// ✅ Luôn pass CancellationToken
+// ✅
 var data = await _ctx.Orders.ToListAsync(cancellationToken);
 ```
 
----
-
-## 8. IEnumerable bị enumerate nhiều lần — silent perf bug
-
+## 8. IEnumerable bị enumerate nhiều lần
 ```csharp
-// ❌ orders bị enumerate 2 lần (mỗi lần query DB nếu là IQueryable)
+// ❌ IQueryable enumerate 2 lần = 2 DB queries
 public void Process(IEnumerable<Order> orders)
 {
-    if (!orders.Any())     // enumerate lần 1
-        return;
-    foreach (var o in orders) // enumerate lần 2
-        Process(o);
+    if (!orders.Any()) return;       // query 1
+    foreach (var o in orders) ...;   // query 2
 }
 
 // ✅ Materialize trước
-public void Process(IEnumerable<Order> orders)
-{
-    var list = orders.ToList(); // enumerate 1 lần
-    if (!list.Any()) return;
-    foreach (var o in list) Process(o);
-}
+var list = orders.ToList();
+if (!list.Any()) return;
+foreach (var o in list) ...;
 ```
-**Triệu chứng:** Query chạy 2 lần trong log, performance thấp hơn mong đợi.
 
----
-
-## 9. SemaphoreSlim không được dispose — resource leak
-
+## 9. SemaphoreSlim — class-level, không tạo per-call
 ```csharp
-// ❌ Tạo SemaphoreSlim mỗi call nhưng không dispose
-public async Task ProcessAsync()
-{
-    var semaphore = new SemaphoreSlim(1, 1); // ❌ leak nếu không dispose
-    await semaphore.WaitAsync();
-    try { ... }
-    finally { semaphore.Release(); }
-}
+// ❌ leak nếu tạo mỗi call
+var semaphore = new SemaphoreSlim(1, 1); // per call = leak
 
-// ✅ Dùng class-level field và dispose đúng cách
+// ✅
 public class MyService : IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
-
     public async Task ProcessAsync(CancellationToken ct)
     {
         await _lock.WaitAsync(ct);
         try { ... }
         finally { _lock.Release(); }
     }
-
     public void Dispose() => _lock.Dispose();
 }
 ```
 
----
-
-## 10. DateTime.Now vs DateTime.UtcNow — timezone bug trên server
-
+## 10. DateTime.Now vs DateTime.UtcNow
 ```csharp
-// ❌ DateTime.Now bị ảnh hưởng bởi server timezone
-// Nếu server ở UTC+7, DateTime.Now trả về giờ Việt Nam
-// Khi deploy lên server UTC → behavior thay đổi
-var createdAt = DateTime.Now; // ❌
+// ❌ server timezone ảnh hưởng behavior
+var createdAt = DateTime.Now;
 
-// ✅ Luôn dùng UTC trong business logic
-var createdAt = DateTime.UtcNow; // ✅
-
-// ✅ Dùng ITimeProvider để testable (mock trong unit test)
+// ✅ UTC + testable via TimeProvider
 public class OrderService(TimeProvider timeProvider)
 {
-    public void CreateOrder()
-    {
-        var now = timeProvider.GetUtcNow(); // mockable
-    }
+    public void CreateOrder() => var now = timeProvider.GetUtcNow();
 }
 // Register: services.AddSingleton(TimeProvider.System);
 ```
-**Lesson learned:** Bug thường xuất hiện khi deploy lên cloud server có timezone khác với dev machine.
+**Lesson learned:** Bug xuất hiện khi deploy lên cloud server timezone khác dev machine.
 
----
-
-## 11. JSON Serialization: System.Text.Json và case sensitivity
-
+## 11. System.Text.Json — case sensitivity silent fail
 ```csharp
-// ❌ Deserialize fail silently nếu property name không match (case-sensitive by default)
+// ❌ {"orderId": "123"} → OrderDto.OrderId = null (không throw!)
 var dto = JsonSerializer.Deserialize<OrderDto>(json);
-// json: {"orderId": "123"} + dto: OrderId → dto.OrderId = null (không throw!)
 
-// ✅ Configure case-insensitive hoặc dùng [JsonPropertyName]
+// ✅
 var dto = JsonSerializer.Deserialize<OrderDto>(json, new JsonSerializerOptions
 {
     PropertyNameCaseInsensitive = true
 });
-
-// Hoặc explicit mapping:
-public record OrderDto([property: JsonPropertyName("orderId")] string OrderId);
+// Hoặc: [property: JsonPropertyName("orderId")]
 ```
 
----
-
-## 12. Lazy DI Resolution — không fail fast khi service missing
-
+## 12. DI — GetService vs GetRequiredService
 ```csharp
-// ❌ GetService trả về null nếu không register, không throw
-var service = serviceProvider.GetService<IMyService>(); // null nếu chưa register
-service.DoWork(); // NullReferenceException ở runtime
+// ❌ null nếu không register, throw sau ở runtime
+var service = serviceProvider.GetService<IMyService>();
 
-// ✅ GetRequiredService — throw rõ ràng ngay khi resolve
-var service = serviceProvider.GetRequiredService<IMyService>(); // throw nếu missing
+// ✅ throw rõ ràng ngay khi resolve
+var service = serviceProvider.GetRequiredService<IMyService>();
 
-// ✅✅ Tốt nhất: Constructor injection → fail at startup
-public class MyController(IMyService service) // throw nếu không register
-{ }
+// ✅✅ Constructor injection → fail at startup (tốt nhất)
+public class MyController(IMyService service) { }
 ```

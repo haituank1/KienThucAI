@@ -1,12 +1,10 @@
-# Prompt: Debug
+# Debug
 
-> 3 template tương ứng 3 loại bug thường gặp. Copy đúng template → paste vào Claude.
+Stack: .NET 8, EF Core 8, PostgreSQL.
 
 ---
 
-## TEMPLATE 1 — Runtime Exception / Logic Bug
-
-Stack: .NET 8, EF Core 8, PostgreSQL.
+## Runtime Exception / Logic Bug
 
 Tôi gặp lỗi sau và cần tìm root cause, không chỉ cách fix.
 
@@ -15,8 +13,8 @@ Tôi gặp lỗi sau và cần tìm root cause, không chỉ cách fix.
 [PASTE FULL STACK TRACE — bao gồm inner exception]
 ```
 
-**Xảy ra khi:** [mô tả action trigger — vd: "gọi POST /api/orders với payload có PromoCode"]
-**Tần suất:** [luôn luôn / ~X% requests / chỉ khi... / intermittent]
+**Xảy ra khi:** [mô tả action trigger]
+**Tần suất:** [luôn luôn / ~X% requests / intermittent]
 **Environment:** [dev / staging / production]
 
 **Code liên quan:**
@@ -24,41 +22,32 @@ Tôi gặp lỗi sau và cần tìm root cause, không chỉ cách fix.
 [PASTE — include full method + constructor dependencies]
 ```
 
-**Đã thử:**
-- [điền hoặc bỏ qua nếu chưa thử gì]
+**Đã thử:** [điền hoặc bỏ qua]
 
-Phân tích theo thứ tự:
-1. Root cause — tầng nào gây ra (DB, logic, config, infra)?
-2. Cơ chế kỹ thuật — tại sao error này xảy ra?
-3. Fix minimal + code cụ thể
-4. Test để verify fix
-5. Guard/validation gì để prevent tái phát?
+Phân tích: 1) Root cause — tầng nào gây ra? 2) Cơ chế kỹ thuật. 3) Fix + code cụ thể. 4) Test để verify. 5) Guard để prevent tái phát.
 
 ---
 
-## TEMPLATE 2 — Query / Database Chậm
+## Query / Database Chậm
 
-PostgreSQL query chạy chậm. Cần phân tích bottleneck và fix.
-
-**LINQ query (nếu dùng EF Core):**
+**LINQ query:**
 ```csharp
 [PASTE LINQ]
 ```
 
-**Generated SQL (lấy bằng .ToQueryString() hoặc DB log):**
+**Generated SQL:**
 ```sql
 [PASTE SQL]
 ```
 
 **EXPLAIN ANALYZE output:**
 ```
-[Chạy: EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) <query>;]
-[PASTE KẾT QUẢ ĐẦY ĐỦ]
+[EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) <query>;]
+[PASTE KẾT QUẢ]
 ```
 
-**Thông tin table:**
+**Table info:**
 ```sql
--- Chạy để lấy:
 SELECT relname, reltuples::bigint as est_rows,
        pg_size_pretty(pg_total_relation_size(oid)) as size
 FROM pg_class WHERE relname IN ('ten_table');
@@ -72,40 +61,26 @@ WHERE tablename = 'ten_table';
 [PASTE OUTPUT]
 ```
 
-**Context:**
-- Latency hiện tại: [X]ms / [X]s
-- Target latency: [<Xms]
-- Tần suất query: [mỗi request / mỗi phút / batch]
-- Data scale: ~[N] rows trong table
+**Context:** Latency: [X]ms → target [<Xms] | Tần suất: [mỗi request / batch] | ~[N] rows
 
-Phân tích:
-1. Bottleneck node trong execution plan (seq scan? hash join? sort?)
-2. Tại sao planner chọn plan này (statistics lỗi thời? bad cardinality estimate?)
-3. Fix: index nào cần thêm? query rewrite không?
-4. Ước lượng latency sau fix
-5. Side effect cần chú ý (lock khi thêm index, index bloat, ...)
+Phân tích: 1) Bottleneck node (seq scan? hash join? sort?). 2) Tại sao planner chọn plan này? 3) Fix: index / query rewrite. 4) Ước lượng latency sau fix. 5) Side effect.
 
 ---
 
-## TEMPLATE 3 — Memory / OutOfMemory
+## Memory / OutOfMemory
 
 Ứng dụng .NET bị [OutOfMemoryException / memory tăng liên tục / GC pressure cao].
 
-**Triệu chứng cụ thể:**
+**Triệu chứng:**
 - Memory: tăng từ [X]MB lên [Y]MB sau [Z phút / N requests]
-- Xảy ra khi: [vd: "export báo cáo >100K rows", "sau vài giờ chạy worker"]
+- Xảy ra khi: [vd: "export báo cáo >100K rows"]
 - GC: [Gen 2 collections cao / LOH fragmentation / ...]
 
 **Code suspect:**
 ```csharp
-[PASTE — thường là vòng lặp, stream handling, cache, event handler]
+[PASTE — vòng lặp, stream handling, cache, event handler]
 ```
 
-**Data volume:** [bao nhiêu records / file size bao nhiêu MB]
+**Data volume:** [N records / file size MB]
 
-Phân tích:
-1. Root cause khả năng nhất (không phải list tất cả — chỉ top 1-2)
-2. Cách confirm (profiling command cụ thể để chạy)
-3. Fix với code — ưu tiên streaming / batching / disposal
-4. Ước lượng memory improvement sau fix
-5. Pattern để tránh lặp lại
+Phân tích: 1) Root cause khả năng nhất (top 1-2). 2) Cách confirm (profiling command). 3) Fix — ưu tiên streaming / batching / disposal. 4) Ước lượng memory improvement. 5) Pattern để tránh lặp lại.

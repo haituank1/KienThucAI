@@ -15,14 +15,22 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [OK] .NET SDK found:
+echo [OK] .NET SDK:
 dotnet --version
 echo.
 
-:: Build first
-echo [1/2] Building DemoEngine...
 cd "%~dp0src\DemoEngine.API"
-dotnet build --nologo -v quiet
+
+:: Clean build artifacts truoc de dam bao compile lai hoan toan
+echo [1/3] Cleaning old build...
+if exist bin rmdir /s /q bin
+if exist obj rmdir /s /q obj
+echo [OK] Cleaned.
+echo.
+
+:: Build
+echo [2/3] Building DemoEngine...
+dotnet build --nologo
 if errorlevel 1 (
     echo.
     echo [FAILED] Build that bai. Xem loi phia tren.
@@ -30,9 +38,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [OK] Build thanh cong.
 echo.
-echo [2/2] Starting server...
+echo [3/3] Starting server...
 echo ============================================
 echo   Mo browser tai: http://localhost:5001
 echo ============================================

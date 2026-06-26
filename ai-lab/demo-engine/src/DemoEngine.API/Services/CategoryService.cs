@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using DemoEngine.API.Models;
 
@@ -11,9 +12,10 @@ public class CategoryService(IConfiguration config, ILogger<CategoryService> log
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true
+        PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
+        WriteIndented               = true,
+        PropertyNameCaseInsensitive = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     public async Task<List<Category>> GetAllAsync()

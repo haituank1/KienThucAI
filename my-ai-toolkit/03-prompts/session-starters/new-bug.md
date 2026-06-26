@@ -1,52 +1,41 @@
 # Session Starter: Debug Bug
 
-> Copy toàn bộ file này → paste vào đầu session → điền [brackets].
+Stack: .NET 8, EF Core 8, PostgreSQL 15, Redis, RabbitMQ. Pattern: Clean Architecture + CQRS + MediatR.
 
----
-
-## Context cố định (đừng xóa)
-
-Stack: .NET 8, EF Core 8, PostgreSQL 15, Redis, RabbitMQ.
-Pattern: Clean Architecture + CQRS + MediatR.
-
-Quy tắc debug:
-- Tìm root cause, không chỉ fix symptom
-- Giải thích cơ chế kỹ thuật tại sao lỗi xảy ra
-- Fix minimal — không refactor cùng lúc với fix bug
-- Đề xuất test để verify fix
+Quy tắc: Tìm root cause không chỉ symptom | Giải thích cơ chế kỹ thuật | Fix minimal — không refactor cùng lúc | Đề xuất test verify.
 
 ---
 
 ## Bug này
 
-**Mô tả ngắn:** [1 câu — vd: "User không thể cancel order đã paid"]
+**Mô tả:** [1 câu — vd: "User không thể cancel order đã paid"]
 
-**Expected behavior:** [điều lẽ ra phải xảy ra]
-**Actual behavior:** [điều đang xảy ra]
+**Expected:** [điều lẽ ra xảy ra]
+**Actual:** [điều đang xảy ra]
 
-**Reproduction steps:**
+**Reproduction:**
 1. [step 1]
 2. [step 2]
 3. → [Bug xảy ra ở đây]
 
-**Tần suất:** [luôn luôn / ~X% / chỉ khi X / intermittent]
+**Tần suất:** [luôn / ~X% / chỉ khi X / intermittent]
 **Environment:** [ ] Dev  [ ] Staging  [ ] Production
 
 ---
 
 ## Error Information
 
-**Stack trace / Exception:**
+**Stack trace:**
 ```
-[PASTE FULL STACK TRACE — bao gồm inner exception nếu có]
+[PASTE FULL — bao gồm inner exception]
 ```
 
 **Log liên quan:**
 ```
-[PASTE log lines xung quanh lúc xảy ra lỗi — có correlation ID càng tốt]
+[PASTE log xung quanh lúc xảy ra — có correlation ID càng tốt]
 ```
 
-**Request payload (nếu là API bug):**
+**Request payload (nếu API bug):**
 ```json
 [PASTE]
 ```
@@ -56,27 +45,16 @@ Quy tắc debug:
 ## Code Suspect
 
 ```csharp
-[PASTE — include full method, constructor, bất kỳ dependency nào liên quan]
+[PASTE — full method + constructor + dependencies liên quan]
 ```
 
-**Entity / DB config liên quan (nếu là EF Core bug):**
+**Entity / DB config (nếu EF Core bug):**
 ```csharp
 [PASTE]
 ```
 
----
-
-## Đã thử
-
-- [điền hoặc "chưa thử gì, cần hướng dẫn"]
+**Đã thử:** [điền hoặc "chưa thử gì"]
 
 ---
 
-## Tôi muốn
-
-Phân tích theo thứ tự:
-1. Root cause — không phải list mọi khả năng, tập trung vào probable cause nhất
-2. Cơ chế kỹ thuật — tại sao bug xảy ra (không chỉ "đây là lỗi")
-3. Fix — code cụ thể, minimal change
-4. Verify — test / query để confirm fix đúng
-5. Prevent — guard / test / validation gì để không tái phát
+Phân tích: 1) Root cause — probable cause nhất. 2) Cơ chế kỹ thuật — tại sao xảy ra. 3) Fix — code cụ thể, minimal. 4) Verify — test / query confirm fix. 5) Prevent — guard / test / validation.

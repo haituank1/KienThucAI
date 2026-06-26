@@ -1,7 +1,5 @@
 # CQRS + MediatR Rules
 
----
-
 ## Naming Convention
 
 | Type | Pattern | Example |
@@ -12,9 +10,7 @@
 | Validator | `[CommandOrQuery]Validator` | `CreateOrderCommandValidator` |
 | Response DTO | `[Noun]Dto` | `OrderDetailDto`, `OrderSummaryDto` |
 
----
-
-## Command — Template đầy đủ
+## Command Template
 
 ```csharp
 // 1. Command — immutable record
@@ -43,58 +39,41 @@ public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
     }
 }
 
-// 3. Handler
+// 3. Handler — orchestrate only, no business logic
 public class CreateOrderCommandHandler(
-    IOrderRepository orderRepo,
-    IProductRepository productRepo,
-    IUnitOfWork unitOfWork,
-    ILogger<CreateOrderCommandHandler> logger)
+    IOrderRepository orderRepo, IProductRepository productRepo,
+    IUnitOfWork unitOfWork, ILogger<CreateOrderCommandHandler> logger)
     : IRequestHandler<CreateOrderCommand, Result<Guid>>
 {
-    public async Task<Result<Guid>> Handle(
-        CreateOrderCommand cmd, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(CreateOrderCommand cmd, CancellationToken ct)
     {
-        // Orchestrate — không có business logic ở đây
         var order = Order.Create(cmd.CustomerId, cmd.ShippingAddress);
-
         foreach (var itemReq in cmd.Items)
         {
             var product = await productRepo.GetByIdAsync(itemReq.ProductId, ct);
-            if (product is null)
-                return Result.Failure<Guid>($"Product {itemReq.ProductId} not found");
-
+            if (product is null) return Result.Failure<Guid>($"Product {itemReq.ProductId} not found");
             var result = order.AddItem(product, itemReq.Quantity);
-            if (result.IsFailure)
-                return Result.Failure<Guid>(result.Error);
+            if (result.IsFailure) return Result.Failure<Guid>(result.Error);
         }
-
         orderRepo.Add(order);
         await unitOfWork.SaveChangesAsync(ct);
-
-        logger.LogInformation("Order {OrderId} created for customer {CustomerId}",
-            order.Id, cmd.CustomerId);
-
+        logger.LogInformation("Order {OrderId} created for customer {CustomerId}", order.Id, cmd.CustomerId);
         return Result.Success(order.Id);
     }
 }
 ```
 
----
-
-## Query — Template đầy đủ
+## Query Template
 
 ```csharp
-// Query handler: AsNoTracking + projection bắt buộc
+// AsNoTracking + projection mandatory
 public record GetOrderByIdQuery(Guid OrderId) : IRequest<Result<OrderDetailDto>>;
 
-public class GetOrderByIdQueryHandler(AppDbContext ctx)
-    : IRequestHandler<GetOrderByIdQuery, Result<OrderDetailDto>>
+public class GetOrderByIdQueryHandler(AppDbContext ctx) : IRequestHandler<GetOrderByIdQuery, Result<OrderDetailDto>>
 {
-    public async Task<Result<OrderDetailDto>> Handle(
-        GetOrderByIdQuery query, CancellationToken ct)
+    public async Task<Result<OrderDetailDto>> Handle(GetOrderByIdQuery query, CancellationToken ct)
     {
-        var dto = await ctx.Orders
-            .AsNoTracking()
+        var dto = await ctx.Orders.AsNoTracking()
             .Where(o => o.Id == query.OrderId)
             .Select(o => new OrderDetailDto
             {
@@ -103,116 +82,80 @@ public class GetOrderByIdQueryHandler(AppDbContext ctx)
                 Status = o.Status,
                 TotalAmount = o.TotalAmount,
                 Items = o.Items.Select(i => new OrderItemDto
-                {
-                    ProductName = i.Product.Name,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice
-                }).ToList(),
+                    { ProductName = i.Product.Name, Quantity = i.Quantity, UnitPrice = i.UnitPrice }).ToList(),
                 CreatedAt = o.CreatedAt
             })
             .FirstOrDefaultAsync(ct);
 
-        return dto is null
-            ? Result.Failure<OrderDetailDto>($"Order {query.OrderId} not found")
-            : Result.Success(dto);
+        return dto is null ? Result.Failure<OrderDetailDto>($"Order {query.OrderId} not found") : Result.Success(dto);
     }
 }
 ```
 
----
-
-## Pipeline Behaviors — Thứ tự đăng ký
+## Pipeline Behaviors — Registration Order
 
 ```csharp
-// Program.cs — thứ tự đăng ký = thứ tự execute (outer → inner)
+// Order of registration = execution order (outer → inner)
 services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(ApplicationAssemblyMarker).Assembly);
-    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));      // 1st
-    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));   // 2nd
-    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));      // 3rd (Query only)
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));    // 1st
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>)); // 2nd
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));    // 3rd (Query only)
 });
 ```
 
 ```csharp
-// LoggingBehavior — log mọi request + timing
-public class LoggingBehavior<TRequest, TResponse>(
-    ILogger<LoggingBehavior<TRequest, TResponse>> logger)
-    : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+// LoggingBehavior
+public class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse>
 {
-    public async Task<TResponse> Handle(
-        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
     {
-        var requestName = typeof(TRequest).Name;
-        logger.LogInformation("Handling {RequestName}", requestName);
+        var name = typeof(TRequest).Name;
+        logger.LogInformation("Handling {RequestName}", name);
         var sw = Stopwatch.StartNew();
         try
         {
             var response = await next();
-            logger.LogInformation("Handled {RequestName} in {ElapsedMs}ms",
-                requestName, sw.ElapsedMilliseconds);
+            logger.LogInformation("Handled {RequestName} in {ElapsedMs}ms", name, sw.ElapsedMilliseconds);
             return response;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling {RequestName} after {ElapsedMs}ms",
-                requestName, sw.ElapsedMilliseconds);
+            logger.LogError(ex, "Error handling {RequestName} after {ElapsedMs}ms", name, sw.ElapsedMilliseconds);
             throw;
         }
     }
 }
 
-// ValidationBehavior — validate trước khi handler chạy
-public class ValidationBehavior<TRequest, TResponse>(
-    IEnumerable<IValidator<TRequest>> validators)
-    : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+// ValidationBehavior
+public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators)
+    : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse>
 {
-    public async Task<TResponse> Handle(
-        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
     {
         if (!validators.Any()) return await next();
-
-        var context = new ValidationContext<TRequest>(request);
-        var failures = validators
-            .Select(v => v.Validate(context))
-            .SelectMany(r => r.Errors)
-            .Where(f => f is not null)
-            .ToList();
-
-        if (failures.Count != 0)
-            throw new ValidationException(failures);
-
+        var failures = validators.Select(v => v.Validate(new ValidationContext<TRequest>(request)))
+            .SelectMany(r => r.Errors).Where(f => f is not null).ToList();
+        if (failures.Count != 0) throw new ValidationException(failures);
         return await next();
     }
 }
 ```
 
----
-
 ## Anti-patterns
 
 ```csharp
-// ❌ Gọi mediator trong handler — tight coupling + circular dependency risk
+// ❌ Mediator in handler — tight coupling + circular dependency risk
 public class CreateOrderCommandHandler(IMediator mediator)
 {
-    public async Task<Result<Guid>> Handle(CreateOrderCommand cmd, CancellationToken ct)
-    {
-        var product = await mediator.Send(new GetProductByIdQuery(cmd.ProductId), ct); // ❌
-        ...
-    }
+    var product = await mediator.Send(new GetProductByIdQuery(cmd.ProductId), ct); // ❌
 }
-// ✅ Inject repository/service trực tiếp
+// ✅ Inject repository/service directly
 
-// ❌ Quá nhiều logic trong Handler — vi phạm SRP
-public async Task<Result<Guid>> Handle(CreateOrderCommand cmd, CancellationToken ct)
-{
-    // 100 dòng logic phức tạp ở đây — ❌ move vào Domain Entity
-}
-
-// ❌ Command trả về entity — expose internal state
+// ❌ Too much logic in Handler — move to Domain Entity
+// ❌ Command returns entity — exposes internal state
 public record CreateOrderCommand(...) : IRequest<Order>; // ❌
-// ✅ Trả về Id hoặc DTO
 public record CreateOrderCommand(...) : IRequest<Result<Guid>>; // ✅
 ```

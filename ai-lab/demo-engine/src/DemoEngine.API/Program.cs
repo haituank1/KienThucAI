@@ -11,15 +11,22 @@ var hubPathRaw  = builder.Configuration["KnowledgeHubPath"] ?? "../../knowledge-
 var dataPath    = Path.GetFullPath(Path.Combine(contentRoot, dataPathRaw));
 var hubPath     = Path.GetFullPath(Path.Combine(contentRoot, hubPathRaw));
 
+// Resolve toolkit path
+var toolkitPathRaw = builder.Configuration["ToolkitPath"] ?? "../../../../my-ai-toolkit";
+var toolkitPath    = Path.GetFullPath(Path.Combine(contentRoot, toolkitPathRaw));
+
 // Write resolved absolute paths back so services can read them
-builder.Configuration["DataPath"] = dataPath;
+builder.Configuration["DataPath"]       = dataPath;
 builder.Configuration["KnowledgeHubPath"] = hubPath;
+builder.Configuration["ToolkitPath"]    = toolkitPath;
+builder.Configuration["ContentRoot"]    = contentRoot;
 
 // ── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<KnowledgeService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<DemoRunnerService>();
+builder.Services.AddScoped<ToolkitService>();
 
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.SetIsOriginAllowed(_ => true)   // cho phép mọi origin kể cả null (file://)
@@ -72,11 +79,13 @@ app.MapStatsEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new
 {
-    status         = "ok",
+    status            = "ok",
     dataPath,
     hubPath,
-    dataPathExists = Directory.Exists(dataPath),
-    hubPathExists  = Directory.Exists(hubPath)
+    toolkitPath,
+    dataPathExists    = Directory.Exists(dataPath),
+    hubPathExists     = Directory.Exists(hubPath),
+    toolkitPathExists = Directory.Exists(toolkitPath)
 }));
 
 app.Logger.LogInformation("==============================================");

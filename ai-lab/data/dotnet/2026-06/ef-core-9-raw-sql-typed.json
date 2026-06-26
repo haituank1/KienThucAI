@@ -1,16 +1,22 @@
-{
+﻿{
   "id": "dotnet-ef-core-9-raw-sql-typed-20260627",
   "topic": "EF Core 9 — Typed Raw SQL với SqlQuery<T>",
   "category": "dotnet",
   "subcategory": "ef-core",
-  "tags": ["dotnet", "ef-core", "raw-sql", "performance", "linq"],
+  "tags": [
+    "dotnet",
+    "ef-core",
+    "raw-sql",
+    "performance",
+    "linq"
+  ],
   "difficulty": "intermediate",
   "relevance": "high",
-  "status": "pending_review",
+  "status": "validated",
   "confidence": 0.92,
   "researchedAt": "2026-06-27T09:00:00Z",
-  "validatedAt": null,
-  "validatedBy": null,
+  "validatedAt": "2026-06-26T19:42:09.6268038Z",
+  "validatedBy": "Tuan",
   "summary": "EF Core 8+ cho phép execute raw SQL và map kết quả thành bất kỳ type nào (không cần entity), với parameterization tự động an toàn.",
   "problem": "LINQ không express được một số complex query (window functions, CTEs phức tạp, aggregation đặc thù). Raw SQL cũ trong EF Core yêu cầu Entity type và keyless entity setup phức tạp.",
   "solution": "EF Core 8+ có `Database.SqlQuery<T>()` cho phép map raw SQL result thành bất kỳ class/record nào với SQL parameterization tự động (tránh SQL injection). Không cần Entity configuration.",
@@ -24,8 +30,14 @@
     "❌ Không compose được với LINQ navigation property"
   ],
   "references": [
-    { "title": "EF Core 8 — Raw SQL Queries", "url": "https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-8.0/whatsnew#raw-sql-queries-for-unmapped-types" },
-    { "title": "SqlQuery<T> docs", "url": "https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.relationaldatabasefacadeextensions.sqlquery" }
+    {
+      "title": "EF Core 8 — Raw SQL Queries",
+      "url": "https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-8.0/whatsnew#raw-sql-queries-for-unmapped-types"
+    },
+    {
+      "title": "SqlQuery<T> docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.relationaldatabasefacadeextensions.sqlquery"
+    }
   ],
   "selfVerification": {
     "verified": true,

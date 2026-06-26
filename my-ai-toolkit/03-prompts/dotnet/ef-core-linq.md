@@ -1,48 +1,40 @@
-# Prompt: EF Core / LINQ Query Help
+# EF Core / LINQ Query
 
 ---
 
-## TEMPLATE 1 — Viết LINQ query từ requirement
-
-Viết EF Core LINQ query cho requirement sau.
+## Viết LINQ từ requirement
 
 **Requirement:**
-[Mô tả rõ ràng — vd: "lấy 20 orders mới nhất của customer X, kèm tên product và tổng tiền, chỉ lấy orders đã paid hoặc shipped"]
+[Mô tả — vd: "lấy 20 orders mới nhất của customer X, kèm tên product và tổng tiền, chỉ orders đã paid/shipped"]
 
-**Entities liên quan:**
+**Entities:**
 ```csharp
 [PASTE Entity classes hoặc DbContext config]
 ```
 
-**Expected output DTO:**
+**Expected DTO:**
 ```csharp
-[PASTE DTO mình muốn nhận]
+[PASTE]
 ```
 
-**Performance requirement:**
-- [ ] Phải dùng AsNoTracking (read-only)
-- [ ] Phải dùng projection (không load full entity)
-- [ ] Kết quả phải paginated
-- [ ] Phải pass CancellationToken
+**Performance:**
+- [ ] AsNoTracking (read-only)
+- [ ] Projection (không load full entity)
+- [ ] Paginated
+- [ ] Pass CancellationToken
 
-Hãy:
-1. Viết LINQ query đúng yêu cầu
-2. Paste SQL sẽ được generate (dùng `.ToQueryString()` comment)
-3. Chỉ ra index nào cần có để query này chạy hiệu quả
-4. Warn nếu có N+1 risk hoặc client-side evaluation
+Hãy: 1) LINQ query đúng yêu cầu. 2) SQL generated (`.ToQueryString()` comment). 3) Index cần có. 4) Warn nếu N+1 risk / client-side evaluation.
 
 ---
 
-## TEMPLATE 2 — Debug LINQ bị sai hoặc chậm
-
-LINQ query này cho kết quả sai / chậm hơn mong đợi.
+## Debug LINQ sai / chậm
 
 **LINQ:**
 ```csharp
 [PASTE]
 ```
 
-**Generated SQL (lấy bằng .ToQueryString() hoặc log):**
+**Generated SQL:**
 ```sql
 [PASTE]
 ```
@@ -54,28 +46,25 @@ LINQ query này cho kết quả sai / chậm hơn mong đợi.
 
 **Vấn đề:**
 - [ ] Kết quả sai (expected vs actual: [mô tả])
-- [ ] N+1 (N+1 queries thay vì 1 query)
-- [ ] Client-side evaluation (xử lý ở C# thay vì SQL)
-- [ ] Cartesian explosion (nhiều rows trùng do Include nhiều collection)
+- [ ] N+1
+- [ ] Client-side evaluation
+- [ ] Cartesian explosion
 - [ ] Query chậm bất thường
 
-Phân tích:
-1. Root cause — tại sao query behave sai / chậm?
-2. Fix LINQ + generated SQL sau fix
-3. Nếu LINQ không express được → raw SQL approach
+Phân tích: 1) Root cause. 2) Fix LINQ + SQL sau fix. 3) Nếu LINQ không express được → raw SQL.
 
 ---
 
-## TEMPLATE 3 — Convert raw SQL → LINQ hoặc ngược lại
+## Convert SQL ↔ LINQ
 
 **Hướng:** [ ] SQL → LINQ | [ ] LINQ → SQL tốt hơn
 
-**SQL gốc:**
+**SQL:**
 ```sql
 [PASTE]
 ```
 
-**Hoặc LINQ gốc:**
+**Hoặc LINQ:**
 ```csharp
 [PASTE]
 ```
@@ -85,32 +74,25 @@ Phân tích:
 [PASTE]
 ```
 
-Yêu cầu:
 - Giữ nguyên logic hoàn toàn
-- Nếu LINQ không express được SQL efficiently → dùng raw SQL với typed result (EF Core 8)
-- Show SQL được generate sau convert để verify
+- Nếu LINQ không efficient → raw SQL typed result (EF Core 8)
+- Show SQL generated để verify
 
 ---
 
-## TEMPLATE 4 — Complex aggregation / reporting query
+## Complex aggregation / reporting
 
-Cần viết query aggregation phức tạp bằng EF Core / LINQ.
+**Requirement:**
+[Mô tả — vd: "doanh thu theo tháng, group by danh mục, chỉ tháng > 10M, sort giảm dần"]
 
-**Business requirement:**
-[Mô tả rõ — vd: "doanh thu theo tháng, group by danh mục sản phẩm, chỉ lấy tháng có doanh thu > 10M, sort theo doanh thu giảm dần"]
-
-**Tables liên quan:**
+**Tables:**
 ```sql
-[Mô tả schema hoặc paste DDL]
+[DDL hoặc mô tả schema]
 ```
 
-**DTO expected:**
+**DTO:**
 ```csharp
 [PASTE]
 ```
 
-Hãy:
-1. LINQ query nếu EF Core translate được tốt
-2. Raw SQL typed query (EF Core 8) nếu LINQ không đủ mạnh
-3. Index cần có
-4. Ước lượng performance với [N] rows
+Hãy: 1) LINQ nếu EF Core translate tốt. 2) Raw SQL typed query (EF Core 8) nếu LINQ không đủ. 3) Index cần có. 4) Ước lượng performance với [N] rows.

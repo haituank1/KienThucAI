@@ -1,93 +1,70 @@
-# Prompt: Thiết kế API
+# Thiết kế API
+
+Stack: ASP.NET Core .NET 8.
 
 ---
 
-## TEMPLATE 1 — Design API mới cho feature
+## Design API mới
 
-Tôi cần thiết kế REST API cho [tên feature]. Stack: ASP.NET Core .NET 8.
+**Feature:** [tên] — [mô tả 2-3 câu]
 
-**Feature description:**
-[Mô tả 2-3 câu]
-
-**Actors (ai gọi API này):**
+**Actors:**
 - [ ] Web frontend (React)
 - [ ] Mobile app
 - [ ] Internal service / worker
-- [ ] Third-party / public API
+- [ ] Third-party / public
 
-**Use cases chính:**
-1. [Use case 1]
-2. [Use case 2]
-3. [Use case 3]
+**Use cases:** 1) [Use case 1]  2) [Use case 2]
 
-**Business rules quan trọng:**
-- [rule 1]
-- [rule 2]
+**Business rules:** [rule 1] | [rule 2]
 
-**Non-functional:**
-- Authentication: [JWT / API Key / None]
-- Rate limiting: [có / không]
-- Versioning: [v1 / không cần]
-- Pagination: [cursor / offset / không cần]
+**Non-functional:** Auth [JWT/API Key/None] | Rate limiting [có/không] | Versioning [v1/không] | Pagination [cursor/offset/không]
 
-Hãy đề xuất:
+Đề xuất:
 
-1. **Endpoints** — method, path, brief description
+1. **Endpoints:**
    ```
    POST   /api/v1/[resource]
    GET    /api/v1/[resource]/{id}
-   ...
    ```
 
-2. **Request/Response schema** cho từng endpoint
+2. **Request/Response schema** cho từng endpoint:
    ```json
    // Request
    { }
-   // Response 200
+   // Response 200/201
    { }
    // Response 4xx
    { }
    ```
 
-3. **Error handling** — status code cho từng failure scenario
+3. **Error handling** — status code cho từng failure
 
-4. **Điều tôi có thể bỏ sót** — edge case, security concern, breaking change risk
+4. **Những gì có thể bỏ sót** — edge case, security concern, breaking change risk
 
 ---
 
-## TEMPLATE 2 — Review API contract hiện tại
+## Review API contract
 
-Review API contract sau trước khi release.
-
-**API spec:**
 ```
-[OpenAPI YAML / JSON / hoặc mô tả endpoint-by-endpoint]
+[OpenAPI YAML / JSON / mô tả endpoint]
 ```
 
 **Consumers:** [frontend / mobile / internal / public]
 
-Tìm vấn đề:
-1. **Breaking change risk** — thứ gì sẽ break consumer khi thay đổi?
-2. **Inconsistency** — naming / casing / error format không đồng nhất
-3. **Missing validation** — input nào có thể gây lỗi nếu không validate?
-4. **Security gap** — endpoint nào thiếu auth / over-expose data?
-5. **API design smell** — verb trong URL, wrong status code, ...)
-6. **Versioning concern** — endpoint nào sẽ khó version sau này?
+Tìm: 1) Breaking change risk. 2) Inconsistency (naming/casing/error format). 3) Missing validation. 4) Security gap (auth thiếu / over-expose data). 5) API design smell (verb trong URL, wrong status code). 6) Versioning concern.
 
 ---
 
-## TEMPLATE 3 — Design pagination + filtering
+## Pagination + Filtering
 
-Tôi cần implement pagination + filtering + sorting chuẩn cho resource [tên].
-
-**Data:** ~[N] records, [X] columns, [complex filter / simple filter]
-**Consumer:** [web / mobile / internal]
+**Resource:** [tên] | Data ~[N] records, [X] columns | Consumer [web/mobile/internal]
 
 Hãy design:
-1. **Query parameter convention** — naming, types, defaults
+1. **Query params** — naming, types, defaults
 2. **Response format** — metadata (total, pages, hasNext, ...)
-3. **Keyset vs Offset** — recommend cái nào cho case này và tại sao
-4. **Filter design** — simple `?status=active` vs complex filter DSL
+3. **Keyset vs Offset** — recommend + lý do
+4. **Filter design** — `?status=active` vs complex DSL
 5. **Sort design** — `?sortBy=createdAt&sortDir=desc`
-6. **EF Core implementation** — LINQ code cho dynamic filter + sort
-7. **Index** cần có để support filter/sort patterns
+6. **EF Core implementation** — LINQ cho dynamic filter + sort
+7. **Index** cần có

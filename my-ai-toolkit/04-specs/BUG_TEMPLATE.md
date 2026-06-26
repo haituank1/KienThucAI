@@ -1,9 +1,4 @@
-# Bug Report Template
-
-> Dùng: Copy file này → đổi tên `BUG_[ID]_[ShortDescription].md` → điền nội dung.
-> Paste stack trace + code vào Claude với prompt từ `03-prompts/session-starters/new-bug.md`
-
----
+# Bug Report — [ID] [ShortDescription]
 
 ## Metadata
 
@@ -12,37 +7,34 @@
 | Bug ID | [TICKET-123](link) |
 | Severity | `P0 - Critical` / `P1 - High` / `P2 - Medium` / `P3 - Low` |
 | Environment | Dev / Staging / **Production** |
-| Reported | [YYYY-MM-DD HH:MM] |
-| Reported by | [Tên / Monitoring alert] |
+| Reported | [YYYY-MM-DD HH:MM] by [Tên / Monitoring alert] |
 | Assigned | Tuan Nguyen |
 | Status | `Investigating` → `Fix Ready` → `Deployed` → `Verified` |
 
 ---
 
-## Impact Assessment
-
-> Điền ngay khi nhận bug — trước khi debug.
+## Impact
 
 - **Scope:** [X% users / X users / specific feature]
 - **Data affected:** [Có mất/corrupt data không?]
-- **Workaround:** [Có cách tạm thời không? — vd: "user có thể dùng export CSV thay"]
+- **Workaround:** [Có / Không — mô tả nếu có]
 - **Business impact:** [Low / Medium / High / Revenue-impacting]
 
 ---
 
 ## Bug Description
 
-**Một câu:** [Mô tả chính xác — vd: "Order status không được cập nhật khi payment webhook retry"]
+**Một câu:** [Mô tả chính xác]
 
 | | Behavior |
 |---|---|
 | **Expected** | [Điều lẽ ra xảy ra] |
 | **Actual** | [Điều đang xảy ra] |
 
-**Reproduction Steps:**
-1. [Step 1 — cụ thể, với data example]
+**Reproduction:**
+1. [Step 1 — cụ thể, data example]
 2. [Step 2]
-3. **→ Bug xảy ra tại đây**
+3. **→ Bug xảy ra**
 
 **Frequency:** `Always` / `~X%` / `Chỉ khi [condition]` / `Intermittent`
 
@@ -50,105 +42,96 @@
 
 ## Technical Analysis
 
-### Error / Stack Trace
+**Stack Trace:**
 ```
-[PASTE ĐẦY ĐỦ — inner exception, correlation ID nếu có]
-```
-
-### Logs liên quan
-```
-[Log lines xung quanh thời điểm xảy ra — format: timestamp + level + message]
+[PASTE ĐẦY ĐỦ — inner exception, correlation ID]
 ```
 
-### Root Cause
-
-> Điền sau khi debug — giải thích cơ chế, không chỉ "sai ở dòng X"
-
-**Tầng bị lỗi:** [ ] Domain  [ ] Application  [ ] Infrastructure  [ ] Config  [ ] External
-
-**Cơ chế:** [Tại sao lỗi này xảy ra — ví dụ: "Race condition khi 2 webhook cùng retry trong 500ms, cả 2 đều thấy status='pending' và update, record cuối cùng overwrites record trước"]
-
-**Trigger condition:** [Chính xác điều kiện nào gây ra bug]
-
-### Code Location
+**Logs:**
 ```
-File:   src/[Layer]/[Feature]/[FileName].cs
-Method: [MethodName]
-Line:   ~[N]
+[timestamp + level + message xung quanh lúc xảy ra]
+```
+
+**Root Cause** *(điền sau khi debug)*
+
+Layer: [ ] Domain  [ ] Application  [ ] Infrastructure  [ ] Config  [ ] External
+
+**Cơ chế:** [Tại sao xảy ra — không chỉ "sai ở dòng X"]
+
+**Trigger condition:** [Chính xác điều kiện gây bug]
+
+**Code location:**
+```
+File:   src/[Layer]/[Feature]/[File].cs
+Method: [MethodName]  Line: ~[N]
 ```
 
 ---
 
 ## Fix
 
-### Approach
-[Mô tả approach — 2-3 câu. Tại sao chọn cách này, không phải cách khác?]
-
-### Code Change
+**Approach:** [2-3 câu — tại sao chọn cách này]
 
 ```csharp
 // BEFORE:
-[code cũ — đủ context để hiểu]
+[code cũ]
 
 // AFTER:
-[code mới — production-ready, không viết tắt]
+[code mới — production-ready]
 ```
 
-### Schema / Migration cần thiết
-- [ ] Không cần migration
-- [ ] Cần migration: [mô tả thay đổi]
+**Schema / Migration:**
+- [ ] Không cần
+- [ ] Cần: [mô tả]
 ```sql
 [SQL nếu có]
 ```
 
-### Deployment notes
+**Deployment:**
 - [ ] Cần restart service
 - [ ] Cần run data fix script
 - [ ] Cần config thay đổi
-- [ ] Có thể hot deploy
+- [ ] Hot deploy OK
 
 ---
 
 ## Testing & Verification
 
-### Reproduce test (viết trước khi fix)
+**Reproduce test:**
 ```csharp
-[Unit test reproduce scenario bug]
+[Unit test reproduce bug]
 ```
 
-### Verification steps sau deploy
-1. [Cụ thể — vd: "Chạy query: SELECT status FROM orders WHERE id = 'abc'"]
-2. [Monitor metric nào trong 30 phút sau deploy]
-3. [Confirm với reporter rằng bug đã fix]
+**Verification sau deploy:**
+1. [Query / check cụ thể]
+2. [Monitor metric nào 30 phút sau]
+3. [Confirm với reporter]
 
-### Regression tests
+**Regression:**
 - [ ] Test cho scenario này
-- [ ] Test các case liên quan (tránh break something else)
+- [ ] Test cases liên quan
 
 ---
 
 ## Prevention
 
-**Short-term (ticket này):**
-- [ ] [Guard / validation / test cụ thể]
+**Short-term:** [ ] [Guard / validation / test]
 
-**Long-term (backlog):**
-- [ ] [Monitoring / alerting cần thêm]
-- [ ] [Pattern nên refactor để prevent class of bugs này]
+**Long-term (backlog):** [ ] [Monitoring / alerting] | [ ] [Pattern refactor]
 
-**Thêm vào Snippets (nếu là gotcha chung):**
+**Thêm vào Snippets:**
 - [ ] `05-snippets/dotnet/gotchas.md`
 - [ ] `05-snippets/postgresql/gotchas.md`
 
 ---
 
-## Timeline (Production bugs)
+## Timeline *(Production bugs)*
 
 | Time | Action |
 |------|--------|
-| [HH:MM] | Bug reported |
-| [HH:MM] | Acknowledged, investigation started |
+| [HH:MM] | Reported |
+| [HH:MM] | Acknowledged, investigating |
 | [HH:MM] | Root cause identified |
 | [HH:MM] | Fix deployed |
-| [HH:MM] | Verified resolved |
-| **Total TTR** | [X giờ Y phút] |
+| [HH:MM] | Verified |
+| **TTR** | [X giờ Y phút] |

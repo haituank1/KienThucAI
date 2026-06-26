@@ -1,49 +1,42 @@
 # Clean Architecture Rules
 
----
-
-## Layer Structure & Folder Naming
+## Layer Structure
 
 ```
 src/
 ├── YourApp.Domain/
 │   ├── Entities/
 │   ├── ValueObjects/
-│   ├── Events/              ← Domain Events
+│   ├── Events/           ← Domain Events
 │   ├── Enums/
-│   ├── Exceptions/          ← Domain-specific exceptions
-│   └── Interfaces/          ← Repository interfaces, Domain services
-│
+│   ├── Exceptions/       ← Domain-specific exceptions
+│   └── Interfaces/       ← Repository interfaces, Domain services
 ├── YourApp.Application/
 │   ├── Features/
 │   │   └── Orders/
-│   │       ├── Commands/
-│   │       │   ├── CreateOrder/
-│   │       │   │   ├── CreateOrderCommand.cs
-│   │       │   │   ├── CreateOrderCommandHandler.cs
-│   │       │   │   └── CreateOrderCommandValidator.cs
-│   │       └── Queries/
-│   │           └── GetOrderById/
-│   │               ├── GetOrderByIdQuery.cs
-│   │               ├── GetOrderByIdQueryHandler.cs
-│   │               └── OrderDetailDto.cs
+│   │       ├── Commands/CreateOrder/
+│   │       │   ├── CreateOrderCommand.cs
+│   │       │   ├── CreateOrderCommandHandler.cs
+│   │       │   └── CreateOrderCommandValidator.cs
+│   │       └── Queries/GetOrderById/
+│   │           ├── GetOrderByIdQuery.cs
+│   │           ├── GetOrderByIdQueryHandler.cs
+│   │           └── OrderDetailDto.cs
 │   ├── Common/
-│   │   ├── Behaviors/       ← Pipeline behaviors (Logging, Validation, Caching)
-│   │   ├── Interfaces/      ← IEmailService, IFileStorage, ICurrentUser
-│   │   └── Models/          ← Result<T>, PagedList<T>
+│   │   ├── Behaviors/    ← Logging, Validation, Caching pipeline behaviors
+│   │   ├── Interfaces/   ← IEmailService, IFileStorage, ICurrentUser
+│   │   └── Models/       ← Result<T>, PagedList<T>
 │   └── DependencyInjection.cs
-│
 ├── YourApp.Infrastructure/
 │   ├── Persistence/
 │   │   ├── AppDbContext.cs
-│   │   ├── Configurations/  ← IEntityTypeConfiguration per entity
+│   │   ├── Configurations/ ← IEntityTypeConfiguration per entity
 │   │   ├── Migrations/
 │   │   └── Repositories/
-│   ├── ExternalServices/    ← HTTP clients, email, storage
-│   ├── Caching/             ← Redis implementation
-│   ├── Messaging/           ← RabbitMQ/MassTransit setup
+│   ├── ExternalServices/ ← HTTP clients, email, storage
+│   ├── Caching/          ← Redis implementation
+│   ├── Messaging/        ← RabbitMQ/MassTransit setup
 │   └── DependencyInjection.cs
-│
 └── YourApp.API/
     ├── Controllers/
     ├── Middleware/
@@ -51,19 +44,17 @@ src/
     └── Program.cs
 ```
 
----
-
-## Dependency Rule — Tuyệt đối không vi phạm
+## Dependency Rule — Never violate
 
 ```
-Domain        → không depend vào ai
-Application   → chỉ depend vào Domain
-Infrastructure → depend vào Application + Domain (implement interfaces)
-API           → depend vào Application (gọi MediatR), Infrastructure (DI setup)
+Domain        → depends on nothing
+Application   → depends on Domain only
+Infrastructure → depends on Application + Domain (implements interfaces)
+API           → depends on Application (MediatR), Infrastructure (DI setup)
 ```
 
 ```csharp
-// ✅ Application define interface, Infrastructure implement
+// ✅ Application defines interface, Infrastructure implements
 // Application/Common/Interfaces/IEmailService.cs
 public interface IEmailService
 {
@@ -71,22 +62,16 @@ public interface IEmailService
 }
 
 // Infrastructure/ExternalServices/SmtpEmailService.cs
-public class SmtpEmailService(IOptions<SmtpOptions> opts) : IEmailService
-{
-    public async Task SendOrderConfirmationAsync(string email, OrderDto order, CancellationToken ct)
-        => ...; // Implementation detail ở Infrastructure
-}
+public class SmtpEmailService(IOptions<SmtpOptions> opts) : IEmailService { ... }
 
-// ❌ Application import Infrastructure namespace
-using YourApp.Infrastructure.Persistence; // ❌ trong Application layer
+// ❌
+using YourApp.Infrastructure.Persistence; // in Application layer
 ```
-
----
 
 ## Domain Layer
 
 ```csharp
-// ✅ Entity — business logic trong entity, không ở ngoài
+// ✅ Business logic lives in entity, not outside
 public class Order : AggregateRoot<Guid>
 {
     private readonly List<OrderItem> _items = [];
@@ -94,77 +79,54 @@ public class Order : AggregateRoot<Guid>
     public OrderStatus Status { get; private set; }
     public decimal TotalAmount { get; private set; }
 
-    // Business method — không phải CRUD setter
     public Result AddItem(Product product, int quantity)
     {
-        if (Status != OrderStatus.Draft)
-            return Result.Failure("Cannot add items to non-draft order");
-
-        if (quantity <= 0)
-            return Result.Failure("Quantity must be positive");
+        if (Status != OrderStatus.Draft) return Result.Failure("Cannot add items to non-draft order");
+        if (quantity <= 0) return Result.Failure("Quantity must be positive");
 
         var existing = _items.FirstOrDefault(i => i.ProductId == product.Id);
-        if (existing is not null)
-            existing.IncreaseQuantity(quantity);
-        else
-            _items.Add(new OrderItem(product.Id, product.Price, quantity));
+        if (existing is not null) existing.IncreaseQuantity(quantity);
+        else _items.Add(new OrderItem(product.Id, product.Price, quantity));
 
-        RecalculateTotal();
+        TotalAmount = _items.Sum(i => i.UnitPrice * i.Quantity);
         AddDomainEvent(new OrderItemAddedEvent(Id, product.Id, quantity));
         return Result.Success();
     }
-
-    private void RecalculateTotal()
-        => TotalAmount = _items.Sum(i => i.UnitPrice * i.Quantity);
 }
 
-// ✅ Value Object — immutable, so sánh bằng value
+// ✅ Value Object — immutable, equality by value
 public record Money(decimal Amount, string Currency)
 {
     public static Money Zero(string currency) => new(0, currency);
-
-    public Money Add(Money other)
-    {
-        if (Currency != other.Currency)
-            throw new DomainException($"Cannot add {Currency} and {other.Currency}");
-        return this with { Amount = Amount + other.Amount };
-    }
+    public Money Add(Money other) => Currency != other.Currency
+        ? throw new DomainException($"Cannot add {Currency} and {other.Currency}")
+        : this with { Amount = Amount + other.Amount };
 }
 ```
-
----
 
 ## Application Layer
 
 ```csharp
 // ✅ Command — write operation, return Result
 public record CreateOrderCommand(
-    Guid CustomerId,
-    List<CreateOrderItemRequest> Items,
-    string ShippingAddress
+    Guid CustomerId, List<CreateOrderItemRequest> Items, string ShippingAddress
 ) : IRequest<Result<Guid>>;
 
-// ✅ Handler — orchestrate domain, không có business logic ở đây
+// ✅ Handler — orchestrates domain, no business logic here
 public class CreateOrderCommandHandler(
-    IOrderRepository orderRepo,
-    IProductRepository productRepo,
-    IUnitOfWork unitOfWork) : IRequestHandler<CreateOrderCommand, Result<Guid>>
+    IOrderRepository orderRepo, IProductRepository productRepo, IUnitOfWork unitOfWork)
+    : IRequestHandler<CreateOrderCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateOrderCommand cmd, CancellationToken ct)
     {
         var order = Order.Create(cmd.CustomerId, cmd.ShippingAddress);
-
         foreach (var item in cmd.Items)
         {
             var product = await productRepo.GetByIdAsync(item.ProductId, ct);
-            if (product is null)
-                return Result.Failure<Guid>($"Product {item.ProductId} not found");
-
-            var addResult = order.AddItem(product, item.Quantity); // business logic ở Domain
-            if (addResult.IsFailure)
-                return Result.Failure<Guid>(addResult.Error);
+            if (product is null) return Result.Failure<Guid>($"Product {item.ProductId} not found");
+            var addResult = order.AddItem(product, item.Quantity);
+            if (addResult.IsFailure) return Result.Failure<Guid>(addResult.Error);
         }
-
         orderRepo.Add(order);
         await unitOfWork.SaveChangesAsync(ct);
         return Result.Success(order.Id);
@@ -172,40 +134,22 @@ public class CreateOrderCommandHandler(
 }
 ```
 
----
+## Common Violations
 
-## Common Violations — và cách nhận biết
-
-```
-❌ Controller gọi DbContext trực tiếp
-   → Dấu hiệu: using Infrastructure namespace trong API project
-
-❌ Business logic trong Handler thay vì Domain Entity
-   → Dấu hiệu: if/else phức tạp trong Handle() method
-
-❌ Repository trả về IQueryable ra ngoài Infrastructure
-   → Dấu hiệu: LINQ query ở Application layer
-
-❌ DTO từ Domain Entity (AutoMapper trực tiếp từ Entity)
-   → Dấu hiệu: Exposing navigation properties trong response
-
-❌ Application layer có infrastructure concern
-   → Dấu hiệu: using Npgsql, using StackExchange.Redis trong Application
-
-❌ Domain Entity có EF Core attribute
-   → Dấu hiệu: [Column], [Table], [ForeignKey] trong Domain project
-   → Fix: dùng IEntityTypeConfiguration trong Infrastructure
-```
-
----
+| Violation | Symptom | Fix |
+|-----------|---------|-----|
+| Controller calls DbContext directly | Infrastructure namespace in API project | Use MediatR |
+| Business logic in Handler | Complex if/else in Handle() | Move to Domain Entity |
+| Repository returns IQueryable | LINQ queries in Application layer | Return materialized collections |
+| AutoMapper from Entity to DTO | Navigation properties in response | Project in query handler |
+| Application has infra concern | using Npgsql/StackExchange.Redis in Application | Define interface, implement in Infrastructure |
+| Domain Entity has EF attributes | [Column],[Table],[ForeignKey] in Domain | Use IEntityTypeConfiguration in Infrastructure |
 
 ## Worker Service Pattern
 
 ```csharp
-// ✅ Background worker với proper scope management
-public class ReportGenerationWorker(
-    IServiceScopeFactory scopeFactory,
-    ILogger<ReportGenerationWorker> logger) : BackgroundService
+public class ReportGenerationWorker(IServiceScopeFactory scopeFactory, ILogger<ReportGenerationWorker> logger)
+    : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -217,15 +161,8 @@ public class ReportGenerationWorker(
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
                 await mediator.Send(new ProcessPendingReportsCommand(), stoppingToken);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break; // Graceful shutdown
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error in ReportGenerationWorker");
-                // Tiếp tục chạy sau delay, không crash worker
-            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
+            catch (Exception ex) { logger.LogError(ex, "Error in ReportGenerationWorker"); }
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }

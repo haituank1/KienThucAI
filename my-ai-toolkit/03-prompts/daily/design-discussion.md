@@ -1,87 +1,65 @@
-# Prompt: Design Discussion
+# Design Discussion
 
-> Dùng khi cần tư vấn trước khi code, không phải sau khi code xong.
-> Prompt này cho AI vai trò "senior reviewer" thay vì "code generator".
+Stack: .NET 8, PostgreSQL, Clean Architecture + CQRS. Dùng trước khi code, không phải sau.
 
 ---
 
-## TEMPLATE 1 — Tôi đang plan approach, cần feedback
-
-Stack: .NET 8, PostgreSQL, Clean Architecture + CQRS.
+## Feedback approach của tôi
 
 Tôi đang plan implement [tên feature] theo cách sau:
 
-**Approach của tôi:**
-[Mô tả approach — có thể dùng pseudo-code hoặc diagram ASCII]
+**Approach:**
+[Mô tả — pseudo-code hoặc ASCII diagram]
 
 ```csharp
-// Code sketch (không cần hoàn chỉnh)
+// Code sketch
 [PASTE NẾU CÓ]
 ```
 
 **Assumptions:**
 - [assumption 1]
-- [assumption 2]
 
-**Tôi chưa chắc về:**
-- [điểm không chắc 1]
-- [điểm không chắc 2]
+**Chưa chắc về:**
+- [điểm không chắc]
 
-Hãy đánh giá approach này:
-1. Điểm mạnh — cái gì tôi đang làm đúng?
-2. Điểm yếu / risk — cái gì có thể gây vấn đề?
-3. Alternative — có approach tốt hơn không? So sánh trade-off.
-4. Recommendation — nếu bạn là tech lead, bạn chọn cách nào và tại sao?
+Đánh giá: 1) Điểm mạnh. 2) Điểm yếu / risk. 3) Alternative + trade-off. 4) Recommendation nếu là tech lead.
 
-Đừng chỉ ừ theo approach của tôi nếu nó có vấn đề — nói thẳng.
+Đừng ừ theo nếu có vấn đề — nói thẳng.
 
 ---
 
-## TEMPLATE 2 — So sánh 2 approach
+## So sánh 2 approach
 
-Tôi đang cân nhắc giữa 2 approach cho [tên vấn đề]:
+**Vấn đề:** [tên]
 
-**Approach A:**
-[Mô tả]
+**Approach A:** [Mô tả]
 
-**Approach B:**
-[Mô tả]
+**Approach B:** [Mô tả]
 
 **Context:**
-- Scale: [N users / N requests/s / N rows]
-- Team size: [N devs]
-- Maintenance: [long-term product / short-term project]
-- Performance priority: [latency / throughput / memory]
+- Scale: [N users / N req/s / N rows]
+- Team: [N devs] | Maintenance: [long-term / short-term]
+- Priority: [latency / throughput / memory]
 
-So sánh theo:
-1. Performance (latency, throughput, memory)
-2. Complexity (implementation + maintenance)
-3. Scalability
-4. Testability
-5. Khi nào A tốt hơn B và ngược lại?
+So sánh: Performance | Complexity | Scalability | Testability | Khi nào A/B tốt hơn?
 
-Recommendation cuối: chọn cái nào cho context của tôi và tại sao?
+Recommendation cho context này + lý do.
 
 ---
 
-## TEMPLATE 3 — Review design trước khi implement
+## Review design trước khi implement
 
-Tôi vừa thiết kế schema / API / architecture cho [tên feature].
-
-**Design:**
+**Design cho [tên feature]:**
 ```
-[Diagram ASCII, schema SQL, hoặc API spec]
+[ASCII diagram / schema SQL / API spec]
 ```
 
 **Requirement:**
 - [req 1]
-- [req 2]
 
-Hãy review theo checklist:
-- [ ] Schema/design có đủ để support requirement không?
-- [ ] Có missing case / edge case nào không?
-- [ ] Performance bottleneck ở đâu khi scale lên?
+Checklist:
+- [ ] Đủ support requirement?
+- [ ] Missing edge case?
+- [ ] Performance bottleneck khi scale?
 - [ ] Migration path nếu requirement thay đổi?
-- [ ] Điều gì tôi có thể regret sau 6 tháng?
-
-Nếu có vấn đề lớn → nói trước khi tôi code, không phải sau.
+- [ ] Điều gì có thể regret sau 6 tháng?

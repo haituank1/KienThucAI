@@ -1,13 +1,10 @@
 # Base Conventions
-> Áp dụng mọi project, mọi công ty. Không override trừ khi có lý do rõ ràng.
-
----
 
 ## Naming
 
 | Element | Convention | Example |
 |---------|-----------|---------|
-| Class, Record, Interface | PascalCase | `OrderService`, `IOrderRepository` |
+| Class/Record/Interface | PascalCase | `OrderService`, `IOrderRepository` |
 | Method | PascalCase | `GetOrderByIdAsync` |
 | Local variable | camelCase | `orderDetail` |
 | Private field | `_` prefix | `_orderRepository` |
@@ -15,53 +12,34 @@
 | Constant | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
 | Interface | `I` prefix | `IEmailService` |
 | Async method | `Async` suffix | `CreateOrderAsync` |
-| Boolean | `is/has/can` prefix | `isActive`, `hasPermission`, `canRetry` |
+| Boolean | `is/has/can` prefix | `isActive`, `hasPermission` |
 | Generic type param | `T` + noun | `TEntity`, `TResult` |
 
----
-
-## Result Pattern — Dùng thay vì throw exception cho business error
+## Result Pattern
 
 ```csharp
-// ✅ Business error → Result, không throw
+// ✅ Business error → Result
 public async Task<Result<OrderDto>> GetOrderAsync(Guid id, CancellationToken ct)
 {
-    var order = await _ctx.Orders
-        .AsNoTracking()
-        .Where(o => o.Id == id)
-        .Select(o => new OrderDto { ... })
-        .FirstOrDefaultAsync(ct);
-
-    return order is null
-        ? Result.Failure<OrderDto>($"Order {id} not found")
-        : Result.Success(order);
+    var order = await _ctx.Orders.AsNoTracking()
+        .Where(o => o.Id == id).Select(o => new OrderDto { ... }).FirstOrDefaultAsync(ct);
+    return order is null ? Result.Failure<OrderDto>($"Order {id} not found") : Result.Success(order);
 }
 
-// ❌ Đừng throw cho expected business case
-public async Task<OrderDto> GetOrderAsync(Guid id)
-{
-    var order = await _ctx.Orders.FindAsync(id);
-    if (order is null) throw new NotFoundException("Order not found"); // ❌ Exception cho flow bình thường
-    return _mapper.Map<OrderDto>(order);
-}
+// ❌ Exception for expected business case
+if (order is null) throw new NotFoundException("Order not found");
 ```
 
-**Rule:** Exception chỉ cho unexpected/unrecoverable error (DB down, config sai, infrastructure fail). Business validation → Result.
-
----
+Exception only for unexpected/unrecoverable errors (DB down, infra fail). Business validation → Result.
 
 ## Error Handling
 
 ```csharp
-// ✅ Catch specific, log đủ context
-try
-{
-    await _paymentGateway.ChargeAsync(order.Id, amount, ct);
-}
+// ✅
 catch (PaymentGatewayException ex) when (ex.IsRetryable)
 {
     _logger.LogWarning(ex, "Payment retry-able error for order {OrderId}", order.Id);
-    throw; // Re-throw để Polly retry
+    throw; // Re-throw for Polly retry
 }
 catch (PaymentGatewayException ex)
 {
@@ -69,108 +47,85 @@ catch (PaymentGatewayException ex)
     return Result.Failure<PaymentResult>("Payment declined");
 }
 
-// ❌ Không swallow, không catch quá rộng
-try { ... }
-catch (Exception) { } // ❌ swallow
-catch (Exception ex) { return null; } // ❌ hide error
+// ❌
+catch (Exception) { }           // swallow
+catch (Exception ex) { return null; } // hide
 ```
 
-**Top-level exception handler** (Middleware): catch tất cả unexpected exception, log + return 500.
-
----
+Top-level middleware: catch all unexpected exceptions → log + 500.
 
 ## Async/Await
 
 ```csharp
-// ✅ CancellationToken qua toàn bộ call chain
-public async Task<Result<ReportDto>> GenerateReportAsync(
-    ReportFilter filter,
-    CancellationToken ct) // ← nhận ở đây
+// ✅ CancellationToken through full call chain
+public async Task<Result<ReportDto>> GenerateReportAsync(ReportFilter filter, CancellationToken ct)
 {
-    var data = await _repo.GetDataAsync(filter, ct);      // ← pass xuống
-    var processed = await _processor.ProcessAsync(data, ct); // ← và tiếp tục
-    return Result.Success(processed);
+    var data = await _repo.GetDataAsync(filter, ct);
+    return Result.Success(await _processor.ProcessAsync(data, ct));
 }
 
-// ❌ Blocking — deadlock risk trong ASP.NET
-var result = GetDataAsync().Result;     // ❌
-var result = GetDataAsync().GetAwaiter().GetResult(); // ❌
-Task.Run(() => GetDataAsync()).Wait();  // ❌
+// ❌ Blocking — deadlock risk in ASP.NET
+GetDataAsync().Result;
+GetDataAsync().GetAwaiter().GetResult();
 
-// ❌ async void — exception không catch được
-public async void ProcessEvent(object sender, EventArgs e) { ... } // ❌
-// ✅ Trừ event handler bắt buộc — wrap try/catch bên trong
+// ❌ async void — exception uncatchable
+public async void ProcessEvent(object sender, EventArgs e) { ... }
+// ✅ Exception: required event handlers — wrap try/catch inside
 ```
-
----
 
 ## Dependency Injection
 
 ```csharp
-// ✅ Đăng ký đúng lifetime
-services.AddSingleton<IEmailTemplateCache, EmailTemplateCache>();  // stateless, thread-safe
-services.AddScoped<IOrderRepository, OrderRepository>();           // per-request
-services.AddTransient<IReportBuilder, PdfReportBuilder>();         // new instance mỗi lần
+// ✅ Correct lifetimes
+services.AddSingleton<IEmailTemplateCache, EmailTemplateCache>(); // stateless, thread-safe
+services.AddScoped<IOrderRepository, OrderRepository>();          // per-request
+services.AddTransient<IReportBuilder, PdfReportBuilder>();        // new each time
 
-// ❌ Captive dependency — Scoped inject vào Singleton
-public class MyBackgroundService // Singleton
-{
-    private readonly IOrderRepository _repo; // Scoped → ❌ captive dependency
-    public MyBackgroundService(IOrderRepository repo) => _repo = repo;
-}
-
+// ❌ Captive dependency: Scoped injected into Singleton
 // ✅ Fix: IServiceScopeFactory
-public class MyBackgroundService
+public class MyBackgroundService(IServiceScopeFactory scopeFactory)
 {
-    private readonly IServiceScopeFactory _scopeFactory;
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
         await repo.DoWorkAsync(ct);
     }
 }
 ```
 
----
-
 ## Logging
 
 ```csharp
-// ✅ Structured logging với named properties
-_logger.LogInformation(
-    "Order {OrderId} created for customer {CustomerId} with total {TotalAmount:C}",
+// ✅ Structured logging with named properties
+_logger.LogInformation("Order {OrderId} created for customer {CustomerId} with total {TotalAmount:C}",
     order.Id, order.CustomerId, order.TotalAmount);
 
-// ✅ Log ở entry point, không log trong mọi method
-// ✅ Include correlation ID (tự động nếu dùng Serilog + middleware)
-// ✅ Log level đúng: Debug(dev only) / Info(business event) / Warning(retry/degraded) / Error(failure)
+// ❌ String interpolation — loses structured data
+_logger.LogInformation($"Order {order.Id} created");
 
-// ❌ String interpolation trong log — mất structured data
-_logger.LogInformation($"Order {order.Id} created"); // ❌
-
-// ❌ Log sensitive data
-_logger.LogDebug("User password: {Password}", request.Password); // ❌
-_logger.LogDebug("Card number: {Card}", payment.CardNumber);    // ❌
+// ❌ Sensitive data
+_logger.LogDebug("User password: {Password}", request.Password);
 ```
 
----
+Levels: Debug(dev only) / Info(business event) / Warning(retry/degraded) / Error(failure). Log at entry point only.
 
 ## Security
 
-- Input validation tại Application layer — FluentValidation per Command/Query
-- Không trust client data: re-validate ID ownership (user chỉ xem data của mình)
-- Parameterized query always — EF Core tự handle, raw SQL dùng `$"...{param}..."` interpolation của EF (không phải string concat)
-- Secret: IConfiguration + Environment Variable + Secret Manager, không hardcode
-- Sensitive response: không trả `StackTrace` ra client trong production
-
----
+- Input validation at Application layer — FluentValidation per Command/Query
+- Re-validate ID ownership server-side (user sees only their data)
+- Parameterized queries always — EF Core handles; raw SQL use EF interpolation, not string concat
+- Secrets: IConfiguration + Environment Variables + Secret Manager, never hardcode
+- Never return `StackTrace` to client in production
 
 ## Code Quality
 
-- Method: ≤ 30 dòng (nếu dài hơn → tách method private)
-- Class: ≤ 300 dòng (nếu dài hơn → tách class)
-- Cyclomatic complexity: ≤ 10 per method
-- Magic number → named constant hoặc enum
-- Commented-out code → xóa, dùng git history
-- `TODO` comment → phải kèm ticket number: `// TODO: [TICKET-123] Implement retry logic`
+| Rule | Limit |
+|------|-------|
+| Method length | ≤30 lines |
+| Class length | ≤300 lines |
+| Cyclomatic complexity | ≤10 per method |
+
+- Magic numbers → named constant or enum
+- Commented-out code → delete, use git history
+- `TODO` must include ticket: `// TODO: [TICKET-123] Implement retry logic`
