@@ -1,5 +1,5 @@
 ﻿{
-  "generatedAt": "2026-06-27T16:35:30.0697674Z",
+  "generatedAt": "2026-06-27T16:38:40.2679057Z",
   "totalFiles": 55,
   "totalHeadings": 304,
   "files": [
@@ -58,37 +58,37 @@
       "headings": [
         {
           "level": 2,
-          "text": "T\u00ECnh tr\u1EA1ng hi\u1EC7n t\u1EA1i",
+          "text": "Tình trạng hiện tại",
           "lineNumber": 7
         },
         {
           "level": 2,
-          "text": "M\u1EE5c ti\u00EAu ng\u1EAFn h\u1EA1n (6-12 th\u00E1ng)",
+          "text": "Mục tiêu ngắn hạn (6-12 tháng)",
           "lineNumber": 17
         },
         {
           "level": 2,
-          "text": "M\u1EE5c ti\u00EAu d\u00E0i h\u1EA1n (1-3 n\u0103m)",
+          "text": "Mục tiêu dài hạn (1-3 năm)",
           "lineNumber": 26
         },
         {
           "level": 2,
-          "text": "Skills \u0111ang ph\u00E1t tri\u1EC3n",
+          "text": "Skills đang phát triển",
           "lineNumber": 35
         },
         {
           "level": 2,
-          "text": "Nh\u1EEFng th\u1EE9 mu\u1ED1n h\u1ECDc nh\u01B0ng ch\u01B0a c\u00F3 th\u1EDDi gian",
+          "text": "Những thứ muốn học nhưng chưa có thời gian",
           "lineNumber": 46
         },
         {
           "level": 2,
-          "text": "Portable Assets \u2014 Th\u1EE9 mang \u0111\u01B0\u1EE3c sang c\u00F4ng ty m\u1EDBi",
+          "text": "Portable Assets — Thứ mang được sang công ty mới",
           "lineNumber": 56
         },
         {
           "level": 2,
-          "text": "Lessons Learned \u2014 Career Level",
+          "text": "Lessons Learned — Career Level",
           "lineNumber": 68
         },
         {
@@ -108,17 +108,17 @@
       "headings": [
         {
           "level": 2,
-          "text": "AI \u0026 Tooling \u2014 H\u00E0nh tr\u00ECnh hi\u1EC7n t\u1EA1i",
+          "text": "AI \u0026 Tooling — Hành trình hiện tại",
           "lineNumber": 9
         },
         {
           "level": 2,
-          "text": ".NET / C# \u2014 Deep Dives",
+          "text": ".NET / C# — Deep Dives",
           "lineNumber": 29
         },
         {
           "level": 2,
-          "text": "PostgreSQL \u2014 Deep Dives",
+          "text": "PostgreSQL — Deep Dives",
           "lineNumber": 50
         },
         {
@@ -133,7 +133,7 @@
         },
         {
           "level": 2,
-          "text": "Resources \u0111ang theo d\u00F5i",
+          "text": "Resources đang theo dõi",
           "lineNumber": 95
         }
       ]
@@ -158,7 +158,7 @@
         },
         {
           "level": 2,
-          "text": "Strengths \u2014 Skip explaining these",
+          "text": "Strengths — Skip explaining these",
           "lineNumber": 24
         },
         {
@@ -173,7 +173,7 @@
         },
         {
           "level": 2,
-          "text": "Red Flags \u2014 Warn when generating these",
+          "text": "Red Flags — Warn when generating these",
           "lineNumber": 50
         },
         {
@@ -208,17 +208,17 @@
         },
         {
           "level": 2,
-          "text": "V\u1EA5n \u0111\u1EC1",
+          "text": "Vấn đề",
           "lineNumber": 22
         },
         {
           "level": 2,
-          "text": "Gi\u1EA3i ph\u00E1p",
+          "text": "Giải pháp",
           "lineNumber": 25
         },
         {
           "level": 2,
-          "text": "L\u01B0u \u00FD",
+          "text": "Lưu ý",
           "lineNumber": 28
         },
         {
@@ -258,7 +258,7 @@
         },
         {
           "level": 2,
-          "text": "Controller \u2014 Thin, orchestrate only",
+          "text": "Controller — Thin, orchestrate only",
           "lineNumber": 23
         },
         {
@@ -358,7 +358,7 @@
         },
         {
           "level": 2,
-          "text": "Dependency Rule \u2014 Never violate",
+          "text": "Dependency Rule — Never violate",
           "lineNumber": 47
         },
         {
@@ -408,7 +408,7 @@
         },
         {
           "level": 2,
-          "text": "Pipeline Behaviors \u2014 Registration Order",
+          "text": "Pipeline Behaviors — Registration Order",
           "lineNumber": 95
         },
         {
@@ -428,12 +428,12 @@
       "headings": [
         {
           "level": 2,
-          "text": "Language Features \u2014 Use",
+          "text": "Language Features — Use",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "Language Features \u2014 Avoid",
+          "text": "Language Features — Avoid",
           "lineNumber": 44
         },
         {
@@ -578,7 +578,7 @@
         },
         {
           "level": 2,
-          "text": "Consumer \u2014 Idempotency Required (at-least-once delivery)",
+          "text": "Consumer — Idempotency Required (at-least-once delivery)",
           "lineNumber": 30
         },
         {
@@ -588,7 +588,7 @@
         },
         {
           "level": 2,
-          "text": "Outbox Pattern \u2014 Atomic publish with DB write",
+          "text": "Outbox Pattern — Atomic publish with DB write",
           "lineNumber": 91
         },
         {
@@ -618,7 +618,7 @@
         },
         {
           "level": 2,
-          "text": "TTL \u2014 Always set, never permanent",
+          "text": "TTL — Always set, never permanent",
           "lineNumber": 19
         },
         {
@@ -628,7 +628,7 @@
         },
         {
           "level": 2,
-          "text": "Distributed Lock \u2014 Atomic acquire \u002B release",
+          "text": "Distributed Lock — Atomic acquire \u002B release",
           "lineNumber": 54
         },
         {
@@ -683,7 +683,7 @@
         },
         {
           "level": 2,
-          "text": "Integration Test \u2014 TestContainers \u002B EF Core",
+          "text": "Integration Test — TestContainers \u002B EF Core",
           "lineNumber": 107
         },
         {
@@ -713,7 +713,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "Design API m\u1EDBi",
+          "text": "Design API mới",
           "lineNumber": 7
         },
         {
@@ -738,7 +738,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "Design feature m\u1EDBi end-to-end",
+          "text": "Design feature mới end-to-end",
           "lineNumber": 7
         },
         {
@@ -777,7 +777,7 @@
         },
         {
           "level": 2,
-          "text": "Query / Database Ch\u1EADm",
+          "text": "Query / Database Chậm",
           "lineNumber": 31
         },
         {
@@ -797,17 +797,17 @@
       "headings": [
         {
           "level": 2,
-          "text": "Feedback approach c\u1EE7a t\u00F4i",
+          "text": "Feedback approach của tôi",
           "lineNumber": 7
         },
         {
           "level": 2,
-          "text": "So s\u00E1nh 2 approach",
+          "text": "So sánh 2 approach",
           "lineNumber": 31
         },
         {
           "level": 2,
-          "text": "Review design tr\u01B0\u1EDBc khi implement",
+          "text": "Review design trước khi implement",
           "lineNumber": 50
         }
       ]
@@ -872,17 +872,17 @@
       "headings": [
         {
           "level": 2,
-          "text": "Unit Test \u2014 Handler / Service",
+          "text": "Unit Test — Handler / Service",
           "lineNumber": 7
         },
         {
           "level": 2,
-          "text": "Unit Test \u2014 Domain Entity / Value Object",
+          "text": "Unit Test — Domain Entity / Value Object",
           "lineNumber": 41
         },
         {
           "level": 2,
-          "text": "Integration Test \u2014 TestContainers",
+          "text": "Integration Test — TestContainers",
           "lineNumber": 52
         },
         {
@@ -902,17 +902,17 @@
       "headings": [
         {
           "level": 2,
-          "text": "Vi\u1EBFt LINQ t\u1EEB requirement",
+          "text": "Viết LINQ từ requirement",
           "lineNumber": 5
         },
         {
           "level": 2,
-          "text": "Debug LINQ sai / ch\u1EADm",
+          "text": "Debug LINQ sai / chậm",
           "lineNumber": 30
         },
         {
           "level": 2,
-          "text": "Convert SQL \u2194 LINQ",
+          "text": "Convert SQL ↔ LINQ",
           "lineNumber": 58
         },
         {
@@ -932,7 +932,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "API Endpoint ch\u1EADm",
+          "text": "API Endpoint chậm",
           "lineNumber": 7
         },
         {
@@ -942,7 +942,7 @@
         },
         {
           "level": 2,
-          "text": "Export / Import d\u1EEF li\u1EC7u l\u1EDBn",
+          "text": "Export / Import dữ liệu lớn",
           "lineNumber": 43
         },
         {
@@ -962,7 +962,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "Gather info tr\u01B0\u1EDBc",
+          "text": "Gather info trước",
           "lineNumber": 3
         },
         {
@@ -972,7 +972,7 @@
         },
         {
           "level": 2,
-          "text": "Reference \u2014 \u0110\u1ECDc plan nhanh",
+          "text": "Reference — Đọc plan nhanh",
           "lineNumber": 74
         }
       ]
@@ -987,7 +987,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "Reference \u2014 Common migration risks",
+          "text": "Reference — Common migration risks",
           "lineNumber": 55
         }
       ]
@@ -1002,12 +1002,12 @@
       "headings": [
         {
           "level": 2,
-          "text": "Design schema m\u1EDBi",
+          "text": "Design schema mới",
           "lineNumber": 5
         },
         {
           "level": 2,
-          "text": "Review schema hi\u1EC7n t\u1EA1i",
+          "text": "Review schema hiện tại",
           "lineNumber": 31
         },
         {
@@ -1027,7 +1027,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "Bug n\u00E0y",
+          "text": "Bug này",
           "lineNumber": 9
         },
         {
@@ -1052,7 +1052,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "Feature n\u00E0y",
+          "text": "Feature này",
           "lineNumber": 10
         },
         {
@@ -1062,7 +1062,7 @@
         },
         {
           "level": 2,
-          "text": "C\u00E1ch l\u00E0m trong session n\u00E0y",
+          "text": "Cách làm trong session này",
           "lineNumber": 52
         }
       ]
@@ -1077,17 +1077,17 @@
       "headings": [
         {
           "level": 2,
-          "text": "Project n\u00E0y",
+          "text": "Project này",
           "lineNumber": 8
         },
         {
           "level": 2,
-          "text": "Task \u0111\u1EA7u ti\u00EAn",
+          "text": "Task đầu tiên",
           "lineNumber": 39
         },
         {
           "level": 2,
-          "text": "Trong session n\u00E0y",
+          "text": "Trong session này",
           "lineNumber": 45
         }
       ]
@@ -1277,12 +1277,12 @@
         },
         {
           "level": 2,
-          "text": "Migration SQL \u2014 Up",
+          "text": "Migration SQL — Up",
           "lineNumber": 44
         },
         {
           "level": 2,
-          "text": "Migration SQL \u2014 Down",
+          "text": "Migration SQL — Down",
           "lineNumber": 66
         },
         {
@@ -1437,12 +1437,12 @@
       "headings": [
         {
           "level": 2,
-          "text": "1. Parallel Processing v\u1EDBi bounded concurrency",
+          "text": "1. Parallel Processing với bounded concurrency",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "2. Channel\u003CT\u003E \u2014 Producer/Consumer pipeline",
+          "text": "2. Channel\u003CT\u003E — Producer/Consumer pipeline",
           "lineNumber": 14
         },
         {
@@ -1452,7 +1452,7 @@
         },
         {
           "level": 2,
-          "text": "4. Retry v\u1EDBi Polly v8",
+          "text": "4. Retry với Polly v8",
           "lineNumber": 63
         },
         {
@@ -1477,12 +1477,12 @@
       "headings": [
         {
           "level": 2,
-          "text": "1. Projection v\u1EDBi nested object (tr\u00E1nh N\u002B1)",
+          "text": "1. Projection với nested object (tránh N\u002B1)",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "2. Bulk update kh\u00F4ng load entity (EF Core 7\u002B)",
+          "text": "2. Bulk update không load entity (EF Core 7\u002B)",
           "lineNumber": 22
         },
         {
@@ -1492,7 +1492,7 @@
         },
         {
           "level": 2,
-          "text": "4. Streaming large result (tr\u00E1nh OOM)",
+          "text": "4. Streaming large result (tránh OOM)",
           "lineNumber": 43
         },
         {
@@ -1502,27 +1502,27 @@
         },
         {
           "level": 2,
-          "text": "7. Global Query Filter \u2014 Soft delete \u0026 Multi-tenancy",
+          "text": "7. Global Query Filter — Soft delete \u0026 Multi-tenancy",
           "lineNumber": 81
         },
         {
           "level": 2,
-          "text": "8. Compiled Query \u2014 Hot query \u003E100 req/s (~30% faster)",
+          "text": "8. Compiled Query — Hot query \u003E100 req/s (~30% faster)",
           "lineNumber": 95
         },
         {
           "level": 2,
-          "text": "9. Interceptor \u2014 Audit trail t\u1EF1 \u0111\u1ED9ng",
+          "text": "9. Interceptor — Audit trail tự động",
           "lineNumber": 110
         },
         {
           "level": 2,
-          "text": "10. Owned Entity \u2014 Value Object mapping",
+          "text": "10. Owned Entity — Value Object mapping",
           "lineNumber": 139
         },
         {
           "level": 2,
-          "text": "EF Core \u2014 Typed Raw SQL \u0060SqlQuery\u003CT\u003E\u0060",
+          "text": "EF Core — Typed Raw SQL \u0060SqlQuery\u003CT\u003E\u0060",
           "lineNumber": 155
         }
       ]
@@ -1557,27 +1557,27 @@
         },
         {
           "level": 2,
-          "text": "5. EF Core LEFT JOIN b\u1ECB th\u00E0nh INNER JOIN",
+          "text": "5. EF Core LEFT JOIN bị thành INNER JOIN",
           "lineNumber": 61
         },
         {
           "level": 2,
-          "text": "6. Task.WhenAll ch\u1EC9 propagate 1 exception",
+          "text": "6. Task.WhenAll chỉ propagate 1 exception",
           "lineNumber": 71
         },
         {
           "level": 2,
-          "text": "7. CancellationToken kh\u00F4ng \u0111\u01B0\u1EE3c pass \u2192 request treo",
+          "text": "7. CancellationToken không được pass → request treo",
           "lineNumber": 83
         },
         {
           "level": 2,
-          "text": "8. IEnumerable b\u1ECB enumerate nhi\u1EC1u l\u1EA7n",
+          "text": "8. IEnumerable bị enumerate nhiều lần",
           "lineNumber": 92
         },
         {
           "level": 2,
-          "text": "9. SemaphoreSlim \u2014 class-level, kh\u00F4ng t\u1EA1o per-call",
+          "text": "9. SemaphoreSlim — class-level, không tạo per-call",
           "lineNumber": 107
         },
         {
@@ -1587,12 +1587,12 @@
         },
         {
           "level": 2,
-          "text": "11. System.Text.Json \u2014 case sensitivity silent fail",
+          "text": "11. System.Text.Json — case sensitivity silent fail",
           "lineNumber": 140
         },
         {
           "level": 2,
-          "text": "12. DI \u2014 GetService vs GetRequiredService",
+          "text": "12. DI — GetService vs GetRequiredService",
           "lineNumber": 153
         }
       ]
@@ -1607,27 +1607,27 @@
       "headings": [
         {
           "level": 2,
-          "text": "1. Span\u003CT\u003E \u2014 Zero-copy string/byte processing (~5-10x \u00EDt allocation)",
+          "text": "1. Span\u003CT\u003E — Zero-copy string/byte processing (~5-10x ít allocation)",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "2. ArrayPool\u003CT\u003E \u2014 Reuse buffer trong hot path",
+          "text": "2. ArrayPool\u003CT\u003E — Reuse buffer trong hot path",
           "lineNumber": 18
         },
         {
           "level": 2,
-          "text": "3. ObjectPool\u003CT\u003E \u2014 Reuse expensive objects",
+          "text": "3. ObjectPool\u003CT\u003E — Reuse expensive objects",
           "lineNumber": 35
         },
         {
           "level": 2,
-          "text": "4. Streaming Export \u2014 Memory O(1) thay v\u00EC O(n)",
+          "text": "4. Streaming Export — Memory O(1) thay vì O(n)",
           "lineNumber": 52
         },
         {
           "level": 2,
-          "text": "5. BenchmarkDotNet \u2014 \u0110o th\u1EF1c t\u1EBF tr\u01B0\u1EDBc khi optimize",
+          "text": "5. BenchmarkDotNet — Đo thực tế trước khi optimize",
           "lineNumber": 80
         },
         {
@@ -1647,12 +1647,12 @@
       "headings": [
         {
           "level": 2,
-          "text": "1. Index b\u1ECB b\u1ECF qua v\u00EC function wrap",
+          "text": "1. Index bị bỏ qua vì function wrap",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "2. NULL trong NOT IN \u2192 empty set",
+          "text": "2. NULL trong NOT IN → empty set",
           "lineNumber": 13
         },
         {
@@ -1662,22 +1662,22 @@
         },
         {
           "level": 2,
-          "text": "4. OR gi\u1EEFa columns kh\u00E1c nhau \u2192 Seq Scan",
+          "text": "4. OR giữa columns khác nhau → Seq Scan",
           "lineNumber": 32
         },
         {
           "level": 2,
-          "text": "5. LIKE v\u1EDBi leading wildcard \u2192 full table scan",
+          "text": "5. LIKE với leading wildcard → full table scan",
           "lineNumber": 43
         },
         {
           "level": 2,
-          "text": "6. COUNT(*) tr\u00EAn large table",
+          "text": "6. COUNT(*) trên large table",
           "lineNumber": 56
         },
         {
           "level": 2,
-          "text": "7. Deadlock v\u1EDBi concurrent updates",
+          "text": "7. Deadlock với concurrent updates",
           "lineNumber": 70
         }
       ]
@@ -1692,32 +1692,32 @@
       "headings": [
         {
           "level": 2,
-          "text": "1. Composite Index \u2014 Th\u1EE9 t\u1EF1 column",
+          "text": "1. Composite Index — Thứ tự column",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "2. Partial Index \u2014 Ch\u1EC9 5% rows, size ~5% full index",
+          "text": "2. Partial Index — Chỉ 5% rows, size ~5% full index",
           "lineNumber": 20
         },
         {
           "level": 2,
-          "text": "3. Covering Index (INCLUDE) \u2014 Index Only Scan",
+          "text": "3. Covering Index (INCLUDE) — Index Only Scan",
           "lineNumber": 31
         },
         {
           "level": 2,
-          "text": "4. Functional Index \u2014 Query c\u00F3 function wrap",
+          "text": "4. Functional Index — Query có function wrap",
           "lineNumber": 41
         },
         {
           "level": 2,
-          "text": "5. GIN Index \u2014 Array, JSONB, Full-text",
+          "text": "5. GIN Index — Array, JSONB, Full-text",
           "lineNumber": 52
         },
         {
           "level": 2,
-          "text": "6. BRIN \u2014 Time-series, append-only (1% size c\u1EE7a B-tree)",
+          "text": "6. BRIN — Time-series, append-only (1% size của B-tree)",
           "lineNumber": 63
         },
         {
@@ -1727,7 +1727,7 @@
         },
         {
           "level": 2,
-          "text": "8. CREATE INDEX CONCURRENTLY \u2014 Production safe",
+          "text": "8. CREATE INDEX CONCURRENTLY — Production safe",
           "lineNumber": 94
         }
       ]
@@ -1747,32 +1747,32 @@
         },
         {
           "level": 2,
-          "text": "2. Upsert v\u1EDBi ON CONFLICT",
+          "text": "2. Upsert với ON CONFLICT",
           "lineNumber": 16
         },
         {
           "level": 2,
-          "text": "3. Window Function \u2014 Ranking",
+          "text": "3. Window Function — Ranking",
           "lineNumber": 25
         },
         {
           "level": 2,
-          "text": "4. Aggregation v\u1EDBi FILTER (thay nhi\u1EC1u subquery)",
+          "text": "4. Aggregation với FILTER (thay nhiều subquery)",
           "lineNumber": 34
         },
         {
           "level": 2,
-          "text": "5. CTE \u2014 Complex query \u002B MoM growth",
+          "text": "5. CTE — Complex query \u002B MoM growth",
           "lineNumber": 44
         },
         {
           "level": 2,
-          "text": "6. Batch delete (tr\u00E1nh lock l\u00E2u \u002B replication lag)",
+          "text": "6. Batch delete (tránh lock lâu \u002B replication lag)",
           "lineNumber": 59
         },
         {
           "level": 2,
-          "text": "7. SKIP LOCKED \u2014 Job queue pattern",
+          "text": "7. SKIP LOCKED — Job queue pattern",
           "lineNumber": 79
         },
         {
@@ -1782,12 +1782,12 @@
         },
         {
           "level": 2,
-          "text": "9. Recursive CTE \u2014 Hierarchical data",
+          "text": "9. Recursive CTE — Hierarchical data",
           "lineNumber": 104
         },
         {
           "level": 2,
-          "text": "10. Multi-row UPDATE t\u1EEB VALUES (1 round trip thay v\u00EC N)",
+          "text": "10. Multi-row UPDATE từ VALUES (1 round trip thay vì N)",
           "lineNumber": 116
         }
       ]
@@ -1802,12 +1802,12 @@
       "headings": [
         {
           "level": 2,
-          "text": "1. Outbox Pattern v\u1EDBi EF Core",
+          "text": "1. Outbox Pattern với EF Core",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "2. Consumer Idempotent v\u1EDBi Inbox",
+          "text": "2. Consumer Idempotent với Inbox",
           "lineNumber": 30
         },
         {
@@ -1817,7 +1817,7 @@
         },
         {
           "level": 2,
-          "text": "4. Republish t\u1EEB DLQ",
+          "text": "4. Republish từ DLQ",
           "lineNumber": 77
         }
       ]
@@ -1832,22 +1832,22 @@
       "headings": [
         {
           "level": 2,
-          "text": "1. Cache-Aside v\u1EDBi lock tr\u00E1nh stampede",
+          "text": "1. Cache-Aside với lock tránh stampede",
           "lineNumber": 3
         },
         {
           "level": 2,
-          "text": "2. Distributed Lock \u2014 Lua script atomic release",
+          "text": "2. Distributed Lock — Lua script atomic release",
           "lineNumber": 30
         },
         {
           "level": 2,
-          "text": "3. Rate Limiting \u2014 Fixed window",
+          "text": "3. Rate Limiting — Fixed window",
           "lineNumber": 54
         },
         {
           "level": 2,
-          "text": "4. Pub/Sub \u2014 Cache invalidation",
+          "text": "4. Pub/Sub — Cache invalidation",
           "lineNumber": 65
         }
       ]
@@ -1910,7 +1910,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "[Feature Name] \u2014 Complexity: S/M/L/XL",
+          "text": "[Feature Name] — Complexity: S/M/L/XL",
           "lineNumber": 15
         }
       ]
@@ -1934,17 +1934,17 @@
       "headings": [
         {
           "level": 2,
-          "text": "Mode 1 \u2014 Normal Bug Fix",
+          "text": "Mode 1 — Normal Bug Fix",
           "lineNumber": 7
         },
         {
           "level": 2,
-          "text": "Mode 2 \u2014 Production Incident (P0/P1)",
+          "text": "Mode 2 — Production Incident (P0/P1)",
           "lineNumber": 87
         },
         {
           "level": 2,
-          "text": "PR Checklist \u2014 Bug Fix",
+          "text": "PR Checklist — Bug Fix",
           "lineNumber": 130
         }
       ]
@@ -1959,17 +1959,17 @@
       "headings": [
         {
           "level": 2,
-          "text": "Quick Scan (2-3 ph\u00FAt)",
+          "text": "Quick Scan (2-3 phút)",
           "lineNumber": 8
         },
         {
           "level": 2,
-          "text": "Deep Review v\u1EDBi AI",
+          "text": "Deep Review với AI",
           "lineNumber": 26
         },
         {
           "level": 2,
-          "text": "Manual Check \u2014 Kh\u00F4ng th\u1EC3 delegate cho AI",
+          "text": "Manual Check — Không thể delegate cho AI",
           "lineNumber": 50
         },
         {
@@ -1999,32 +1999,32 @@
       "headings": [
         {
           "level": 2,
-          "text": "Phase 0 \u2014 Prepare (5 ph\u00FAt)",
+          "text": "Phase 0 — Prepare (5 phút)",
           "lineNumber": 8
         },
         {
           "level": 2,
-          "text": "Phase 1 \u2014 Spec \u0026 Design (15-30 ph\u00FAt)",
+          "text": "Phase 1 — Spec \u0026 Design (15-30 phút)",
           "lineNumber": 23
         },
         {
           "level": 2,
-          "text": "Phase 2 \u2014 Implement (bulk of time)",
+          "text": "Phase 2 — Implement (bulk of time)",
           "lineNumber": 45
         },
         {
           "level": 2,
-          "text": "Phase 3 \u2014 Test (20-30% total time)",
+          "text": "Phase 3 — Test (20-30% total time)",
           "lineNumber": 83
         },
         {
           "level": 2,
-          "text": "Phase 4 \u2014 Self Review (10 ph\u00FAt)",
+          "text": "Phase 4 — Self Review (10 phút)",
           "lineNumber": 105
         },
         {
           "level": 2,
-          "text": "Phase 5 \u2014 PR \u0026 Update Toolkit",
+          "text": "Phase 5 — PR \u0026 Update Toolkit",
           "lineNumber": 123
         },
         {
@@ -2044,7 +2044,7 @@
       "headings": [
         {
           "level": 2,
-          "text": "C\u00E1ch d\u00F9ng",
+          "text": "Cách dùng",
           "lineNumber": 8
         },
         {
@@ -2054,17 +2054,17 @@
         },
         {
           "level": 2,
-          "text": "EF Core \u2014 Typed Raw SQL \u0060SqlQuery\u003CT\u003E\u0060",
+          "text": "EF Core — Typed Raw SQL \u0060SqlQuery\u003CT\u003E\u0060",
           "lineNumber": 138
         },
         {
           "level": 2,
-          "text": "Tips \u0111\u1EC3 research hi\u1EC7u qu\u1EA3",
+          "text": "Tips để research hiệu quả",
           "lineNumber": 188
         },
         {
           "level": 2,
-          "text": "V\u00ED d\u1EE5 trigger research",
+          "text": "Ví dụ trigger research",
           "lineNumber": 206
         }
       ]

@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Text.Unicode;
 using DemoEngine.API.Models;
 
 namespace DemoEngine.API.Services;
@@ -18,9 +20,12 @@ public class ToolkitService(IConfiguration config, ILogger<ToolkitService> logge
 
     private const string IndexFileName = "_toolkit-index.json";
 
-    // Dùng JsonSerializerDefaults.Web → camelCase, nhất quán với API responses
-    private static readonly JsonSerializerOptions JsonOpts =
-        new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    // camelCase (Web default) + WriteIndented + cho phép Unicode thẳng (không escape \uXXXX)
+    private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+    };
 
     // Precompile regex để tránh overhead mỗi lần gọi
     private static readonly Regex NonAlphanumeric = new(@"[^a-z0-9\s]", RegexOptions.Compiled);
