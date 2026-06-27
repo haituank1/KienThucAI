@@ -99,8 +99,25 @@ Schema:
     "toolkitTarget": "[path trong my-ai-toolkit để merge vào]",
     "action": "append"
   },
-  "toolkitContent": "[XEM HƯỚNG DẪN BÊN DƯỚI]"
+  "toolkitContent": "[XEM HƯỚNG DẪN BÊN DƯỚI]",
+  "staleAfterDays": 180,
+  "techVersions": {
+    "dotnet": "8+",
+    "efcore": "8+",
+    "postgres": "15+"
+  }
 }
+
+---
+
+**QUAN TRỌNG — `staleAfterDays` và `techVersions`:**
+
+- `staleAfterDays`: Bao nhiêu ngày sau validate thì item bị coi là stale.
+  - AI tooling / LLM features → `90` (thay đổi nhanh)
+  - Framework features (EF Core, PostgreSQL) → `180` (default, 6 tháng)
+  - Stable patterns (Clean Arch, SOLID) → `365` (1 năm)
+- `techVersions`: Ghi rõ version để biết khi nào cần review lại khi stack upgrade.
+  - Chỉ ghi các tech trực tiếp liên quan (không phải tất cả stack).
 
 ---
 

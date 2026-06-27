@@ -1,4 +1,4 @@
-# EF Core — Battle-tested Patterns
+﻿# EF Core — Battle-tested Patterns
 
 ## 1. Projection với nested object (tránh N+1)
 ```csharp

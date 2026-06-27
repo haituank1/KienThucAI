@@ -15,7 +15,7 @@
   "status": "validated",
   "confidence": 0.92,
   "researchedAt": "2026-06-27T09:00:00Z",
-  "validatedAt": "2026-06-26T21:26:17.2394383Z",
+  "validatedAt": "2026-06-27T14:53:33.4030092Z",
   "validatedBy": "Tuan",
   "summary": "EF Core 8+ cho phép execute raw SQL và map kết quả thành bất kỳ type nào (không cần entity), với parameterization tự động an toàn.",
   "problem": "",
@@ -39,5 +39,9 @@
     "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
     "action": "append"
   },
-  "toolkitContent": ""
+  "toolkitContent": "",
+  "staleAfterDays": 180,
+  "techVersions": {},
+  "mergedIntoFile": "05-snippets/dotnet/ef-core-patterns.md",
+  "mergedAt": "2026-06-27T14:54:05.3137587Z"
 }

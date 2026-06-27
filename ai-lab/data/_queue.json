@@ -1,0 +1,12 @@
+﻿[
+  {
+    "id": "372277ab",
+    "topic": ".NET 9 — Task.WhenEach và mới trong async",
+    "category": "dotnet",
+    "priority": "medium",
+    "notes": "So sánh với WhenAll/WhenAny, use case thực tế",
+    "status": "pending",
+    "addedAt": "2026-06-27T13:48:33.2941315Z",
+    "linkedItemId": null
+  }
+]

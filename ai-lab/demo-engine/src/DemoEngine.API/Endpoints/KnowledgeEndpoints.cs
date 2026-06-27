@@ -18,8 +18,12 @@ public static class KnowledgeEndpoints
                 i.Id, i.Topic, i.Category, i.Subcategory, i.Tags,
                 i.Difficulty, i.Relevance, i.Status, i.Confidence,
                 i.ResearchedAt, i.ValidatedAt, i.Summary,
-                HasDemo  = i.Demo.Exists,
-                DemoType = i.Demo.Type
+                HasDemo       = i.Demo.Exists,
+                DemoType      = i.Demo.Type,
+                i.StaleAfterDays,
+                i.TechVersions,
+                i.MergedIntoFile,
+                i.MergedAt
             });
             return Results.Ok(list);
         });
@@ -64,13 +68,40 @@ public static class KnowledgeEndpoints
         });
 
         // POST /api/knowledge/{id}/merge-to-toolkit
-        // Thực sự append content vào file my-ai-toolkit
+        // Append/Replace/Skip content vào file my-ai-toolkit
         group.MapPost("{id}/merge-to-toolkit", async (string id, MergeToToolkitRequest req, KnowledgeService svc, ToolkitService toolkitSvc) =>
         {
             var item = await svc.GetByIdAsync(id);
             if (item is null) return Results.NotFound();
 
-            var result = await toolkitSvc.MergeAsync(req);
+            MergeResult result;
+
+            switch (req.Action)
+            {
+                case "skip":
+                    result = new MergeResult
+                    {
+                        Success       = true,
+                        Message       = "Bỏ qua — không lưu vào toolkit.",
+                        TargetRelPath = req.TargetRelPath
+                    };
+                    break;
+
+                case "replace" when !string.IsNullOrWhiteSpace(req.HeadingToReplace):
+                    result = await toolkitSvc.ReplaceSectionAsync(
+                        req.TargetAbsPath, req.TargetRelPath,
+                        req.HeadingToReplace, req.Content);
+                    break;
+
+                default: // "append" hoặc không hợp lệ → append
+                    result = await toolkitSvc.MergeAsync(req);
+                    break;
+            }
+
+            // Lưu merge tracking vào item (trừ skip)
+            if (result.Success && req.Action != "skip")
+                await svc.UpdateMergeTrackingAsync(id, req.TargetRelPath);
+
             return result.Success ? Results.Ok(result) : Results.UnprocessableEntity(result);
         });
 

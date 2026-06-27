@@ -27,6 +27,7 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<DemoRunnerService>();
 builder.Services.AddScoped<ToolkitService>();
+builder.Services.AddScoped<QueueService>();
 
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.SetIsOriginAllowed(_ => true)   // cho phép mọi origin kể cả null (file://)
@@ -76,6 +77,8 @@ app.MapKnowledgeEndpoints();
 app.MapCategoryEndpoints();
 app.MapDemoEndpoints();
 app.MapStatsEndpoints();
+app.MapQueueEndpoints();
+app.MapToolkitEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new
 {

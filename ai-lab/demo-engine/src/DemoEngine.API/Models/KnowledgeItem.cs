@@ -32,6 +32,27 @@ public class KnowledgeItem
     /// </summary>
     public string ToolkitContent { get; set; } = "";
 
+    /// <summary>
+    /// Số ngày sau khi validate thì item bị đánh dấu stale (cần review lại).
+    /// Default 180. Dùng 90 cho AI/tools (thay đổi nhanh), 365 cho stable patterns.
+    /// </summary>
+    public int StaleAfterDays { get; set; } = 180;
+
+    /// <summary>
+    /// Phiên bản tech tương ứng. Vd: { "dotnet": "8+", "efcore": "8+", "postgres": "15+" }
+    /// AI điền khi research. Dùng để filter và biết khi nào cần review lại.
+    /// </summary>
+    public Dictionary<string, string> TechVersions { get; set; } = new();
+
+    /// <summary>
+    /// File trong my-ai-toolkit mà item đã được merge vào sau khi validate.
+    /// Vd: "05-snippets/dotnet/ef-core-patterns.md"
+    /// </summary>
+    public string? MergedIntoFile { get; set; }
+
+    /// <summary>Thời điểm merge vào toolkit.</summary>
+    public DateTime? MergedAt { get; set; }
+
     // Computed — not stored in JSON
     [JsonIgnore]
     public string FilePath { get; set; } = "";

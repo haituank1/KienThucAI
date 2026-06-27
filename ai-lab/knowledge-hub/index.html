@@ -34,6 +34,9 @@
     <div class="nav-item" data-view="queue" onclick="switchView('queue')">
       <span>📋</span> Research Queue
     </div>
+    <div class="nav-item" data-view="toolkit" onclick="switchView('toolkit')">
+      <span>🗂️</span> Toolkit Explorer
+    </div>
     <div class="nav-item" data-view="settings" onclick="switchView('settings')">
       <span>⚙️</span> Settings
     </div>
@@ -60,16 +63,21 @@
 <main style="flex:1;overflow:hidden;display:flex;flex-direction:column">
 
   <!-- Top bar -->
-  <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.5rem;border-bottom:1px solid #334155;background:#020617;flex-shrink:0">
-    <input type="text" id="searchInput" class="input" style="max-width:260px"
-           placeholder="🔍 Tìm kiếm..." oninput="debounceSearch(this.value)">
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.5rem;border-bottom:1px solid #334155;background:#020617;flex-shrink:0;flex-wrap:wrap">
+    <div class="search-wrapper" style="max-width:260px;width:260px">
+      <input type="text" id="searchInput" class="input"
+             placeholder="🔍 Tìm kiếm..." oninput="debounceSearch(this.value)">
+      <button class="search-clear" id="searchClearBtn" hidden onclick="clearSearch()" title="Xoá">✕</button>
+    </div>
     <select id="statusFilter" class="select" style="width:180px" onchange="applyFilters()">
       <option value="">Tất cả status</option>
       <option value="pending_review">⏳ Pending Review</option>
       <option value="validated">✅ Validated</option>
       <option value="rejected">❌ Rejected</option>
       <option value="needs_rework">🔄 Needs Rework</option>
+      <option value="stale">⚠️ Stale (cần review)</option>
     </select>
+    <div id="searchResultCount" style="font-size:0.75rem;color:#64748b" hidden></div>
     <div style="margin-left:auto;display:flex;gap:0.5rem">
       <button class="btn btn-ghost" onclick="refreshAll()">🔄 Refresh</button>
       <button class="btn btn-primary" onclick="openAddCategoryModal()">+ Category</button>
@@ -117,9 +125,9 @@
           <div class="stat-number" style="color:#2dd4bf;font-size:1.5rem" id="statThisWeek">—</div>
           <div class="stat-label">Validated This Week</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-number" style="color:#fb923c;font-size:1.5rem" id="statStreak">0</div>
-          <div class="stat-label">Validate Streak</div>
+        <div class="stat-card" style="cursor:pointer" onclick="filterStale()" title="Click để xem items stale">
+          <div class="stat-number" style="color:#fbbf24;font-size:1.5rem" id="statStale">0</div>
+          <div class="stat-label">⚠️ Stale Items</div>
         </div>
       </div>
 
@@ -159,12 +167,67 @@
 
     <!-- ─────────────────── QUEUE ───────────────────────── -->
     <div id="view-queue" hidden>
-      <div class="card" style="max-width:640px">
-        <div style="font-size:0.875rem;font-weight:500;color:#cbd5e1;margin-bottom:1rem">📋 Research Queue</div>
-        <div id="queueContent" style="color:#94a3b8;font-size:0.875rem">Đang tải...</div>
-        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #334155;font-size:0.7rem;color:#64748b">
-          Chỉnh sửa trực tiếp: <code style="background:#334155;padding:1px 4px;border-radius:3px">ai-lab/RESEARCH_QUEUE.md</code>
+      <!-- Header bar -->
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">
+        <h2 style="margin:0;font-size:1rem;font-weight:600;color:#cbd5e1">📋 Research Queue</h2>
+        <div id="queueStats" style="font-size:0.75rem;color:#64748b"></div>
+        <div style="margin-left:auto;display:flex;gap:0.5rem">
+          <button class="btn btn-ghost" onclick="loadQueue()">🔄 Refresh</button>
+          <button class="btn btn-primary" onclick="openQueueModal()">+ Thêm Topic</button>
         </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:0.25rem;margin-bottom:1rem">
+        <button class="btn btn-ghost" id="qFilterAll"     onclick="setQueueFilter('all')"         style="font-size:0.75rem">Tất cả</button>
+        <button class="btn btn-ghost" id="qFilterPending" onclick="setQueueFilter('pending')"     style="font-size:0.75rem">⏳ Pending</button>
+        <button class="btn btn-ghost" id="qFilterDone"    onclick="setQueueFilter('done')"        style="font-size:0.75rem">✅ Done</button>
+      </div>
+
+      <!-- Table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="queue-table">
+          <thead>
+            <tr>
+              <th style="width:80px">Priority</th>
+              <th>Topic</th>
+              <th style="width:110px">Category</th>
+              <th style="width:90px">Status</th>
+              <th style="width:80px">Added</th>
+              <th style="width:160px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="queueTableBody">
+            <tr><td colspan="6" style="text-align:center;color:#64748b;padding:2rem">Đang tải...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:0.75rem;font-size:0.7rem;color:#64748b">
+        💡 Click <strong>Generate Prompt</strong> để copy prompt nghiên cứu vào clipboard, rồi paste vào Claude.
+      </div>
+    </div>
+
+    <!-- ─────────────────── TOOLKIT EXPLORER ────────────── -->
+    <div id="view-toolkit" hidden>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">
+        <h2 style="margin:0;font-size:1rem;font-weight:600;color:#cbd5e1">🗂️ Toolkit Explorer</h2>
+        <div id="tkStats" style="font-size:0.75rem;color:#64748b"></div>
+        <div style="margin-left:auto;display:flex;gap:0.5rem">
+          <button class="btn btn-ghost" onclick="loadToolkitExplorer()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Search headings -->
+      <div class="search-wrapper" style="max-width:360px;width:100%;margin-bottom:1rem">
+        <input type="text" id="tkSearchInput" class="input" placeholder="🔍 Tìm heading trong toolkit..."
+               oninput="filterToolkitHeadings(this.value)">
+        <button class="search-clear" id="tkSearchClear" hidden onclick="clearToolkitSearch()" title="Xoá">✕</button>
+      </div>
+
+      <!-- File list -->
+      <div id="tkFileList" style="display:flex;flex-direction:column;gap:0.5rem">
+        <div class="loading">Đang tải...</div>
       </div>
     </div>
 
@@ -175,7 +238,14 @@
           <div style="font-size:0.875rem;font-weight:500;color:#cbd5e1;margin-bottom:1rem">📁 Categories</div>
           <div id="categoriesList" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem"></div>
         </div>
-        <div class="card">
+        <div class="card" style="margin-top:1rem">
+          <div style="font-size:0.875rem;font-weight:500;color:#cbd5e1;margin-bottom:0.75rem">📋 Toolkit Index</div>
+          <div id="indexInfo" style="font-size:0.75rem;color:#64748b;line-height:1.8;margin-bottom:0.75rem">Chưa load...</div>
+          <button class="btn btn-primary" id="rebuildIndexBtn" onclick="rebuildToolkitIndex()" style="font-size:0.75rem;padding:0.35rem 0.75rem">
+            🔄 Rebuild Index
+          </button>
+        </div>
+        <div class="card" style="margin-top:1rem">
           <div style="font-size:0.875rem;font-weight:500;color:#cbd5e1;margin-bottom:0.75rem">🔧 System Info</div>
           <div id="systemInfo" style="font-size:0.75rem;color:#64748b;line-height:1.8"></div>
         </div>
@@ -255,10 +325,26 @@
       <button class="btn btn-primary" onclick="openDemoFromModal()">🚀 Xem Demo</button>
     </div>
 
-    <div id="modalTags" style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-bottom:1rem"></div>
+    <div id="modalTags" style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-bottom:0.5rem"></div>
 
-    <div id="modalToolkitSection" style="font-size:0.75rem;color:#64748b;margin-bottom:1rem" hidden>
+    <!-- Tech versions -->
+    <div id="modalVersionsSection" style="margin-bottom:1rem" hidden>
+      <div style="font-size:0.65rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem">Tech Versions</div>
+      <div id="modalVersions" style="display:flex;flex-wrap:wrap;gap:0.35rem"></div>
+    </div>
+
+    <!-- Stale info -->
+    <div id="modalStaleSection" style="font-size:0.75rem;color:#fbbf24;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem" hidden>
+      <span class="stale-badge" title="Item này cần được review lại">⚠️ Stale</span>
+      <span id="modalStaleMsg"></span>
+    </div>
+
+    <div id="modalToolkitSection" style="font-size:0.75rem;color:#64748b;margin-bottom:0.5rem" hidden>
       Toolkit target: <code id="modalToolkitTarget" style="background:#334155;padding:1px 4px;border-radius:3px;margin-left:4px"></code>
+    </div>
+    <div id="modalMergedSection" style="font-size:0.75rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem" hidden>
+      <span style="background:#10b98130;color:#10b981;border:1px solid #10b98150;padding:0.1rem 0.5rem;border-radius:9999px;font-size:0.65rem;font-weight:700">✅ Merged</span>
+      <span id="modalMergedInfo" style="color:#64748b"></span>
     </div>
 
     <!-- Action buttons -->
@@ -325,39 +411,128 @@
   <div class="modal" style="padding:1.5rem;max-width:820px" onclick="event.stopPropagation()">
 
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
-      <div>
-        <h3 style="margin:0;color:white;font-size:1rem">📥 Lưu vào my-ai-toolkit</h3>
-        <div id="previewTargetPath" style="font-size:0.75rem;color:#64748b;margin-top:0.25rem"></div>
+      <div style="flex:1;margin-right:1rem">
+        <h3 style="margin:0 0 0.5rem;color:white;font-size:1rem">📥 Lưu vào my-ai-toolkit</h3>
+        <!-- Target path — editable với datalist gợi ý -->
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <span style="font-size:0.75rem;color:#64748b;white-space:nowrap">📁 Target:</span>
+          <input id="previewTargetInput" class="input" list="toolkitPathSuggestions"
+                 style="font-size:0.75rem;font-family:monospace;color:#a5b4fc"
+                 placeholder="05-snippets/dotnet/ef-core-patterns.md"
+                 onchange="onTargetPathChange(this.value)">
+          <datalist id="toolkitPathSuggestions">
+            <option value="02-rules/rules.md">
+            <option value="03-prompts/prompts.md">
+            <option value="04-specs/specs.md">
+            <option value="05-snippets/dotnet/ef-core-patterns.md">
+            <option value="05-snippets/dotnet/async-patterns.md">
+            <option value="05-snippets/dotnet/performance-patterns.md">
+            <option value="05-snippets/dotnet/gotchas.md">
+            <option value="05-snippets/postgresql/query-patterns.md">
+            <option value="05-snippets/postgresql/index-patterns.md">
+            <option value="05-snippets/postgresql/gotchas.md">
+            <option value="07-agents/workflows/research-session.md">
+          </datalist>
+        </div>
       </div>
-      <button onclick="closeToolkitPreview()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem">✕</button>
+      <button onclick="closeToolkitPreview()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;flex-shrink:0">✕</button>
     </div>
 
-    <!-- Warning duplicate -->
+    <!-- Warning duplicate + action selector -->
     <div id="previewDupWarning" hidden
-         style="background:#7c2d1240;border:1px solid #9a3412;border-radius:0.5rem;padding:0.75rem;margin-bottom:1rem;color:#fb923c;font-size:0.8rem"></div>
+         style="background:#7c2d1240;border:1px solid #9a3412;border-radius:0.5rem;padding:0.75rem;margin-bottom:0.75rem;color:#fb923c;font-size:0.8rem"></div>
 
-    <!-- File info -->
-    <div id="previewFileInfo" style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem"></div>
+    <!-- Action selector — hiện khi có duplicate -->
+    <div id="previewActionRow" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap">
+      <span style="font-size:0.75rem;color:#64748b;white-space:nowrap">Hành động:</span>
+      <label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.8rem;color:#cbd5e1">
+        <input type="radio" name="mergeAction" value="append" checked onchange="onMergeActionChange('append')"> Append (thêm mới)
+      </label>
+      <label id="labelReplace" style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.8rem;color:#cbd5e1">
+        <input type="radio" name="mergeAction" value="replace" onchange="onMergeActionChange('replace')"> Replace section
+      </label>
+      <label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.8rem;color:#94a3b8">
+        <input type="radio" name="mergeAction" value="skip" onchange="onMergeActionChange('skip')"> Skip (bỏ qua)
+      </label>
+    </div>
+
+    <!-- File info + existing headings -->
+    <div id="previewFileInfo" style="font-size:0.75rem;color:#64748b;margin-bottom:0.5rem"></div>
+
+    <!-- Existing headings toggle -->
+    <div id="previewHeadingsRow" hidden style="margin-bottom:0.75rem">
+      <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;cursor:pointer"
+           onclick="toggleExistingHeadings()">
+        📋 Headings trong file <span id="previewHeadingsToggleIcon">▶</span>
+      </div>
+      <div id="previewHeadingsList" hidden
+           style="background:#0f172a;border:1px solid #334155;border-radius:0.375rem;padding:0.5rem;display:flex;flex-direction:column;gap:0.2rem;max-height:140px;overflow-y:auto">
+      </div>
+    </div>
 
     <!-- Content label -->
-    <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">
-      Nội dung sẽ được append (có thể chỉnh sửa trước khi lưu):
-    </div>
+    <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem"
+         id="previewContentLabel">Nội dung sẽ được append (có thể chỉnh sửa):</div>
 
     <!-- Editable content -->
     <textarea id="previewContent"
               style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:0.5rem;
                      padding:0.75rem;color:#a5b4fc;font-family:'Cascadia Code','Fira Code','Consolas',monospace;
-                     font-size:0.75rem;line-height:1.6;min-height:320px;resize:vertical;outline:none"
+                     font-size:0.75rem;line-height:1.6;min-height:280px;resize:vertical;outline:none"
               onfocus="this.style.borderColor='#6366f1'"
               onblur="this.style.borderColor='#334155'"></textarea>
 
-    <div style="display:flex;gap:0.75rem;margin-top:1rem;align-items:center">
+    <div style="display:flex;gap:0.75rem;margin-top:1rem;align-items:center;flex-wrap:wrap">
       <button class="btn btn-success" onclick="confirmMergeToToolkit()" id="btnConfirmMerge">
         💾 Lưu vào Toolkit
       </button>
       <button class="btn btn-ghost" onclick="closeToolkitPreview()">Bỏ qua</button>
       <div id="mergeStatus" style="font-size:0.8rem;margin-left:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ QUEUE MODAL ═══════════════════════ -->
+<div id="queueModal" class="modal-overlay" hidden onclick="closeQueueModalIfOutside(event)">
+  <div class="modal" style="padding:1.5rem;max-width:480px" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h3 id="queueModalTitle" style="margin:0;color:white;font-size:1rem">➕ Thêm Research Topic</h3>
+      <button onclick="closeQueueModal()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
+      <div>
+        <label style="font-size:0.7rem;color:#64748b;display:block;margin-bottom:0.25rem">Topic <span style="color:#f87171">*</span></label>
+        <input id="qTopic" class="input" placeholder="vd: PostgreSQL 17 New Features, .NET 9 LINQ improvements">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div>
+          <label style="font-size:0.7rem;color:#64748b;display:block;margin-bottom:0.25rem">Category</label>
+          <select id="qCategory" class="select">
+            <option value="dotnet">dotnet</option>
+            <option value="postgresql">postgresql</option>
+            <option value="architecture">architecture</option>
+            <option value="ai-coding">ai-coding</option>
+            <option value="tools">tools</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.7rem;color:#64748b;display:block;margin-bottom:0.25rem">Priority</label>
+          <select id="qPriority" class="select">
+            <option value="high">🔴 High</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:0.7rem;color:#64748b;display:block;margin-bottom:0.25rem">Notes (optional)</label>
+        <textarea id="qNotes" class="textarea" style="min-height:60px" placeholder="Focus vào gì, context đặc biệt..."></textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem;padding-top:0.25rem">
+        <button class="btn btn-primary" style="flex:1" onclick="submitQueueItem()">Thêm vào Queue</button>
+        <button class="btn btn-ghost" onclick="closeQueueModal()">Huỷ</button>
+      </div>
+      <div id="qError" style="color:#f87171;font-size:0.75rem" hidden></div>
     </div>
   </div>
 </div>

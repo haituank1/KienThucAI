@@ -1,0 +1,2073 @@
+﻿{
+  "generatedAt": "2026-06-27T16:35:30.0697674Z",
+  "totalFiles": 55,
+  "totalHeadings": 304,
+  "files": [
+    {
+      "relPath": "01-context/ai-working-style.md",
+      "fileName": "ai-working-style.md",
+      "directory": "01-context",
+      "sizeBytes": 2251,
+      "lastModified": "2026-06-26T20:27:39.8618464Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "When I paste code",
+          "lineNumber": 4
+        },
+        {
+          "level": 2,
+          "text": "When I ask about performance",
+          "lineNumber": 9
+        },
+        {
+          "level": 2,
+          "text": "When I ask about PostgreSQL",
+          "lineNumber": 17
+        },
+        {
+          "level": 2,
+          "text": "When I paste error/stack trace",
+          "lineNumber": 23
+        },
+        {
+          "level": 2,
+          "text": "When I ask about design/architecture",
+          "lineNumber": 33
+        },
+        {
+          "level": 2,
+          "text": "When I want to implement a feature",
+          "lineNumber": 39
+        },
+        {
+          "level": 2,
+          "text": "Response length",
+          "lineNumber": 47
+        }
+      ]
+    },
+    {
+      "relPath": "01-context/career-context.md",
+      "fileName": "career-context.md",
+      "directory": "01-context",
+      "sizeBytes": 2819,
+      "lastModified": "2026-06-26T15:42:51.855864Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "T\u00ECnh tr\u1EA1ng hi\u1EC7n t\u1EA1i",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "M\u1EE5c ti\u00EAu ng\u1EAFn h\u1EA1n (6-12 th\u00E1ng)",
+          "lineNumber": 17
+        },
+        {
+          "level": 2,
+          "text": "M\u1EE5c ti\u00EAu d\u00E0i h\u1EA1n (1-3 n\u0103m)",
+          "lineNumber": 26
+        },
+        {
+          "level": 2,
+          "text": "Skills \u0111ang ph\u00E1t tri\u1EC3n",
+          "lineNumber": 35
+        },
+        {
+          "level": 2,
+          "text": "Nh\u1EEFng th\u1EE9 mu\u1ED1n h\u1ECDc nh\u01B0ng ch\u01B0a c\u00F3 th\u1EDDi gian",
+          "lineNumber": 46
+        },
+        {
+          "level": 2,
+          "text": "Portable Assets \u2014 Th\u1EE9 mang \u0111\u01B0\u1EE3c sang c\u00F4ng ty m\u1EDBi",
+          "lineNumber": 56
+        },
+        {
+          "level": 2,
+          "text": "Lessons Learned \u2014 Career Level",
+          "lineNumber": 68
+        },
+        {
+          "level": 2,
+          "text": "Note cho AI",
+          "lineNumber": 77
+        }
+      ]
+    },
+    {
+      "relPath": "01-context/learning-tracker.md",
+      "fileName": "learning-tracker.md",
+      "directory": "01-context",
+      "sizeBytes": 3320,
+      "lastModified": "2026-06-26T15:43:15.290002Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "AI \u0026 Tooling \u2014 H\u00E0nh tr\u00ECnh hi\u1EC7n t\u1EA1i",
+          "lineNumber": 9
+        },
+        {
+          "level": 2,
+          "text": ".NET / C# \u2014 Deep Dives",
+          "lineNumber": 29
+        },
+        {
+          "level": 2,
+          "text": "PostgreSQL \u2014 Deep Dives",
+          "lineNumber": 50
+        },
+        {
+          "level": 2,
+          "text": "Architecture \u0026 System Design",
+          "lineNumber": 70
+        },
+        {
+          "level": 2,
+          "text": "Insights \u0026 Lessons Learned",
+          "lineNumber": 85
+        },
+        {
+          "level": 2,
+          "text": "Resources \u0111ang theo d\u00F5i",
+          "lineNumber": 95
+        }
+      ]
+    },
+    {
+      "relPath": "01-context/my-profile.md",
+      "fileName": "my-profile.md",
+      "directory": "01-context",
+      "sizeBytes": 2489,
+      "lastModified": "2026-06-26T20:27:09.061385Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Identity",
+          "lineNumber": 4
+        },
+        {
+          "level": 2,
+          "text": "Tech Stack",
+          "lineNumber": 8
+        },
+        {
+          "level": 2,
+          "text": "Strengths \u2014 Skip explaining these",
+          "lineNumber": 24
+        },
+        {
+          "level": 2,
+          "text": "Working Philosophy",
+          "lineNumber": 27
+        },
+        {
+          "level": 2,
+          "text": "AI Interaction Rules",
+          "lineNumber": 34
+        },
+        {
+          "level": 2,
+          "text": "Red Flags \u2014 Warn when generating these",
+          "lineNumber": 50
+        },
+        {
+          "level": 2,
+          "text": "Language",
+          "lineNumber": 63
+        }
+      ]
+    },
+    {
+      "relPath": "01-context/session-starter.md",
+      "fileName": "session-starter.md",
+      "directory": "01-context",
+      "sizeBytes": 1481,
+      "lastModified": "2026-06-26T20:27:20.7479025Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Profile",
+          "lineNumber": 4
+        },
+        {
+          "level": 2,
+          "text": "Session Rules",
+          "lineNumber": 10
+        },
+        {
+          "level": 2,
+          "text": "Output Format",
+          "lineNumber": 18
+        },
+        {
+          "level": 2,
+          "text": "V\u1EA5n \u0111\u1EC1",
+          "lineNumber": 22
+        },
+        {
+          "level": 2,
+          "text": "Gi\u1EA3i ph\u00E1p",
+          "lineNumber": 25
+        },
+        {
+          "level": 2,
+          "text": "L\u01B0u \u00FD",
+          "lineNumber": 28
+        },
+        {
+          "level": 2,
+          "text": "\uD83D\uDD34 Critical   [must fix]",
+          "lineNumber": 34
+        },
+        {
+          "level": 2,
+          "text": "\uD83D\uDFE1 Warning    [should fix]",
+          "lineNumber": 35
+        },
+        {
+          "level": 2,
+          "text": "\uD83D\uDFE2 Suggestion [optional]",
+          "lineNumber": 36
+        },
+        {
+          "level": 2,
+          "text": "Session Context",
+          "lineNumber": 39
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/api-design.md",
+      "fileName": "api-design.md",
+      "directory": "02-rules",
+      "sizeBytes": 5932,
+      "lastModified": "2026-06-26T20:32:34.1073708Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Response Format",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Controller \u2014 Thin, orchestrate only",
+          "lineNumber": 23
+        },
+        {
+          "level": 2,
+          "text": "HTTP Status Codes",
+          "lineNumber": 57
+        },
+        {
+          "level": 2,
+          "text": "Route Convention",
+          "lineNumber": 74
+        },
+        {
+          "level": 2,
+          "text": "Pagination, Filtering, Sorting",
+          "lineNumber": 92
+        },
+        {
+          "level": 2,
+          "text": "Versioning",
+          "lineNumber": 116
+        },
+        {
+          "level": 2,
+          "text": "Exception Handling Middleware",
+          "lineNumber": 132
+        },
+        {
+          "level": 2,
+          "text": "Rate Limiting",
+          "lineNumber": 158
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/base-conventions.md",
+      "fileName": "base-conventions.md",
+      "directory": "02-rules",
+      "sizeBytes": 4429,
+      "lastModified": "2026-06-26T20:29:10.6374047Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Naming",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Result Pattern",
+          "lineNumber": 18
+        },
+        {
+          "level": 2,
+          "text": "Error Handling",
+          "lineNumber": 35
+        },
+        {
+          "level": 2,
+          "text": "Async/Await",
+          "lineNumber": 57
+        },
+        {
+          "level": 2,
+          "text": "Dependency Injection",
+          "lineNumber": 76
+        },
+        {
+          "level": 2,
+          "text": "Logging",
+          "lineNumber": 97
+        },
+        {
+          "level": 2,
+          "text": "Security",
+          "lineNumber": 113
+        },
+        {
+          "level": 2,
+          "text": "Code Quality",
+          "lineNumber": 121
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/clean-architecture.md",
+      "fileName": "clean-architecture.md",
+      "directory": "02-rules",
+      "sizeBytes": 6682,
+      "lastModified": "2026-06-26T20:30:27.3428179Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Layer Structure",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Dependency Rule \u2014 Never violate",
+          "lineNumber": 47
+        },
+        {
+          "level": 2,
+          "text": "Domain Layer",
+          "lineNumber": 71
+        },
+        {
+          "level": 2,
+          "text": "Application Layer",
+          "lineNumber": 107
+        },
+        {
+          "level": 2,
+          "text": "Common Violations",
+          "lineNumber": 137
+        },
+        {
+          "level": 2,
+          "text": "Worker Service Pattern",
+          "lineNumber": 148
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/cqrs-mediatr.md",
+      "fileName": "cqrs-mediatr.md",
+      "directory": "02-rules",
+      "sizeBytes": 6191,
+      "lastModified": "2026-06-26T20:30:49.5875057Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Naming Convention",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Command Template",
+          "lineNumber": 13
+        },
+        {
+          "level": 2,
+          "text": "Query Template",
+          "lineNumber": 66
+        },
+        {
+          "level": 2,
+          "text": "Pipeline Behaviors \u2014 Registration Order",
+          "lineNumber": 95
+        },
+        {
+          "level": 2,
+          "text": "Anti-patterns",
+          "lineNumber": 147
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/csharp-dotnet.md",
+      "fileName": "csharp-dotnet.md",
+      "directory": "02-rules",
+      "sizeBytes": 5436,
+      "lastModified": "2026-06-26T20:29:35.6011272Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Language Features \u2014 Use",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Language Features \u2014 Avoid",
+          "lineNumber": 44
+        },
+        {
+          "level": 2,
+          "text": "Memory \u0026 Performance",
+          "lineNumber": 59
+        },
+        {
+          "level": 2,
+          "text": "Collections",
+          "lineNumber": 82
+        },
+        {
+          "level": 2,
+          "text": "HttpClient",
+          "lineNumber": 98
+        },
+        {
+          "level": 2,
+          "text": "Configuration",
+          "lineNumber": 125
+        },
+        {
+          "level": 2,
+          "text": "Nullable Reference Types",
+          "lineNumber": 147
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/ef-core.md",
+      "fileName": "ef-core.md",
+      "directory": "02-rules",
+      "sizeBytes": 4837,
+      "lastModified": "2026-06-26T20:30:01.1738322Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Query Checklist",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Tracking vs No-Tracking",
+          "lineNumber": 13
+        },
+        {
+          "level": 2,
+          "text": "Bulk Operations",
+          "lineNumber": 34
+        },
+        {
+          "level": 2,
+          "text": "Batch Insert",
+          "lineNumber": 53
+        },
+        {
+          "level": 2,
+          "text": "Split Query",
+          "lineNumber": 68
+        },
+        {
+          "level": 2,
+          "text": "Global Query Filter",
+          "lineNumber": 81
+        },
+        {
+          "level": 2,
+          "text": "Migration Rules",
+          "lineNumber": 94
+        },
+        {
+          "level": 2,
+          "text": "DbContext Lifetime \u0026 Concurrency",
+          "lineNumber": 117
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/postgresql.md",
+      "fileName": "postgresql.md",
+      "directory": "02-rules",
+      "sizeBytes": 5009,
+      "lastModified": "2026-06-26T20:31:20.3848786Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Index",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Query Anti-patterns",
+          "lineNumber": 31
+        },
+        {
+          "level": 2,
+          "text": "Pagination",
+          "lineNumber": 57
+        },
+        {
+          "level": 2,
+          "text": "Locking Strategy",
+          "lineNumber": 75
+        },
+        {
+          "level": 2,
+          "text": "Data Types",
+          "lineNumber": 95
+        },
+        {
+          "level": 2,
+          "text": "EXPLAIN ANALYZE",
+          "lineNumber": 116
+        },
+        {
+          "level": 2,
+          "text": "Connection Pool (Npgsql)",
+          "lineNumber": 130
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/rabbitmq.md",
+      "fileName": "rabbitmq.md",
+      "directory": "02-rules",
+      "sizeBytes": 5036,
+      "lastModified": "2026-06-26T20:32:10.8390842Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Message Design",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Naming Convention",
+          "lineNumber": 21
+        },
+        {
+          "level": 2,
+          "text": "Consumer \u2014 Idempotency Required (at-least-once delivery)",
+          "lineNumber": 30
+        },
+        {
+          "level": 2,
+          "text": "MassTransit Configuration",
+          "lineNumber": 59
+        },
+        {
+          "level": 2,
+          "text": "Outbox Pattern \u2014 Atomic publish with DB write",
+          "lineNumber": 91
+        },
+        {
+          "level": 2,
+          "text": "Dead Letter Queue (DLQ)",
+          "lineNumber": 113
+        },
+        {
+          "level": 2,
+          "text": "Anti-patterns",
+          "lineNumber": 128
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/redis.md",
+      "fileName": "redis.md",
+      "directory": "02-rules",
+      "sizeBytes": 4232,
+      "lastModified": "2026-06-26T20:31:44.7853247Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Key Design",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "TTL \u2014 Always set, never permanent",
+          "lineNumber": 19
+        },
+        {
+          "level": 2,
+          "text": "Cache-Aside Pattern",
+          "lineNumber": 30
+        },
+        {
+          "level": 2,
+          "text": "Distributed Lock \u2014 Atomic acquire \u002B release",
+          "lineNumber": 54
+        },
+        {
+          "level": 2,
+          "text": "Serialization",
+          "lineNumber": 83
+        },
+        {
+          "level": 2,
+          "text": "Cache Invalidation Strategies",
+          "lineNumber": 96
+        },
+        {
+          "level": 2,
+          "text": "Anti-patterns",
+          "lineNumber": 110
+        },
+        {
+          "level": 2,
+          "text": "Monitoring",
+          "lineNumber": 126
+        }
+      ]
+    },
+    {
+      "relPath": "02-rules/testing.md",
+      "fileName": "testing.md",
+      "directory": "02-rules",
+      "sizeBytes": 5441,
+      "lastModified": "2026-06-26T20:32:58.1635324Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Test Pyramid",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Naming Convention",
+          "lineNumber": 13
+        },
+        {
+          "level": 2,
+          "text": "Unit Test Template",
+          "lineNumber": 24
+        },
+        {
+          "level": 2,
+          "text": "Domain Entity Test",
+          "lineNumber": 65
+        },
+        {
+          "level": 2,
+          "text": "Integration Test \u2014 TestContainers \u002B EF Core",
+          "lineNumber": 107
+        },
+        {
+          "level": 2,
+          "text": "FluentAssertions",
+          "lineNumber": 142
+        },
+        {
+          "level": 2,
+          "text": "Anti-patterns",
+          "lineNumber": 160
+        },
+        {
+          "level": 2,
+          "text": "Code Coverage Targets",
+          "lineNumber": 171
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/architecture/api-design.md",
+      "fileName": "api-design.md",
+      "directory": "03-prompts/architecture",
+      "sizeBytes": 1735,
+      "lastModified": "2026-06-26T20:45:26.3392751Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Design API m\u1EDBi",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Review API contract",
+          "lineNumber": 47
+        },
+        {
+          "level": 2,
+          "text": "Pagination \u002B Filtering",
+          "lineNumber": 59
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/architecture/system-design.md",
+      "fileName": "system-design.md",
+      "directory": "03-prompts/architecture",
+      "sizeBytes": 1816,
+      "lastModified": "2026-06-26T20:45:11.8343827Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Design feature m\u1EDBi end-to-end",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Scalability review",
+          "lineNumber": 27
+        },
+        {
+          "level": 2,
+          "text": "Monolith vs Microservice / Sync vs Async",
+          "lineNumber": 49
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/daily/code-review.md",
+      "fileName": "code-review.md",
+      "directory": "03-prompts/daily",
+      "sizeBytes": 1866,
+      "lastModified": "2026-06-26T20:42:17.0015898Z",
+      "fileExists": true,
+      "headings": []
+    },
+    {
+      "relPath": "03-prompts/daily/debug.md",
+      "fileName": "debug.md",
+      "directory": "03-prompts/daily",
+      "sizeBytes": 2233,
+      "lastModified": "2026-06-26T20:42:37.7042561Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Runtime Exception / Logic Bug",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Query / Database Ch\u1EADm",
+          "lineNumber": 31
+        },
+        {
+          "level": 2,
+          "text": "Memory / OutOfMemory",
+          "lineNumber": 70
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/daily/design-discussion.md",
+      "fileName": "design-discussion.md",
+      "directory": "03-prompts/daily",
+      "sizeBytes": 1356,
+      "lastModified": "2026-06-26T20:43:32.6119649Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Feedback approach c\u1EE7a t\u00F4i",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "So s\u00E1nh 2 approach",
+          "lineNumber": 31
+        },
+        {
+          "level": 2,
+          "text": "Review design tr\u01B0\u1EDBc khi implement",
+          "lineNumber": 50
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/daily/explain-code.md",
+      "fileName": "explain-code.md",
+      "directory": "03-prompts/daily",
+      "sizeBytes": 1237,
+      "lastModified": "2026-06-26T20:43:17.4570197Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Explain codebase / feature",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Explain execution plan PostgreSQL",
+          "lineNumber": 23
+        },
+        {
+          "level": 2,
+          "text": "Explain pattern / concept",
+          "lineNumber": 42
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/daily/refactor.md",
+      "fileName": "refactor.md",
+      "directory": "03-prompts/daily",
+      "sizeBytes": 1522,
+      "lastModified": "2026-06-26T20:43:04.8004289Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "General Refactor",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Refactor EF Core Query",
+          "lineNumber": 31
+        },
+        {
+          "level": 2,
+          "text": "Extract Pattern",
+          "lineNumber": 60
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/daily/unit-test.md",
+      "fileName": "unit-test.md",
+      "directory": "03-prompts/daily",
+      "sizeBytes": 1867,
+      "lastModified": "2026-06-26T20:42:52.1483568Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Unit Test \u2014 Handler / Service",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Unit Test \u2014 Domain Entity / Value Object",
+          "lineNumber": 41
+        },
+        {
+          "level": 2,
+          "text": "Integration Test \u2014 TestContainers",
+          "lineNumber": 52
+        },
+        {
+          "level": 2,
+          "text": "Checklist",
+          "lineNumber": 71
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/dotnet/ef-core-linq.md",
+      "fileName": "ef-core-linq.md",
+      "directory": "03-prompts/dotnet",
+      "sizeBytes": 1837,
+      "lastModified": "2026-06-26T20:44:57.058182Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Vi\u1EBFt LINQ t\u1EEB requirement",
+          "lineNumber": 5
+        },
+        {
+          "level": 2,
+          "text": "Debug LINQ sai / ch\u1EADm",
+          "lineNumber": 30
+        },
+        {
+          "level": 2,
+          "text": "Convert SQL \u2194 LINQ",
+          "lineNumber": 58
+        },
+        {
+          "level": 2,
+          "text": "Complex aggregation / reporting",
+          "lineNumber": 83
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/dotnet/performance-analysis.md",
+      "fileName": "performance-analysis.md",
+      "directory": "03-prompts/dotnet",
+      "sizeBytes": 2207,
+      "lastModified": "2026-06-26T20:44:41.6638392Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "API Endpoint ch\u1EADm",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Memory / Allocation",
+          "lineNumber": 25
+        },
+        {
+          "level": 2,
+          "text": "Export / Import d\u1EEF li\u1EC7u l\u1EDBn",
+          "lineNumber": 43
+        },
+        {
+          "level": 2,
+          "text": "Concurrent / Thread Safety",
+          "lineNumber": 64
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/postgresql/analyze-slow-query.md",
+      "fileName": "analyze-slow-query.md",
+      "directory": "03-prompts/postgresql",
+      "sizeBytes": 2632,
+      "lastModified": "2026-06-26T20:43:53.7170858Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Gather info tr\u01B0\u1EDBc",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Prompt",
+          "lineNumber": 31
+        },
+        {
+          "level": 2,
+          "text": "Reference \u2014 \u0110\u1ECDc plan nhanh",
+          "lineNumber": 74
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/postgresql/migration-plan.md",
+      "fileName": "migration-plan.md",
+      "directory": "03-prompts/postgresql",
+      "sizeBytes": 1913,
+      "lastModified": "2026-06-26T20:44:22.6443299Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Reference \u2014 Common migration risks",
+          "lineNumber": 55
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/postgresql/schema-design.md",
+      "fileName": "schema-design.md",
+      "directory": "03-prompts/postgresql",
+      "sizeBytes": 1463,
+      "lastModified": "2026-06-26T20:44:06.838537Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Design schema m\u1EDBi",
+          "lineNumber": 5
+        },
+        {
+          "level": 2,
+          "text": "Review schema hi\u1EC7n t\u1EA1i",
+          "lineNumber": 31
+        },
+        {
+          "level": 2,
+          "text": "Soft delete \u002B Multi-tenancy",
+          "lineNumber": 46
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/session-starters/new-bug.md",
+      "fileName": "new-bug.md",
+      "directory": "03-prompts/session-starters",
+      "sizeBytes": 1362,
+      "lastModified": "2026-06-26T20:45:53.8838514Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Bug n\u00E0y",
+          "lineNumber": 9
+        },
+        {
+          "level": 2,
+          "text": "Error Information",
+          "lineNumber": 26
+        },
+        {
+          "level": 2,
+          "text": "Code Suspect",
+          "lineNumber": 45
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/session-starters/new-feature.md",
+      "fileName": "new-feature.md",
+      "directory": "03-prompts/session-starters",
+      "sizeBytes": 1685,
+      "lastModified": "2026-06-26T20:45:41.9539002Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Feature n\u00E0y",
+          "lineNumber": 10
+        },
+        {
+          "level": 2,
+          "text": "Technical Context",
+          "lineNumber": 32
+        },
+        {
+          "level": 2,
+          "text": "C\u00E1ch l\u00E0m trong session n\u00E0y",
+          "lineNumber": 52
+        }
+      ]
+    },
+    {
+      "relPath": "03-prompts/session-starters/onboarding-new-project.md",
+      "fileName": "onboarding-new-project.md",
+      "directory": "03-prompts/session-starters",
+      "sizeBytes": 1355,
+      "lastModified": "2026-06-26T20:46:06.204326Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Project n\u00E0y",
+          "lineNumber": 8
+        },
+        {
+          "level": 2,
+          "text": "Task \u0111\u1EA7u ti\u00EAn",
+          "lineNumber": 39
+        },
+        {
+          "level": 2,
+          "text": "Trong session n\u00E0y",
+          "lineNumber": 45
+        }
+      ]
+    },
+    {
+      "relPath": "04-specs/ADR_TEMPLATE.md",
+      "fileName": "ADR_TEMPLATE.md",
+      "directory": "04-specs",
+      "sizeBytes": 1256,
+      "lastModified": "2026-06-26T20:47:56.7736055Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Context",
+          "lineNumber": 13
+        },
+        {
+          "level": 2,
+          "text": "Decision",
+          "lineNumber": 19
+        },
+        {
+          "level": 2,
+          "text": "Options Considered",
+          "lineNumber": 27
+        },
+        {
+          "level": 2,
+          "text": "Consequences",
+          "lineNumber": 45
+        },
+        {
+          "level": 2,
+          "text": "Implementation Notes",
+          "lineNumber": 59
+        },
+        {
+          "level": 2,
+          "text": "Review Date",
+          "lineNumber": 71
+        },
+        {
+          "level": 2,
+          "text": "References",
+          "lineNumber": 77
+        }
+      ]
+    },
+    {
+      "relPath": "04-specs/API_CONTRACT_TEMPLATE.md",
+      "fileName": "API_CONTRACT_TEMPLATE.md",
+      "directory": "04-specs",
+      "sizeBytes": 3687,
+      "lastModified": "2026-06-26T20:47:44.7035126Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Metadata",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Common Response Format",
+          "lineNumber": 17
+        },
+        {
+          "level": 2,
+          "text": "POST /api/v1/[resource]",
+          "lineNumber": 32
+        },
+        {
+          "level": 2,
+          "text": "GET /api/v1/[resource]/{id}",
+          "lineNumber": 65
+        },
+        {
+          "level": 2,
+          "text": "GET /api/v1/[resource]",
+          "lineNumber": 90
+        },
+        {
+          "level": 2,
+          "text": "PUT /api/v1/[resource]/{id}",
+          "lineNumber": 117
+        },
+        {
+          "level": 2,
+          "text": "DELETE /api/v1/[resource]/{id}",
+          "lineNumber": 125
+        },
+        {
+          "level": 2,
+          "text": "Data Types",
+          "lineNumber": 133
+        },
+        {
+          "level": 2,
+          "text": "Rate Limiting",
+          "lineNumber": 145
+        },
+        {
+          "level": 2,
+          "text": "Breaking Change Policy",
+          "lineNumber": 158
+        },
+        {
+          "level": 2,
+          "text": "Changelog",
+          "lineNumber": 165
+        }
+      ]
+    },
+    {
+      "relPath": "04-specs/BUG_TEMPLATE.md",
+      "fileName": "BUG_TEMPLATE.md",
+      "directory": "04-specs",
+      "sizeBytes": 2732,
+      "lastModified": "2026-06-26T20:46:51.9479621Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Metadata",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Impact",
+          "lineNumber": 16
+        },
+        {
+          "level": 2,
+          "text": "Bug Description",
+          "lineNumber": 25
+        },
+        {
+          "level": 2,
+          "text": "Technical Analysis",
+          "lineNumber": 43
+        },
+        {
+          "level": 2,
+          "text": "Fix",
+          "lineNumber": 71
+        },
+        {
+          "level": 2,
+          "text": "Testing \u0026 Verification",
+          "lineNumber": 98
+        },
+        {
+          "level": 2,
+          "text": "Prevention",
+          "lineNumber": 116
+        },
+        {
+          "level": 2,
+          "text": "Timeline *(Production bugs)*",
+          "lineNumber": 128
+        }
+      ]
+    },
+    {
+      "relPath": "04-specs/DB_MIGRATION_TEMPLATE.md",
+      "fileName": "DB_MIGRATION_TEMPLATE.md",
+      "directory": "04-specs",
+      "sizeBytes": 5195,
+      "lastModified": "2026-06-26T20:47:21.4451966Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Metadata",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Changes Summary",
+          "lineNumber": 17
+        },
+        {
+          "level": 2,
+          "text": "Risk Assessment",
+          "lineNumber": 27
+        },
+        {
+          "level": 2,
+          "text": "Migration SQL \u2014 Up",
+          "lineNumber": 44
+        },
+        {
+          "level": 2,
+          "text": "Migration SQL \u2014 Down",
+          "lineNumber": 66
+        },
+        {
+          "level": 2,
+          "text": "EF Core Migration",
+          "lineNumber": 75
+        },
+        {
+          "level": 2,
+          "text": "Data Backfill Script",
+          "lineNumber": 108
+        },
+        {
+          "level": 2,
+          "text": "Deployment Checklist",
+          "lineNumber": 129
+        },
+        {
+          "level": 2,
+          "text": "Rollback",
+          "lineNumber": 165
+        },
+        {
+          "level": 2,
+          "text": "Notes",
+          "lineNumber": 173
+        }
+      ]
+    },
+    {
+      "relPath": "04-specs/POSTMORTEM_TEMPLATE.md",
+      "fileName": "POSTMORTEM_TEMPLATE.md",
+      "directory": "04-specs",
+      "sizeBytes": 2447,
+      "lastModified": "2026-06-26T20:48:15.4473616Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Incident Summary",
+          "lineNumber": 5
+        },
+        {
+          "level": 2,
+          "text": "Impact",
+          "lineNumber": 18
+        },
+        {
+          "level": 2,
+          "text": "Timeline",
+          "lineNumber": 28
+        },
+        {
+          "level": 2,
+          "text": "Root Cause Analysis",
+          "lineNumber": 45
+        },
+        {
+          "level": 2,
+          "text": "What Went Well",
+          "lineNumber": 63
+        },
+        {
+          "level": 2,
+          "text": "What Went Poorly",
+          "lineNumber": 70
+        },
+        {
+          "level": 2,
+          "text": "Action Items",
+          "lineNumber": 77
+        },
+        {
+          "level": 2,
+          "text": "Lessons Learned",
+          "lineNumber": 87
+        },
+        {
+          "level": 2,
+          "text": "References",
+          "lineNumber": 102
+        }
+      ]
+    },
+    {
+      "relPath": "04-specs/SPEC_TEMPLATE.md",
+      "fileName": "SPEC_TEMPLATE.md",
+      "directory": "04-specs",
+      "sizeBytes": 3353,
+      "lastModified": "2026-06-26T20:46:29.8766277Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Metadata",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "Problem Statement",
+          "lineNumber": 16
+        },
+        {
+          "level": 2,
+          "text": "Solution Overview",
+          "lineNumber": 22
+        },
+        {
+          "level": 2,
+          "text": "Functional Requirements",
+          "lineNumber": 30
+        },
+        {
+          "level": 2,
+          "text": "Technical Design",
+          "lineNumber": 53
+        },
+        {
+          "level": 2,
+          "text": "Non-Functional",
+          "lineNumber": 102
+        },
+        {
+          "level": 2,
+          "text": "Acceptance Criteria",
+          "lineNumber": 114
+        },
+        {
+          "level": 2,
+          "text": "Open Questions",
+          "lineNumber": 134
+        },
+        {
+          "level": 2,
+          "text": "Decision Log",
+          "lineNumber": 142
+        },
+        {
+          "level": 2,
+          "text": "Implementation Notes",
+          "lineNumber": 150
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/dotnet/async-patterns.md",
+      "fileName": "async-patterns.md",
+      "directory": "05-snippets/dotnet",
+      "sizeBytes": 4715,
+      "lastModified": "2026-06-26T20:36:26.997381Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Parallel Processing v\u1EDBi bounded concurrency",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. Channel\u003CT\u003E \u2014 Producer/Consumer pipeline",
+          "lineNumber": 14
+        },
+        {
+          "level": 2,
+          "text": "3. CancellationToken Timeout Wrapper",
+          "lineNumber": 42
+        },
+        {
+          "level": 2,
+          "text": "4. Retry v\u1EDBi Polly v8",
+          "lineNumber": 63
+        },
+        {
+          "level": 2,
+          "text": "5. Graceful Shutdown trong BackgroundService",
+          "lineNumber": 91
+        },
+        {
+          "level": 2,
+          "text": "6. ValueTask vs Task",
+          "lineNumber": 122
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/dotnet/ef-core-patterns.md",
+      "fileName": "ef-core-patterns.md",
+      "directory": "05-snippets/dotnet",
+      "sizeBytes": 5654,
+      "lastModified": "2026-06-27T14:54:05.2036343Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Projection v\u1EDBi nested object (tr\u00E1nh N\u002B1)",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. Bulk update kh\u00F4ng load entity (EF Core 7\u002B)",
+          "lineNumber": 22
+        },
+        {
+          "level": 2,
+          "text": "3. Batch insert",
+          "lineNumber": 32
+        },
+        {
+          "level": 2,
+          "text": "4. Streaming large result (tr\u00E1nh OOM)",
+          "lineNumber": 43
+        },
+        {
+          "level": 2,
+          "text": "5. Optimistic Concurrency (PostgreSQL xmin)",
+          "lineNumber": 62
+        },
+        {
+          "level": 2,
+          "text": "7. Global Query Filter \u2014 Soft delete \u0026 Multi-tenancy",
+          "lineNumber": 81
+        },
+        {
+          "level": 2,
+          "text": "8. Compiled Query \u2014 Hot query \u003E100 req/s (~30% faster)",
+          "lineNumber": 95
+        },
+        {
+          "level": 2,
+          "text": "9. Interceptor \u2014 Audit trail t\u1EF1 \u0111\u1ED9ng",
+          "lineNumber": 110
+        },
+        {
+          "level": 2,
+          "text": "10. Owned Entity \u2014 Value Object mapping",
+          "lineNumber": 139
+        },
+        {
+          "level": 2,
+          "text": "EF Core \u2014 Typed Raw SQL \u0060SqlQuery\u003CT\u003E\u0060",
+          "lineNumber": 155
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/dotnet/gotchas.md",
+      "fileName": "gotchas.md",
+      "directory": "05-snippets/dotnet",
+      "sizeBytes": 4574,
+      "lastModified": "2026-06-26T20:35:42.9718677Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Captured variable trong async loop",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. ConfigureAwait trong library",
+          "lineNumber": 17
+        },
+        {
+          "level": 2,
+          "text": "3. DbContext trong background service (captive dependency)",
+          "lineNumber": 30
+        },
+        {
+          "level": 2,
+          "text": "4. HttpClient socket exhaustion",
+          "lineNumber": 51
+        },
+        {
+          "level": 2,
+          "text": "5. EF Core LEFT JOIN b\u1ECB th\u00E0nh INNER JOIN",
+          "lineNumber": 61
+        },
+        {
+          "level": 2,
+          "text": "6. Task.WhenAll ch\u1EC9 propagate 1 exception",
+          "lineNumber": 71
+        },
+        {
+          "level": 2,
+          "text": "7. CancellationToken kh\u00F4ng \u0111\u01B0\u1EE3c pass \u2192 request treo",
+          "lineNumber": 83
+        },
+        {
+          "level": 2,
+          "text": "8. IEnumerable b\u1ECB enumerate nhi\u1EC1u l\u1EA7n",
+          "lineNumber": 92
+        },
+        {
+          "level": 2,
+          "text": "9. SemaphoreSlim \u2014 class-level, kh\u00F4ng t\u1EA1o per-call",
+          "lineNumber": 107
+        },
+        {
+          "level": 2,
+          "text": "10. DateTime.Now vs DateTime.UtcNow",
+          "lineNumber": 126
+        },
+        {
+          "level": 2,
+          "text": "11. System.Text.Json \u2014 case sensitivity silent fail",
+          "lineNumber": 140
+        },
+        {
+          "level": 2,
+          "text": "12. DI \u2014 GetService vs GetRequiredService",
+          "lineNumber": 153
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/dotnet/performance-patterns.md",
+      "fileName": "performance-patterns.md",
+      "directory": "05-snippets/dotnet",
+      "sizeBytes": 3958,
+      "lastModified": "2026-06-26T20:37:13.3340039Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Span\u003CT\u003E \u2014 Zero-copy string/byte processing (~5-10x \u00EDt allocation)",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. ArrayPool\u003CT\u003E \u2014 Reuse buffer trong hot path",
+          "lineNumber": 18
+        },
+        {
+          "level": 2,
+          "text": "3. ObjectPool\u003CT\u003E \u2014 Reuse expensive objects",
+          "lineNumber": 35
+        },
+        {
+          "level": 2,
+          "text": "4. Streaming Export \u2014 Memory O(1) thay v\u00EC O(n)",
+          "lineNumber": 52
+        },
+        {
+          "level": 2,
+          "text": "5. BenchmarkDotNet \u2014 \u0110o th\u1EF1c t\u1EBF tr\u01B0\u1EDBc khi optimize",
+          "lineNumber": 80
+        },
+        {
+          "level": 2,
+          "text": "6. Struct cho short-lived, small data",
+          "lineNumber": 100
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/postgresql/gotchas.md",
+      "fileName": "gotchas.md",
+      "directory": "05-snippets/postgresql",
+      "sizeBytes": 2093,
+      "lastModified": "2026-06-26T20:39:23.290367Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Index b\u1ECB b\u1ECF qua v\u00EC function wrap",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. NULL trong NOT IN \u2192 empty set",
+          "lineNumber": 13
+        },
+        {
+          "level": 2,
+          "text": "3. TIMESTAMP vs TIMESTAMPTZ",
+          "lineNumber": 23
+        },
+        {
+          "level": 2,
+          "text": "4. OR gi\u1EEFa columns kh\u00E1c nhau \u2192 Seq Scan",
+          "lineNumber": 32
+        },
+        {
+          "level": 2,
+          "text": "5. LIKE v\u1EDBi leading wildcard \u2192 full table scan",
+          "lineNumber": 43
+        },
+        {
+          "level": 2,
+          "text": "6. COUNT(*) tr\u00EAn large table",
+          "lineNumber": 56
+        },
+        {
+          "level": 2,
+          "text": "7. Deadlock v\u1EDBi concurrent updates",
+          "lineNumber": 70
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/postgresql/index-patterns.md",
+      "fileName": "index-patterns.md",
+      "directory": "05-snippets/postgresql",
+      "sizeBytes": 4477,
+      "lastModified": "2026-06-26T20:38:57.187074Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Composite Index \u2014 Th\u1EE9 t\u1EF1 column",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. Partial Index \u2014 Ch\u1EC9 5% rows, size ~5% full index",
+          "lineNumber": 20
+        },
+        {
+          "level": 2,
+          "text": "3. Covering Index (INCLUDE) \u2014 Index Only Scan",
+          "lineNumber": 31
+        },
+        {
+          "level": 2,
+          "text": "4. Functional Index \u2014 Query c\u00F3 function wrap",
+          "lineNumber": 41
+        },
+        {
+          "level": 2,
+          "text": "5. GIN Index \u2014 Array, JSONB, Full-text",
+          "lineNumber": 52
+        },
+        {
+          "level": 2,
+          "text": "6. BRIN \u2014 Time-series, append-only (1% size c\u1EE7a B-tree)",
+          "lineNumber": 63
+        },
+        {
+          "level": 2,
+          "text": "7. Index Monitoring",
+          "lineNumber": 72
+        },
+        {
+          "level": 2,
+          "text": "8. CREATE INDEX CONCURRENTLY \u2014 Production safe",
+          "lineNumber": 94
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/postgresql/query-patterns.md",
+      "fileName": "query-patterns.md",
+      "directory": "05-snippets/postgresql",
+      "sizeBytes": 4268,
+      "lastModified": "2026-06-26T20:37:59.979803Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Keyset Pagination (thay OFFSET)",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. Upsert v\u1EDBi ON CONFLICT",
+          "lineNumber": 16
+        },
+        {
+          "level": 2,
+          "text": "3. Window Function \u2014 Ranking",
+          "lineNumber": 25
+        },
+        {
+          "level": 2,
+          "text": "4. Aggregation v\u1EDBi FILTER (thay nhi\u1EC1u subquery)",
+          "lineNumber": 34
+        },
+        {
+          "level": 2,
+          "text": "5. CTE \u2014 Complex query \u002B MoM growth",
+          "lineNumber": 44
+        },
+        {
+          "level": 2,
+          "text": "6. Batch delete (tr\u00E1nh lock l\u00E2u \u002B replication lag)",
+          "lineNumber": 59
+        },
+        {
+          "level": 2,
+          "text": "7. SKIP LOCKED \u2014 Job queue pattern",
+          "lineNumber": 79
+        },
+        {
+          "level": 2,
+          "text": "8. JSONB Query",
+          "lineNumber": 94
+        },
+        {
+          "level": 2,
+          "text": "9. Recursive CTE \u2014 Hierarchical data",
+          "lineNumber": 104
+        },
+        {
+          "level": 2,
+          "text": "10. Multi-row UPDATE t\u1EEB VALUES (1 round trip thay v\u00EC N)",
+          "lineNumber": 116
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/rabbitmq/patterns.md",
+      "fileName": "patterns.md",
+      "directory": "05-snippets/rabbitmq",
+      "sizeBytes": 2724,
+      "lastModified": "2026-06-26T20:40:15.7369054Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Outbox Pattern v\u1EDBi EF Core",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. Consumer Idempotent v\u1EDBi Inbox",
+          "lineNumber": 30
+        },
+        {
+          "level": 2,
+          "text": "3. Retry \u002B Dead Letter Queue",
+          "lineNumber": 51
+        },
+        {
+          "level": 2,
+          "text": "4. Republish t\u1EEB DLQ",
+          "lineNumber": 77
+        }
+      ]
+    },
+    {
+      "relPath": "05-snippets/redis/patterns.md",
+      "fileName": "patterns.md",
+      "directory": "05-snippets/redis",
+      "sizeBytes": 2659,
+      "lastModified": "2026-06-26T20:39:49.3759467Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "1. Cache-Aside v\u1EDBi lock tr\u00E1nh stampede",
+          "lineNumber": 3
+        },
+        {
+          "level": 2,
+          "text": "2. Distributed Lock \u2014 Lua script atomic release",
+          "lineNumber": 30
+        },
+        {
+          "level": 2,
+          "text": "3. Rate Limiting \u2014 Fixed window",
+          "lineNumber": 54
+        },
+        {
+          "level": 2,
+          "text": "4. Pub/Sub \u2014 Cache invalidation",
+          "lineNumber": 65
+        }
+      ]
+    },
+    {
+      "relPath": "07-agents/claude-code/commands/debug.md",
+      "fileName": "debug.md",
+      "directory": "07-agents/claude-code/commands",
+      "sizeBytes": 1301,
+      "lastModified": "2026-06-26T16:44:54.5401852Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Root Cause",
+          "lineNumber": 36
+        },
+        {
+          "level": 2,
+          "text": "Fix",
+          "lineNumber": 39
+        },
+        {
+          "level": 2,
+          "text": "Verify",
+          "lineNumber": 42
+        },
+        {
+          "level": 2,
+          "text": "Prevent",
+          "lineNumber": 45
+        }
+      ]
+    },
+    {
+      "relPath": "07-agents/claude-code/commands/migrate.md",
+      "fileName": "migrate.md",
+      "directory": "07-agents/claude-code/commands",
+      "sizeBytes": 1454,
+      "lastModified": "2026-06-26T16:45:36.5114242Z",
+      "fileExists": true,
+      "headings": []
+    },
+    {
+      "relPath": "07-agents/claude-code/commands/review.md",
+      "fileName": "review.md",
+      "directory": "07-agents/claude-code/commands",
+      "sizeBytes": 1572,
+      "lastModified": "2026-06-26T16:44:37.2252412Z",
+      "fileExists": true,
+      "headings": []
+    },
+    {
+      "relPath": "07-agents/claude-code/commands/spec.md",
+      "fileName": "spec.md",
+      "directory": "07-agents/claude-code/commands",
+      "sizeBytes": 1457,
+      "lastModified": "2026-06-26T16:45:11.8523765Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "[Feature Name] \u2014 Complexity: S/M/L/XL",
+          "lineNumber": 15
+        }
+      ]
+    },
+    {
+      "relPath": "07-agents/claude-code/commands/test.md",
+      "fileName": "test.md",
+      "directory": "07-agents/claude-code/commands",
+      "sizeBytes": 1652,
+      "lastModified": "2026-06-26T16:45:24.5353937Z",
+      "fileExists": true,
+      "headings": []
+    },
+    {
+      "relPath": "07-agents/workflows/bug-fix.md",
+      "fileName": "bug-fix.md",
+      "directory": "07-agents/workflows",
+      "sizeBytes": 3521,
+      "lastModified": "2026-06-26T16:46:48.3135746Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Mode 1 \u2014 Normal Bug Fix",
+          "lineNumber": 7
+        },
+        {
+          "level": 2,
+          "text": "Mode 2 \u2014 Production Incident (P0/P1)",
+          "lineNumber": 87
+        },
+        {
+          "level": 2,
+          "text": "PR Checklist \u2014 Bug Fix",
+          "lineNumber": 130
+        }
+      ]
+    },
+    {
+      "relPath": "07-agents/workflows/code-review.md",
+      "fileName": "code-review.md",
+      "directory": "07-agents/workflows",
+      "sizeBytes": 3072,
+      "lastModified": "2026-06-26T16:47:12.5138801Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Quick Scan (2-3 ph\u00FAt)",
+          "lineNumber": 8
+        },
+        {
+          "level": 2,
+          "text": "Deep Review v\u1EDBi AI",
+          "lineNumber": 26
+        },
+        {
+          "level": 2,
+          "text": "Manual Check \u2014 Kh\u00F4ng th\u1EC3 delegate cho AI",
+          "lineNumber": 50
+        },
+        {
+          "level": 2,
+          "text": "Review Comment Style",
+          "lineNumber": 73
+        },
+        {
+          "level": 2,
+          "text": "Approve Decision",
+          "lineNumber": 97
+        },
+        {
+          "level": 2,
+          "text": "Sau khi Merge",
+          "lineNumber": 116
+        }
+      ]
+    },
+    {
+      "relPath": "07-agents/workflows/feature-dev.md",
+      "fileName": "feature-dev.md",
+      "directory": "07-agents/workflows",
+      "sizeBytes": 3563,
+      "lastModified": "2026-06-26T16:46:14.1587576Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Phase 0 \u2014 Prepare (5 ph\u00FAt)",
+          "lineNumber": 8
+        },
+        {
+          "level": 2,
+          "text": "Phase 1 \u2014 Spec \u0026 Design (15-30 ph\u00FAt)",
+          "lineNumber": 23
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 \u2014 Implement (bulk of time)",
+          "lineNumber": 45
+        },
+        {
+          "level": 2,
+          "text": "Phase 3 \u2014 Test (20-30% total time)",
+          "lineNumber": 83
+        },
+        {
+          "level": 2,
+          "text": "Phase 4 \u2014 Self Review (10 ph\u00FAt)",
+          "lineNumber": 105
+        },
+        {
+          "level": 2,
+          "text": "Phase 5 \u2014 PR \u0026 Update Toolkit",
+          "lineNumber": 123
+        },
+        {
+          "level": 2,
+          "text": "PR Checklist",
+          "lineNumber": 140
+        }
+      ]
+    },
+    {
+      "relPath": "07-agents/workflows/research-session.md",
+      "fileName": "research-session.md",
+      "directory": "07-agents/workflows",
+      "sizeBytes": 6331,
+      "lastModified": "2026-06-27T13:07:42.8013436Z",
+      "fileExists": true,
+      "headings": [
+        {
+          "level": 2,
+          "text": "C\u00E1ch d\u00F9ng",
+          "lineNumber": 8
+        },
+        {
+          "level": 2,
+          "text": "RESEARCH SESSION PROMPT",
+          "lineNumber": 16
+        },
+        {
+          "level": 2,
+          "text": "EF Core \u2014 Typed Raw SQL \u0060SqlQuery\u003CT\u003E\u0060",
+          "lineNumber": 138
+        },
+        {
+          "level": 2,
+          "text": "Tips \u0111\u1EC3 research hi\u1EC7u qu\u1EA3",
+          "lineNumber": 188
+        },
+        {
+          "level": 2,
+          "text": "V\u00ED d\u1EE5 trigger research",
+          "lineNumber": 206
+        }
+      ]
+    }
+  ]
+}

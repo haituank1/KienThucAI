@@ -191,4 +191,172 @@ body {
   overflow: hidden;
 }
 
+/* ── Stale badge ─────────────────────────────────────────────────────────── */
+.stale-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #fbbf2420;
+  color: #fbbf24;
+  border: 1px solid #fbbf2450;
+  cursor: help;
+}
+
+/* ── Merged / Found badges ───────────────────────────────────────────────── */
+.merged-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #10b98120;
+  color: #10b981;
+  border: 1px solid #10b98150;
+  cursor: default;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Best-effort match — chưa xác nhận, màu vàng cam */
+.found-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #f59e0b20;
+  color: #f59e0b;
+  border: 1px dashed #f59e0b60;
+  cursor: help;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Version badges ──────────────────────────────────────────────────────── */
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #1e40af30;
+  color: #93c5fd;
+  border: 1px solid #3b82f650;
+}
+
+/* ── Search wrapper ──────────────────────────────────────────────────────── */
+.search-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.search-wrapper .input { padding-right: 2rem; }
+.search-clear {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0;
+  line-height: 1;
+}
+.search-clear:hover { color: #e2e8f0; }
+
+/* ── Queue UI ────────────────────────────────────────────────────────────── */
+.queue-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.queue-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #334155;
+}
+.queue-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #1e293b;
+  color: #cbd5e1;
+  vertical-align: middle;
+}
+.queue-table tr:last-child td { border-bottom: none; }
+.queue-table tr:hover td { background: #0f172a40; }
+.queue-table tr.done td { opacity: 0.5; }
+
+.priority-high   { color: #f87171; font-weight: 700; }
+.priority-medium { color: #fbbf24; font-weight: 600; }
+.priority-low    { color: #94a3b8; }
+
+.queue-status-pending    { color: #94a3b8; }
+.queue-status-in-progress { color: #818cf8; font-weight: 600; }
+.queue-status-done       { color: #10b981; }
+
+/* ── Merged badge (trên card) ────────────────────────────────────────────── */
+.merged-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #10b98120;
+  color: #10b981;
+  border: 1px solid #10b98140;
+}
+
+/* ── Toolkit Explorer ────────────────────────────────────────────────────── */
+.tk-file-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.tk-file-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.875rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+}
+.tk-file-header:hover { background: #334155; }
+.tk-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.875rem 0.3rem 2rem;
+  border-top: 1px solid #0f172a;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+.tk-heading-row:hover { background: #0f172a60; color: #e2e8f0; }
+.tk-find-btn {
+  margin-left: auto;
+  font-size: 0.65rem;
+  background: #334155;
+  border: none;
+  color: #94a3b8;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tk-find-btn:hover { background: #475569; color: #e2e8f0; }
+
 [hidden] { display: none !important; }

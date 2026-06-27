@@ -86,10 +86,12 @@ public class KnowledgeService(IConfiguration config, ILogger<KnowledgeService> l
             items = items.Where(i => i.Status == status).ToList();
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var q = search;
+            var q = search.Trim();
             items = items.Where(i =>
-                i.Topic.Contains(q, StringComparison.OrdinalIgnoreCase)   ||
-                i.Summary.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                i.Topic.Contains(q, StringComparison.OrdinalIgnoreCase)        ||
+                i.Summary.Contains(q, StringComparison.OrdinalIgnoreCase)      ||
+                i.Subcategory.Contains(q, StringComparison.OrdinalIgnoreCase)  ||
+                i.Category.Contains(q, StringComparison.OrdinalIgnoreCase)     ||
                 i.Tags.Any(t => t.Contains(q, StringComparison.OrdinalIgnoreCase))
             ).ToList();
         }
@@ -142,6 +144,23 @@ public class KnowledgeService(IConfiguration config, ILogger<KnowledgeService> l
         }
 
         await SaveItemAsync(item);
+        return item;
+    }
+
+    /// <summary>
+    /// Lưu thông tin file toolkit mà item đã được merge vào.
+    /// Gọi sau khi merge thành công để track traceability.
+    /// </summary>
+    public async Task<KnowledgeItem?> UpdateMergeTrackingAsync(string id, string mergedIntoFile)
+    {
+        var item = await GetByIdAsync(id);
+        if (item is null) return null;
+
+        item.MergedIntoFile = mergedIntoFile;
+        item.MergedAt       = DateTime.UtcNow;
+
+        await SaveItemAsync(item);
+        logger.LogInformation("Merge tracking updated for {Id} → {File}", id, mergedIntoFile);
         return item;
     }
 
