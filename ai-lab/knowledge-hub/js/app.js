@@ -4,8 +4,133 @@
 // ════════════════════════════════════════════════════════════
 
 // ── Config ───────────────────────────────────────────────────────────────────
-// Nếu mở từ file:// → dùng full URL; nếu từ localhost → dùng relative
 const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:5001' : '';
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+const auth = {
+  token:       null,
+  user:        null,  // { userId, username, displayName, role }
+
+  load() {
+    this.token = localStorage.getItem('kh_token');
+    try { this.user = JSON.parse(localStorage.getItem('kh_user') || 'null'); } catch { this.user = null; }
+  },
+  save(token, user) {
+    this.token = token;
+    this.user  = user;
+    localStorage.setItem('kh_token', token);
+    localStorage.setItem('kh_user',  JSON.stringify(user));
+  },
+  clear() {
+    this.token = null;
+    this.user  = null;
+    localStorage.removeItem('kh_token');
+    localStorage.removeItem('kh_user');
+  },
+  isLoggedIn() { return !!this.token; }
+};
+
+async function authInit() {
+  auth.load();
+  if (!auth.isLoggedIn()) { showLoginOverlay(); return; }
+
+  // Verify token còn hợp lệ với server
+  try {
+    await fetch(API_BASE + '/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${auth.token}` }
+    }).then(r => { if (!r.ok) throw new Error('invalid'); });
+    showApp();
+    updateSidebarUser();
+    await init();
+  } catch {
+    auth.clear();
+    showLoginOverlay();
+  }
+}
+
+async function submitLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('loginError');
+  const btn      = document.getElementById('loginBtn');
+
+  errEl.hidden = true;
+  if (!username || !password) {
+    errEl.textContent = 'Vui lòng nhập username và password';
+    errEl.hidden = false;
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Đang đăng nhập...';
+
+  try {
+    const res = await fetch(API_BASE + '/api/auth/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ username, password })
+    });
+
+    if (res.status === 401) {
+      errEl.textContent = 'Username hoặc password không đúng';
+      errEl.hidden = false;
+      return;
+    }
+    if (!res.ok) throw new Error(await res.text());
+
+    const data = await res.json();
+    auth.save(data.token, {
+      userId:      data.userId,
+      username:    data.username,
+      displayName: data.displayName,
+      role:        data.role
+    });
+
+    showApp();
+    updateSidebarUser();
+    await init();
+
+  } catch (e) {
+    errEl.textContent = 'Lỗi kết nối: ' + e.message;
+    errEl.hidden = false;
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Đăng nhập';
+  }
+}
+
+function logout() {
+  auth.clear();
+  // Reset state
+  state.items = [];
+  state.stats = null;
+  state.categories = [];
+  showLoginOverlay();
+}
+
+function showLoginOverlay() {
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.querySelector('aside.sidebar').style.display = 'none';
+  document.querySelector('main').style.display          = 'none';
+  setTimeout(() => document.getElementById('loginUsername').focus(), 100);
+}
+
+function showApp() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.querySelector('aside.sidebar').style.display = 'flex';
+  document.querySelector('main').style.display          = 'flex';
+}
+
+function updateSidebarUser() {
+  if (!auth.user) return;
+  const el = document.getElementById('sidebarUser');
+  el.hidden = false;
+  el.style.display = 'flex';
+  document.getElementById('sidebarUserName').textContent = auth.user.displayName || auth.user.username;
+  document.getElementById('sidebarUserRole').textContent = auth.user.role;
+  document.getElementById('sidebarUserAvatar').textContent =
+    (auth.user.displayName || auth.user.username).charAt(0).toUpperCase();
+}
 
 // ── State ────────────────────────────────────────────────────────────────────
 const state = {
@@ -26,36 +151,50 @@ const state = {
   toolkitFiles:      [],     // Toolkit Explorer data
   tkExpandedFiles:   new Set(), // set of expanded relPaths
   tkSearch:          '',     // search in Toolkit Explorer
-  toolkitIndex:      null    // _toolkit-index.json — dùng để detect "Found in toolkit"
+  toolkitIndex:      null,   // _toolkit-index.json — dùng để detect "Found in toolkit"
+  ratings:           {}      // { itemId: stars }
 };
 
 // ── API client ────────────────────────────────────────────────────────────────
 const api = {
+  _headers(extra = {}) {
+    const h = { ...extra };
+    if (auth.token) h['Authorization'] = `Bearer ${auth.token}`;
+    return h;
+  },
+  _handle401(r) {
+    if (r.status === 401) { auth.clear(); showLoginOverlay(); return true; }
+    return false;
+  },
   async get(path) {
-    const r = await fetch(API_BASE + path);
+    const r = await fetch(API_BASE + path, { headers: this._headers() });
+    if (this._handle401(r)) throw new Error('Unauthorized');
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     return r.json();
   },
   async post(path, body) {
     const r = await fetch(API_BASE + path, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this._headers({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body)
     });
+    if (this._handle401(r)) throw new Error('Unauthorized');
     if (!r.ok) { const t = await r.text(); throw new Error(t || r.statusText); }
     return r.json();
   },
   async put(path, body) {
     const r = await fetch(API_BASE + path, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this._headers({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body)
     });
+    if (this._handle401(r)) throw new Error('Unauthorized');
     if (!r.ok) { const t = await r.text(); throw new Error(t || r.statusText); }
     return r.json();
   },
   async del(path) {
-    const r = await fetch(API_BASE + path, { method: 'DELETE' });
+    const r = await fetch(API_BASE + path, { method: 'DELETE', headers: this._headers() });
+    if (this._handle401(r)) return false;
     return r.ok;
   }
 };
@@ -70,7 +209,7 @@ async function init() {
     return;
   }
   // Load all data in parallel (toolkit index không block render chính)
-  await Promise.all([loadCategories(), loadStats(), loadKnowledge()]);
+  await Promise.all([loadCategories(), loadStats(), loadKnowledge(), loadRatings()]);
   loadToolkitIndex(); // fire-and-forget: xong thì re-render knowledge list
 }
 
@@ -368,6 +507,7 @@ function renderKnowledgeCard(item) {
         }
       </div>
       <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;margin-left:0.5rem">
+        ${renderStars(item.id, state.ratings[item.id] || 0, false, '0.85rem')}
         ${item.hasDemo ? '<span style="font-size:0.7rem;color:#818cf8">🚀 Demo</span>' : ''}
         <span style="font-size:0.7rem;color:#475569">${dateStr}</span>
       </div>
@@ -516,6 +656,10 @@ async function openDetail(id) {
   setText('modalDate',
     `Researched: ${new Date(item.researchedAt).toLocaleDateString('vi-VN')}` +
     (item.validatedAt ? ` · Validated: ${new Date(item.validatedAt).toLocaleDateString('vi-VN')} by ${item.validatedBy || '—'}` : ''));
+
+  // Star rating
+  const starEl = document.getElementById('modalStarWidget');
+  if (starEl) starEl.innerHTML = renderStars(item.id, state.ratings[item.id] || 0, true, '1.4rem');
 
   // Confidence
   const conf      = Math.round((item.confidence || 0) * 100);
@@ -1502,7 +1646,7 @@ function tkFindSource(headingText, relPath) {
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
-init();
+authInit();
 
 // ── Feature 1: Full-text search trong toolkit content ─────────────────────────
 
@@ -1649,113 +1793,142 @@ async function showDiffPanel() {
   }
 }
 
-// ── Feature 3: Stale notification + Re-research Prompt ───────────────────────
+// ── Feature 3: Stale — Re-research Prompt ────────────────────────
 
-/**
- * Sinh re-research prompt cho item stale hiện tại.
- * Gọi khi user bấm "Generate Prompt" trong detail modal.
- */
 function showResearchPrompt() {
   const item = state.currentItem;
   if (!item) return;
 
-  const ageDays = item.validatedAt
-    ? Math.floor((Date.now() - new Date(item.validatedAt).getTime()) / 86_400_000)
-    : Math.floor((Date.now() - new Date(item.researchedAt).getTime()) / 86_400_000);
+  const versions = Object.entries(item.techVersions || {})
+    .map(([k,v]) => `${k}: ${v}`).join(', ') || 'chưa rõ';
 
-  const category = item.category || 'dotnet';
-  const prompt = [
-    `Tôi có một knowledge item đã stale (${ageDays} ngày chưa cập nhật) và cần được re-research.`,
-    ``,
-    `TOPIC: ${item.topic}`,
-    `CATEGORY: ${category}`,
-    item.tags?.length ? `TAGS: ${item.tags.join(', ')}` : null,
-    item.summary ? `SUMMARY HIỆN TẠI:\n${item.summary}` : null,
-    ``,
-    `YÊU CẦU:`,
-    `1. Research lại topic này theo kiến thức mới nhất (đặc biệt nếu có breaking changes, deprecation, hoặc best practices mới).`,
-    `2. So sánh với summary cũ — highlight những gì thay đổi.`,
-    `3. Đưa ra kết quả dạng JSON theo schema của file ai-lab/data/${category}/[yyyy-MM]/[topic-slug].json.`,
-    `4. Follow workflow trong my-ai-toolkit/07-agents/workflows/research-session.md nếu có.`,
-  ].filter(l => l !== null).join('\n');
+  const prompt =
+`Thực hiện re-research cho topic đã stale:
 
-  const modal = document.getElementById('promptModal');
-  const ta = document.getElementById('promptText');
-  if (!modal || !ta) return;
-  ta.value = prompt;
-  modal.hidden = false;
-}
+TOPIC: ${item.topic}
+CATEGORY: ${item.category}
+SUBCATEGORY: ${item.subcategory || ''}
+CURRENT SUMMARY: ${item.summary}
+TECH VERSIONS: ${versions}
 
-function copyPrompt() {
-  const ta = document.getElementById('promptText');
-  if (!ta) return;
-  navigator.clipboard.writeText(ta.value).then(() => {
-    const btn = document.querySelector('#promptModal .btn-primary');
-    if (btn) { btn.textContent = '✅ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000); }
-  }).catch(() => {
-    ta.select();
-    document.execCommand('copy');
-  });
+Y��u cầu:
+1. Kiểm tra xem kiến thức này còn đúng với .NET/PostgreSQL phiên bản mới nhất không
+2. Cập nhật code example nếu có breaking change
+3. Bổ sung trade-offs hoặc caveats mới phát sinh
+4. Cập nhật trường techVersions nếu cần
+5. Giữ nguyên id: ${item.id}
+
+Follow workflow trong my-ai-toolkit/07-agents/workflows/research-session.md.
+Lưu kết quả đè lên file: data/${item.category}/[yyyy-MM]/${item.id}.json`;
+
+  document.getElementById('promptModalTitle').textContent = '📋 Re-research Prompt';
+  document.getElementById('promptText').value = prompt;
+  document.getElementById('promptModal').hidden = false;
 }
 
 function closePromptModal() {
-  const modal = document.getElementById('promptModal');
-  if (modal) modal.hidden = true;
+  document.getElementById('promptModal').hidden = true;
 }
 
-function renderRelatedItems(items) {
-  const section = document.getElementById("modalRelatedSection");
-  const list    = document.getElementById("modalRelatedList");
-  if (!section || !list) return;
-
-  if (!items || items.length === 0) {
-    section.hidden = true;
-    return;
-  }
-
-  list.innerHTML = items.map(function(item) {
-    var commonTagsTitle = item.commonTags && item.commonTags.length
-      ? "Tags chung: " + item.commonTags.join(", ")
-      : "Category: " + item.category;
-    return "<button class=\"related-chip\"" +
-      " title=\"" + esc(commonTagsTitle) + "\"" +
-      " onclick=\"openDetail(\'" + esc(item.id) + "\')\">"+
-      "<span class=\"related-chip-score\">" + item.score + "</span>" +
-      "<span>" + esc(item.topic) + "</span>" +
-      "<span class=\"related-chip-cat\">" + esc(item.category) + "</span>" +
-      "</button>";
-  }).join("");
-
-  section.hidden = false;
+function copyPrompt() {
+  const text = document.getElementById('promptText').value;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('#promptModal .btn-primary');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Đã copy!';
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  }).catch(() => alert('Copy thất bại. Vui lòng copy thủ công.'));
 }
 
-// ── Feature 2: Session Starter Generator ──────────────────
+// ── Session Starter ────────────────────────────────────────────────────────────────────────────────────
 
 async function generateSessionStarter() {
-  var typeEl  = document.getElementById("sessionStarterType");
-  var type    = typeEl ? typeEl.value : "debug";
-  var btn     = document.getElementById("sessionStarterBtn");
-  var status  = document.getElementById("sessionStarterStatus");
+  const type   = document.getElementById('sessionStarterType')?.value || 'debug';
+  const btn    = document.getElementById('sessionStarterBtn');
+  const status = document.getElementById('sessionStarterStatus');
 
-  if (btn) btn.disabled = true;
-  if (status) status.textContent = "Dang generate...";
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang tạo...'; }
+  if (status) status.textContent = '';
 
   try {
-    var result = await api.get("/api/toolkit/session-starter?type=" + encodeURIComponent(type));
-    var srcCount = result.sources ? result.sources.length : 0;
-    if (status) status.textContent = srcCount + " sections tu toolkit";
+    const result = await api.get(`/api/toolkit/session-starter?type=${encodeURIComponent(type)}`);
+    const prompt = result.prompt || '';
 
-    var modal = document.getElementById("promptModal");
-    var ta    = document.getElementById("promptText");
-    var title = modal ? modal.querySelector("h3") : null;
-    if (modal && ta) {
-      if (title) title.textContent = "Session Starter — " + type;
-      ta.value = result.prompt || "";
-      modal.hidden = false;
-    }
+    await navigator.clipboard.writeText(prompt);
+    if (status) status.textContent = '✅ Đã copy vào clipboard! Paste vào Claude để bắt đầu session.';
+
+    document.getElementById('promptModalTitle').textContent = '🚀 Session Starter — ' + type;
+    document.getElementById('promptText').value = prompt;
+    document.getElementById('promptModal').hidden = false;
+
   } catch(e) {
-    if (status) status.textContent = "Loi: " + e.message;
+    if (status) status.textContent = '❌ Lỗi: ' + e.message;
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Generate'; }
   }
+}
+
+// ── Star Rating ──────────────────────────────────────────────────────────────
+
+async function loadRatings() {
+  // Dung fetch truc tiep thay vi api.get() de tranh _handle401 logout
+  try {
+    const r = await fetch(API_BASE + '/api/ratings', {
+      headers: auth.token ? { 'Authorization': 'Bearer ' + auth.token } : {}
+    });
+    if (!r.ok) { state.ratings = {}; return; }
+    state.ratings = await r.json();
+  } catch {
+    state.ratings = {};
+  }
+}
+
+function renderStars(itemId, currentStars, interactive = false, size = '0.9rem') {
+  const cls   = `star-widget${interactive ? ' interactive' : ''}`;
+  const inner = [1,2,3,4,5].map(n => {
+    const filled  = n <= currentStars;
+    const onClick = interactive
+      ? `onclick="event.stopPropagation();setRating('${itemId}',${n === currentStars ? 0 : n})"`
+      : `onclick="event.stopPropagation();openDetail('${itemId}')"`;
+    const onHover = interactive ? `onmouseenter="hoverStars(${n})" ` : '';
+    return `<span ${onClick} ${onHover}class="star${filled ? ' filled' : ''}" style="font-size:${size};cursor:pointer" title="${n} sao">&#9733;</span>`;
+  }).join('');
+  return `<div class="${cls}" onmouseleave="${interactive ? `resetStarHover('${itemId}')` : ''}" style="display:inline-flex;gap:1px;align-items:center">${inner}</div>`;
+}
+
+function hoverStars(n) {
+  document.querySelectorAll('.star-widget.interactive .star').forEach((el, i) => {
+    el.classList.toggle('filled', i < n);
+  });
+}
+
+function resetStarHover(itemId) {
+  const current = state.ratings[itemId] || 0;
+  document.querySelectorAll('.star-widget.interactive .star').forEach((el, i) => {
+    el.classList.toggle('filled', i < current);
+  });
+}
+
+async function setRating(itemId, stars) {
+  const prev = state.ratings[itemId] || 0;
+  if (stars === 0) delete state.ratings[itemId];
+  else state.ratings[itemId] = stars;
+
+  renderKnowledge();
+  updateModalStars(itemId);
+
+  try {
+    await api.put(`/api/ratings/${encodeURIComponent(itemId)}`, { stars });
+  } catch(e) {
+    if (prev) state.ratings[itemId] = prev;
+    else delete state.ratings[itemId];
+    renderKnowledge();
+    updateModalStars(itemId);
+  }
+}
+
+function updateModalStars(itemId) {
+  const el = document.getElementById('modalStarWidget');
+  if (!el || !state.currentItem || state.currentItem.id !== itemId) return;
+  el.innerHTML = renderStars(itemId, state.ratings[itemId] || 0, true, '1.4rem');
 }

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "tuan",
+    "username": "tuan",
+    "displayName": "Tuan Nguyen",
+    "passwordHash": "pbkdf2:100000:obLD1OX2p7jJ0OHyo7TF1g==:ISEX3jUm5Yuo1z5EBsmkD8OcNqnuydVjhijAbMMHwPk=",
+    "role": "admin",
+    "createdAt": "2026-06-30T00:00:00Z"
+  }
+]

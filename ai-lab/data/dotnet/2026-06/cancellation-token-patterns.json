@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "dotnet-cancellation-token-patterns-20260630",
   "topic": "CancellationToken: Patterns đúng và pitfalls trong .NET",
   "category": "dotnet",
@@ -13,11 +13,11 @@
   ],
   "difficulty": "intermediate",
   "relevance": "critical",
-  "status": "pending_review",
+  "status": "validated",
   "confidence": 0.97,
   "researchedAt": "2026-06-30T08:00:00Z",
-  "validatedAt": null,
-  "validatedBy": null,
+  "validatedAt": "2026-06-30T09:58:59.04296Z",
+  "validatedBy": "Tuan",
   "summary": "CancellationToken là cooperative: method phải check hoặc pass token xuống. Linked tokens kết hợp nhiều tokens (user cancel + timeout). Sai lầm phổ biến: catch OperationCanceledException rồi tiếp tục, không pass token xuống call stack.",
   "problem": "API methods nhận CancellationToken nhưng không pass xuống service/repo: cancel button click trên client nhưng server vẫn xử lý. Timeout CT bị bỏ qua vì không linked. OperationCanceledException bị catch và hidden.",
   "solution": "Luôn pass CT xuống toàn bộ call stack. Linked tokens cho timeout + user cancel. Log và rethrow OperationCanceledException (không swallow).",
