@@ -1,0 +1,60 @@
+{
+  "id": "postgresql-partial-index-20260630",
+  "topic": "Partial Index trong PostgreSQL: Index chỉ trên subset data",
+  "category": "postgresql",
+  "subcategory": "Indexing",
+  "tags": [
+    "partial-index",
+    "index",
+    "postgresql",
+    "performance",
+    "where-clause",
+    "selective"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Partial Index tạo index chỉ cho rows thỏa WHERE clause. Với bảng 10M orders nhưng chỉ 1% là 'pending', partial index trên pending orders nhỏ hơn 100×, query nhanh hơn do ít pages hơn.",
+  "problem": "Bảng orders 10M rows, query WHERE status = 'pending' AND user_id = @uid rất thường xuyên. Full index trên (status, user_id) lớn vì index toàn bộ 10M rows, nhiều status values.",
+  "solution": "CREATE INDEX ... WHERE status = 'pending' → index chỉ chứa pending orders (~100K rows). Query planner dùng partial index khi WHERE clause match.",
+  "codeExample": "-- Partial index cho pending orders (1% của 10M total)\nCREATE INDEX idx_orders_pending_user ON orders (user_id, created_at)\nWHERE status = 'pending';\n\n-- Query tự động dùng partial index\nEXPLAIN ANALYZE\nSELECT * FROM orders\nWHERE status = 'pending' AND user_id = 42\nORDER BY created_at DESC;\n-- Index Scan using idx_orders_pending_user on orders\n\n-- Xác minh partial index được dùng\nSELECT indexname, pg_size_pretty(pg_relation_size(indexname::regclass))\nFROM pg_indexes WHERE tablename = 'orders';\n\n-- Ứng dụng khác: soft delete\nCREATE INDEX idx_users_active_email ON users (email)\nWHERE deleted_at IS NULL;\n\n-- Unique constraint chỉ cho active records\nCREATE UNIQUE INDEX idx_users_active_email_unique ON users (email)\nWHERE deleted_at IS NULL; -- chỉ enforce unique cho chưa xóa\n\n-- Partial index cho NULL check\nCREATE INDEX idx_orders_unprocessed ON orders (created_at)\nWHERE processed_at IS NULL;",
+  "tradeoffs": [
+    "Query phải match điều kiện WHERE trong index definition để planner dùng partial index",
+    "Nhiều partial indexes: mỗi cái phục vụ 1 query pattern, tổng size nhỏ hơn nhưng nhiều indexes hơn",
+    "Không phù hợp cho ad-hoc queries với status values khác nhau",
+    "VACUUM và ANALYZE áp dụng cho partial index như regular index — không có overhead khác"
+  ],
+  "references": [
+    {
+      "title": "Partial Indexes - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/indexes-partial.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "pg_indexes size: partial index vs full index — verify size reduction",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/indexing.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "8.0+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,64 @@
+{
+  "id": "dotnet-result-pattern-20260630",
+  "topic": "Result Pattern: Tránh exception-driven flow trong .NET",
+  "category": "dotnet",
+  "subcategory": "Architecture",
+  "tags": [
+    "result-pattern",
+    "error-handling",
+    "domain",
+    "ardalis-result",
+    "oneOf",
+    "exception"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Result<T> pattern: trả về object chứa success value hoặc error, không throw exception cho domain errors. Exception chỉ dành cho exceptional cases. Ardalis.Result và OneOf là hai thư viện phổ biến. C# 12 không có native discriminated union nhưng có workarounds.",
+  "problem": "Exception cho domain errors (UserNotFound, InsufficientBalance): chậm hơn 100–1000× so với return value. Stack trace unwinding costly. Logic flow bị break khó theo dõi.",
+  "solution": "Domain methods trả Result<T>: kiểm tra .IsSuccess hay .Error tại caller. Controller map sang HTTP status. Chỉ throw exception cho truly exceptional cases (DB down, disk full).",
+  "codeExample": "// Simple Result type (tự implement)\npublic readonly struct Result<T>\n{\n    public T? Value { get; }\n    public string? Error { get; }\n    public bool IsSuccess => Error is null;\n\n    private Result(T value) { Value = value; Error = null; }\n    private Result(string error) { Value = default; Error = error; }\n\n    public static Result<T> Ok(T value) => new(value);\n    public static Result<T> Fail(string error) => new(error);\n\n    public Result<TOut> Map<TOut>(Func<T, TOut> mapper) =>\n        IsSuccess ? Result<TOut>.Ok(mapper(Value!)) : Result<TOut>.Fail(Error!);\n}\n\n// Domain service\npublic async Task<Result<Order>> CreateOrderAsync(CreateOrderDto dto, CancellationToken ct)\n{\n    var customer = await _repo.GetCustomerAsync(dto.CustomerId, ct);\n    if (customer is null)\n        return Result<Order>.Fail($\"Customer {dto.CustomerId} not found\");\n\n    if (!customer.HasSufficientBalance(dto.Total))\n        return Result<Order>.Fail(\"Insufficient balance\");\n\n    var order = await _repo.CreateAsync(dto, ct);\n    return Result<Order>.Ok(order);\n}\n\n// Controller/Endpoint map result → HTTP\napp.MapPost(\"/api/orders\", async (CreateOrderDto dto, OrderService svc, CancellationToken ct) =>\n{\n    var result = await svc.CreateOrderAsync(dto, ct);\n    return result.IsSuccess\n        ? Results.Created($\"/api/orders/{result.Value!.Id}\", result.Value)\n        : Results.BadRequest(new { error = result.Error });\n});",
+  "tradeoffs": [
+    "Result type làm code verbose hơn: mọi caller phải check .IsSuccess",
+    "Ardalis.Result và ErrorOr là các thư viện mature hơn với nhiều error types, implicit conversion",
+    "Railway-oriented programming (ROP) với LINQ .Bind() mạnh nhưng có learning curve",
+    "Chỉ áp dụng cho domain operations; không dùng Result cho infrastructure exceptions (vẫn throw)"
+  ],
+  "references": [
+    {
+      "title": "Ardalis.Result",
+      "url": "https://github.com/ardalis/Result"
+    },
+    {
+      "title": "ErrorOr library",
+      "url": "https://github.com/amantinband/error-or"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Unit test: verify failure path không throw, success path có Value",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/architecture.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

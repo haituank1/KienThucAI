@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-semaphore-slim-patterns-20260630",
+  "topic": "SemaphoreSlim: Throttling concurrent async operations",
+  "category": "dotnet",
+  "subcategory": "Concurrency",
+  "tags": [
+    "semaphoreslim",
+    "concurrency",
+    "throttling",
+    "async",
+    "thread-safety"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "SemaphoreSlim là lightweight async semaphore: giới hạn số concurrent operations. WaitAsync() không block thread. Cần Release() trong finally để tránh deadlock. Phù hợp cho mutex async và throttling fine-grained.",
+  "problem": "Task.WhenAll tạo tất cả tasks cùng lúc. Parallel.ForEachAsync không phù hợp khi đã có danh sách tasks. Cần throttle nhiều API calls, file IO, hoặc DB connections đồng thời.",
+  "solution": "SemaphoreSlim(initialCount, maxCount). Mỗi operation: await sem.WaitAsync(ct) → try { work } finally { sem.Release() }. Đếm số lượng concurrent ops, block mỗi await khi đạt max.",
+  "codeExample": "// Throttle 5 concurrent HTTP calls\nprivate readonly SemaphoreSlim _throttle = new(5, 5);\n\npublic async Task<IReadOnlyList<Result>> ProcessAllAsync(\n    IEnumerable<Item> items, CancellationToken ct)\n{\n    var tasks = items.Select(async item =>\n    {\n        await _throttle.WaitAsync(ct);\n        try { return await ProcessItemAsync(item, ct); }\n        finally { _throttle.Release(); } // PHẢI trong finally\n    });\n    return await Task.WhenAll(tasks);\n}\n\n// Mutex pattern (binary semaphore, 1 writer at a time)\nprivate readonly SemaphoreSlim _writeLock = new(1, 1);\n\npublic async Task<T> GetOrCreateAsync<T>(\n    string key, Func<Task<T>> factory, CancellationToken ct)\n{\n    if (_cache.TryGetValue(key, out T? cached)) return cached!;\n\n    await _writeLock.WaitAsync(ct);\n    try\n    {\n        // Double-check sau khi có lock\n        if (_cache.TryGetValue(key, out cached)) return cached!;\n        var value = await factory();\n        _cache[key] = value;\n        return value;\n    }\n    finally { _writeLock.Release(); }\n}",
+  "tradeoffs": [
+    "SemaphoreSlim(1,1) là async mutex nhưng không re-entrant: cùng thread await twice = deadlock",
+    "So với lock{}: SemaphoreSlim hỗ trợ async, lock{} không async-safe (có thể deadlock)",
+    "WaitAsync() không biết ai đang giữ — khó debug khi deadlock",
+    "Prefer Parallel.ForEachAsync nếu có IEnumerable/IAsyncEnumerable source (ít boilerplate hơn)"
+  ],
+  "references": [
+    {
+      "title": "SemaphoreSlim - .NET docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Unit test: verify max 5 concurrent tasks at any point in time",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/concurrency.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "4.5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

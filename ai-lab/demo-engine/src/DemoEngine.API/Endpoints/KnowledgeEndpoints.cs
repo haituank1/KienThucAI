@@ -105,6 +105,14 @@ public static class KnowledgeEndpoints
             return result.Success ? Results.Ok(result) : Results.UnprocessableEntity(result);
         });
 
+        // GET /api/knowledge/{id}/related?limit=6
+        // Cross-reference: validated items cùng tags/category — tránh knowledge silo
+        group.MapGet("{id}/related", async (string id, int? limit, KnowledgeService svc) =>
+        {
+            var items = await svc.GetRelatedItemsAsync(id, limit ?? 6);
+            return Results.Ok(items);
+        });
+
         // POST /api/knowledge — tạo item mới
         group.MapPost("", async (KnowledgeItem item, KnowledgeService svc) =>
         {

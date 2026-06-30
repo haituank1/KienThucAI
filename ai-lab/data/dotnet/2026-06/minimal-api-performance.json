@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-minimal-api-performance-20260630",
+  "topic": "Minimal API trong .NET 8: Tổ chức và performance tối ưu",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "minimal-api",
+    "aspnetcore",
+    "performance",
+    "dotnet8",
+    "endpoint-filters",
+    "route-groups"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Minimal API ít allocation hơn MVC Controller (~30% trên TechEmpower benchmarks) do không có ModelBinding pipeline phức tạp. .NET 8 thêm RouteGroups, IEndpointFilter, TypedResults cho structure tốt hơn không mất hiệu năng.",
+  "problem": "MVC Controllers có overhead từ ModelBinding, ActionFilters, ViewResult pipeline dù không cần. Khi viết JSON API, nhiều layer không cần thiết làm giảm throughput.",
+  "solution": "Dùng Minimal API với route groups để tổ chức, IEndpointFilter cho cross-cutting concerns. TypedResults để type-safe và IDE support tốt hơn.",
+  "codeExample": "// Route group + endpoint filter\nvar api = app.MapGroup(\"/api/v1\")\n    .RequireAuthorization()\n    .AddEndpointFilter<ValidationFilter>()\n    .WithOpenApi();\n\nvar orders = api.MapGroup(\"/orders\").WithTags(\"Orders\");\n\norders.MapGet(\"\", async (\n    [AsParameters] OrderQuery query,\n    OrderService svc, CancellationToken ct) =>\n    TypedResults.Ok(await svc.GetPagedAsync(query, ct)));\n\norders.MapPost(\"\", async (\n    CreateOrderDto dto, OrderService svc, CancellationToken ct) =>\n{\n    var order = await svc.CreateAsync(dto, ct);\n    return TypedResults.Created($\"/api/v1/orders/{order.Id}\", order);\n});\n\n// IEndpointFilter — cross-cutting concern\npublic class ValidationFilter : IEndpointFilter\n{\n    public async ValueTask<object?> InvokeAsync(\n        EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)\n    {\n        // Validate args trước khi delegate\n        return await next(ctx);\n    }\n}\n\n// [AsParameters] binding struct (NET 7+) — zero alloc\npublic record struct OrderQuery(string? Status, int Page = 1, int PageSize = 20);",
+  "tradeoffs": [
+    "Minimal API không có ActionFilter, ModelState.IsValid built-in — phải implement qua IEndpointFilter",
+    ".NET 8 Request Delegate Generator (source-gen): giảm startup time cho Minimal API",
+    "Swagger/OpenAPI: cần cấu hình manual với WithOpenApi() và TypedResults để correct schema gen"
+  ],
+  "references": [
+    {
+      "title": "Minimal APIs overview",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "TechEmpower benchmark: so sánh Minimal API vs MVC Controller RPS",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "7+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

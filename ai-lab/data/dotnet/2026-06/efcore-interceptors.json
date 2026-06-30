@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-efcore-interceptors-20260630",
+  "topic": "EF Core Interceptors: Audit logging, soft delete và query modification",
+  "category": "dotnet",
+  "subcategory": "EF Core",
+  "tags": [
+    "ef-core",
+    "interceptors",
+    "audit-log",
+    "soft-delete",
+    "query",
+    "dbcommandinterceptor"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.91,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "EF Core Interceptors hook vào EF Core pipeline: ISaveChangesInterceptor cho audit log/soft delete, IDbCommandInterceptor cho query logging/modification, IQueryExpressionInterceptor cho dynamic query rewrite. Không cần sửa code ở mỗi repo.",
+  "problem": "Audit logging: phải gọi _auditSvc.LogAsync() trong mọi repository method. Soft delete: phải nhớ thêm .Where(x => !x.IsDeleted) trong mọi query. Duplicated cross-cutting concerns.",
+  "solution": "ISaveChangesInterceptor: tự động set CreatedAt, UpdatedAt, mark IsDeleted thay vì xóa. IQueryExpressionInterceptor: tự động thêm WHERE IsDeleted = 0 (global query filter tốt hơn).",
+  "codeExample": "// Audit + Soft Delete Interceptor\npublic class AuditInterceptor(ICurrentUserService currentUser) : SaveChangesInterceptor\n{\n    public override InterceptionResult<int> SavingChanges(\n        DbContextEventData data, InterceptionResult<int> result)\n    {\n        var ctx = data.Context!;\n        var now = DateTimeOffset.UtcNow;\n\n        foreach (var entry in ctx.ChangeTracker.Entries<BaseEntity>())\n        {\n            switch (entry.State)\n            {\n                case EntityState.Added:\n                    entry.Entity.CreatedAt = now;\n                    entry.Entity.CreatedBy = currentUser.UserId;\n                    break;\n                case EntityState.Modified:\n                    entry.Entity.UpdatedAt = now;\n                    entry.Entity.UpdatedBy = currentUser.UserId;\n                    break;\n                case EntityState.Deleted when entry.Entity is ISoftDelete sd:\n                    entry.State = EntityState.Modified; // thay vì DELETE\n                    sd.IsDeleted = true;\n                    sd.DeletedAt = now;\n                    break;\n            }\n        }\n        return result;\n    }\n}\n\n// Registration\nprotected override void OnConfiguring(DbContextOptionsBuilder opt) =>\n    opt.AddInterceptors(new AuditInterceptor(_currentUser));\n\n// Global Query Filter cho soft delete (tốt hơn interceptor cho query)\nprotected override void OnModelCreating(ModelBuilder model)\n{\n    foreach (var entityType in model.Model.GetEntityTypes()\n        .Where(e => typeof(ISoftDelete).IsAssignableFrom(e.ClrType)))\n    {\n        model.Entity(entityType.ClrType)\n            .HasQueryFilter(e => !EF.Property<bool>(e, \"IsDeleted\"));\n    }\n}",
+  "tradeoffs": [
+    "Global Query Filter bị bypass bởi IgnoreQueryFilters() — cần thận trọng trong admin queries",
+    "ISaveChangesInterceptor không chạy với ExecuteUpdate/ExecuteDelete — phải handle riêng",
+    "Interceptor async không được support tốt ở một số paths — kiểm tra kỹ với async SaveChangesAsync",
+    "IDbCommandInterceptor có thể ảnh hưởng performance khi log mọi command — filter theo LogLevel"
+  ],
+  "references": [
+    {
+      "title": "EF Core interceptors",
+      "url": "https://learn.microsoft.com/en-us/ef/core/logging-events-diagnostics/interceptors"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Integration test: delete entity → verify IsDeleted=true, not physically deleted",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+",
+    "efcore": "7+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-records-value-semantics-20260630",
+  "topic": "C# Records: Value semantics, immutability và with-expression",
+  "category": "dotnet",
+  "subcategory": "Language",
+  "tags": [
+    "records",
+    "immutability",
+    "value-semantics",
+    "csharp9",
+    "dto",
+    "with-expression"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "C# 9 Records tạo Equals dựa trên all properties tự động. with{} tạo copy với một số field thay đổi. Record struct (C# 10): stack-allocated, zero heap alloc. Phù hợp cho DTOs, domain value objects, command/query.",
+  "problem": "Class có reference equality: so sánh 2 UserDto objects luôn false dù mọi field giống. Phải override Equals, GetHashCode, ToString thủ công — verbose và dễ sai.",
+  "solution": "Record tạo structural equality tự động. with{} tạo immutable update. Record struct cho small value objects tránh heap alloc.",
+  "codeExample": "// Record class (heap, reference type, structural equality)\npublic record UserDto(int Id, string Name, string Email, DateTimeOffset CreatedAt);\n\nvar user1 = new UserDto(1, \"Alice\", \"alice@example.com\", now);\nvar user2 = new UserDto(1, \"Alice\", \"alice@example.com\", now);\nConsole.WriteLine(user1 == user2); // TRUE (structural equality)\n\n// with-expression: immutable update\nvar updated = user1 with { Email = \"newalice@example.com\" };\n\n// Record struct (C# 10): stack-allocated\npublic readonly record struct Coordinate(double Lat, double Lng);\n\n// Nominal record với validation\npublic record class PaymentResult\n{\n    public bool Success { get; init; }\n    public string? TransactionId { get; init; }\n    public string? Error { get; init; }\n\n    public static PaymentResult Ok(string txId) =>\n        new() { Success = true, TransactionId = txId };\n    public static PaymentResult Fail(string err) =>\n        new() { Success = false, Error = err };\n}\n\n// WRONG: Record cho entity với DB identity\n// record Order(int Id, ...) — Equals sẽ so sánh toàn bộ object\n// thay vì chỉ compare Id → có thể gây issue trong HashSet, Dictionary",
+  "tradeoffs": [
+    "Record class vẫn là reference type: không giảm GC pressure; chỉ tinh gọn code",
+    "Record struct được copy by value: với large struct (>4 fields), copy overhead tăng",
+    "Inheritance: record class hỗ trợ nhưng limited; record struct không hỗ trợ kế thừa",
+    "[JsonConstructor] cần thiết nếu constructor parameters không khớp property names"
+  ],
+  "references": [
+    {
+      "title": "Records in C# - Microsoft docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/record"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Unit test: verify structural equality, with-expression creates new instance",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/language-features.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 730,
+  "techVersions": {
+    "dotnet": "5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-testcontainers-integration-20260630",
+  "topic": "Testcontainers cho .NET: Integration testing với real PostgreSQL, Redis",
+  "category": "dotnet",
+  "subcategory": "Testing",
+  "tags": [
+    "testcontainers",
+    "integration-test",
+    "postgresql",
+    "redis",
+    "docker",
+    "xunit"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.91,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Testcontainers cho .NET start Docker containers trong test: real PostgreSQL, Redis, RabbitMQ thay vì in-memory fakes. WebApplicationFactory + Testcontainers = full integration test không mock. Nhanh hơn SQL Server LocalDB.",
+  "problem": "SQLite in-memory fake: behavior khác PostgreSQL (case sensitivity, JSON functions). Mock repository không test real query logic. Setup manual Docker trong CI phức tạp.",
+  "solution": "Testcontainers.PostgreSql spin up real PostgreSQL container per test class. Kết hợp WebApplicationFactory để override connection string. EF Core migrate tự động.",
+  "codeExample": "// NuGet: Testcontainers.PostgreSql, Testcontainers.Redis\n[Collection(\"Integration\")]\npublic class OrderApiTests : IAsyncLifetime\n{\n    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()\n        .WithImage(\"postgres:16-alpine\")\n        .WithDatabase(\"testdb\")\n        .Build();\n\n    private WebApplicationFactory<Program> _factory = null!;\n\n    public async Task InitializeAsync()\n    {\n        await _postgres.StartAsync();\n\n        _factory = new WebApplicationFactory<Program>()\n            .WithWebHostBuilder(builder =>\n                builder.ConfigureServices(services =>\n                {\n                    // Override DB connection\n                    services.RemoveAll<DbContextOptions<AppDbContext>>();\n                    services.AddDbContext<AppDbContext>(opt =>\n                        opt.UseNpgsql(_postgres.GetConnectionString()));\n                }));\n\n        // Run migrations\n        using var scope = _factory.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();\n        await db.Database.MigrateAsync();\n    }\n\n    [Fact]\n    public async Task CreateOrder_ReturnsCreated()\n    {\n        var client = _factory.CreateClient();\n        var response = await client.PostAsJsonAsync(\"/api/orders\",\n            new { CustomerId = 1, ProductId = 1, Quantity = 2 });\n        response.EnsureSuccessStatusCode();\n        Assert.Equal(HttpStatusCode.Created, response.StatusCode);\n    }\n\n    public async Task DisposeAsync() => await _postgres.DisposeAsync();\n}",
+  "tradeoffs": [
+    "Testcontainers cần Docker running: không phù hợp cho môi trường không có Docker daemon",
+    "Container startup: 2–5 giây per test class; dùng [CollectionDefinition] shared container để tái dùng",
+    "Parallel test classes với shared container: phải isolate data (unique schema mỗi test, hoặc transaction rollback)",
+    "CI pipeline: Github Actions hỗ trợ Docker containers natively; Jenkins on-prem cần cấu hình thêm"
+  ],
+  "references": [
+    {
+      "title": "Testcontainers for .NET",
+      "url": "https://dotnet.testcontainers.org/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Chạy test với real PostgreSQL, verify migration chạy thành công",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/testing.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

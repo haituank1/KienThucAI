@@ -1,0 +1,62 @@
+{
+  "id": "postgresql-window-functions-20260630",
+  "topic": "Window Functions trong PostgreSQL: ROW_NUMBER, RANK, LAG, LEAD và aggregates",
+  "category": "postgresql",
+  "subcategory": "SQL",
+  "tags": [
+    "window-functions",
+    "row-number",
+    "rank",
+    "lag",
+    "lead",
+    "partition-by",
+    "order-by",
+    "analytics"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Window Functions tính toán trên set rows liên quan (window) không collapse rows như GROUP BY. ROW_NUMBER() cho deduplication, LAG/LEAD cho time-series comparison, SUM() OVER () cho running total. Hiệu quả hơn self-join hoặc subquery.",
+  "problem": "Tính running total bằng subquery: O(n²). Dedup với MIN(id) và GROUP BY: verbose. So sánh row hiện tại với row trước đó cần self-join phức tạp.",
+  "solution": "Window functions: PARTITION BY cho grouping, ORDER BY cho ordering trong window, ROWS/RANGE cho frame definition. PostgreSQL tối ưu window function tốt hơn equivalent subquery.",
+  "codeExample": "-- ROW_NUMBER: deduplication — lấy 1 row mỗi user, mới nhất\nWITH ranked AS (\n    SELECT *,\n        ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) AS rn\n    FROM orders\n)\nSELECT * FROM ranked WHERE rn = 1;\n\n-- Running total\nSELECT\n    order_id, amount,\n    SUM(amount) OVER (PARTITION BY user_id ORDER BY created_at\n                      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total\nFROM orders;\n\n-- LAG/LEAD: so sánh với row trước/sau\nSELECT\n    date, revenue,\n    LAG(revenue, 1) OVER (ORDER BY date) AS prev_revenue,\n    revenue - LAG(revenue, 1) OVER (ORDER BY date) AS change,\n    LEAD(revenue, 1) OVER (ORDER BY date) AS next_revenue\nFROM daily_revenue\nORDER BY date;\n\n-- RANK vs DENSE_RANK: gaps vs no-gaps\nSELECT user_id, score,\n    RANK() OVER (ORDER BY score DESC),        -- 1, 2, 2, 4\n    DENSE_RANK() OVER (ORDER BY score DESC)   -- 1, 2, 2, 3\nFROM leaderboard;\n\n-- NTILE: chia thành N nhóm (percentiles)\nSELECT user_id, revenue,\n    NTILE(10) OVER (ORDER BY revenue DESC) AS decile\nFROM customers;",
+  "tradeoffs": [
+    "Window function không thể dùng trong WHERE clause trực tiếp: phải wrap trong CTE hoặc subquery",
+    "ORDER BY trong window: nếu không có, order là undefined (kết quả có thể khác nhau)",
+    "Performance: window function scan nhiều rows; với large datasets kết hợp với filtering trước trong CTE",
+    "ROWS vs RANGE frame: RANGE với ties có thể include rows không mong đợi — dùng ROWS thường an toàn hơn"
+  ],
+  "references": [
+    {
+      "title": "Window Functions - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/tutorial-window.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh kết quả ROW_NUMBER vs self-join dedup — same results, verify perf",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/sql-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "8.4+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

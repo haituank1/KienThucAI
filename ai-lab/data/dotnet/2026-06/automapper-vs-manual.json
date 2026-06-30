@@ -1,0 +1,64 @@
+{
+  "id": "dotnet-automapper-vs-manual-20260630",
+  "topic": "AutoMapper vs Manual Mapping vs Mapperly: Trade-offs trong .NET",
+  "category": "dotnet",
+  "subcategory": "Architecture",
+  "tags": [
+    "automapper",
+    "mapperly",
+    "mapping",
+    "dto",
+    "source-gen",
+    "performance"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "AutoMapper dùng reflection: chậm hơn manual mapping ~10×, không AOT compatible, errors chỉ phát hiện runtime. Mapperly dùng source generators: nhanh như manual mapping, compile-time errors. Manual mapping: verbose nhưng explicit.",
+  "problem": "AutoMapper ProjectTo<> với EF Core có thể tạo inefficient SQL. Mapping error chỉ biết lúc runtime. Reflection overhead trong hot path.",
+  "solution": "Mapperly (source gen) cho compile-time safe, high performance mapping. Manual mapping cho simple domain với ít fields. Không dùng AutoMapper mới trong project .NET 6+.",
+  "codeExample": "// Mapperly (source generator) — NuGet: Riok.Mapperly\n[Mapper]\npublic partial class OrderMapper\n{\n    // Tự generate implementation:\n    public partial OrderDto ToDto(Order source);\n    public partial IQueryable<OrderDto> ProjectToDto(IQueryable<Order> q); // EF Core projection!\n\n    // Custom mapping với [MapProperty]\n    [MapProperty(nameof(Order.Customer.Name), nameof(OrderDto.CustomerName))]\n    public partial OrderDto ToDtoWithCustomer(Order source);\n\n    // Ignore fields\n    [MapperIgnoreTarget(nameof(OrderDto.InternalNote))]\n    public partial OrderDto ToPublicDto(Order source);\n}\n\n// Usage\nvar mapper = new OrderMapper();\nvar dto = mapper.ToDto(order); // generated code: new OrderDto { Id = order.Id, ... }\n\n// EF Core ProjectTo — translate sang SQL SELECT (chỉ columns cần)\nvar dtos = await db.Orders\n    .Where(o => o.Status == \"active\")\n    .ProjectToDto(mapper) // Mapperly generates IQueryable projection\n    .ToListAsync();\n\n// Manual mapping (đơn giản, không cần thư viện)\npublic static OrderDto ToDto(this Order order) => new(\n    order.Id, order.Status, order.Total, order.CreatedAt);",
+  "tradeoffs": [
+    "Mapperly generate code verbose: inspect generated .g.cs để debug mapping issues",
+    "AutoMapper ProjectTo EF Core: vẫn hoạt động nhưng Mapperly tốt hơn cho type safety",
+    "Manual mapping: refactor-safe (compiler catch nếu property rename), không cần thư viện ngoài",
+    "Mapperly chưa support tất cả complex scenarios (collection of collections, recursive types)"
+  ],
+  "references": [
+    {
+      "title": "Mapperly - GitHub",
+      "url": "https://github.com/riok/mapperly"
+    },
+    {
+      "title": "AutoMapper ProjectTo",
+      "url": "https://docs.automapper.org/en/stable/Queryable-Extensions.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "BenchmarkDotNet: AutoMapper vs Mapperly vs manual, 100K objects",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/architecture.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

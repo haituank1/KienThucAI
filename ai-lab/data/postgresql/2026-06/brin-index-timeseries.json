@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-brin-index-timeseries-20260630",
+  "topic": "BRIN Index trong PostgreSQL: Tối ưu cho time-series và append-only data",
+  "category": "postgresql",
+  "subcategory": "Indexing",
+  "tags": [
+    "brin",
+    "index",
+    "time-series",
+    "performance",
+    "postgresql",
+    "storage",
+    "append-only"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.92,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "BRIN (Block Range Index) lưu min/max của mỗi block range thay vì pointer đến từng row. Kích thước index nhỏ hơn B-Tree 100–1000×, phù hợp cho monotonically increasing columns (created_at, sensor_id) trên bảng lớn.",
+  "problem": "Bảng audit_logs 500GB với created_at column: B-Tree index trên created_at tốn 10–15GB, build time lâu, maintenance cost cao. Nhưng query WHERE created_at BETWEEN là phổ biến.",
+  "solution": "BRIN index trên created_at: 1–10MB thay vì 10GB. Phù hợp vì data insert theo thứ tự thời gian (không random). Correlation cao giữa physical order và logical order.",
+  "codeExample": "-- Tạo BRIN index\nCREATE INDEX idx_audit_created_brin ON audit_logs USING BRIN (created_at)\nWITH (pages_per_range = 128); -- range lớn hơn = index nhỏ hơn nhưng ít chính xác hơn\n\n-- Kiểm tra correlation (BRIN hiệu quả khi correlation gần 1.0)\nSELECT attname, correlation\nFROM pg_stats\nWHERE tablename = 'audit_logs' AND attname = 'created_at';\n-- correlation = 0.99 → BRIN rất hiệu quả\n\n-- Query sử dụng BRIN\nEXPLAIN ANALYZE\nSELECT * FROM audit_logs\nWHERE created_at BETWEEN '2026-06-01' AND '2026-06-30';\n-- Bitmap Heap Scan with BRIN Bitmap Index Scan\n\n-- So sánh kích thước\nSELECT pg_size_pretty(pg_indexes_size('audit_logs'));\n-- BRIN: ~2MB vs B-Tree: ~8GB cho bảng 500GB\n\n-- BRIN không phù hợp khi:\n-- 1. Nhiều updates/deletes (correlation giảm)\n-- 2. Random inserts (order không tương quan physical)\n-- 3. Cần unique constraint\n\n-- Autovacuum sẽ revacuate BRIN sau deletes\n-- Manual: SELECT brin_summarize_new_values('idx_audit_created_brin');",
+  "tradeoffs": [
+    "BRIN kém chính xác hơn B-Tree: PostgreSQL phải scan nhiều pages hơn, có false positives",
+    "Không thể dùng BRIN cho unique constraint hay equality point lookup hiệu quả",
+    "BRIN với pages_per_range lớn: index nhỏ hơn nhưng scan nhiều hơn — tune theo access pattern",
+    "Nếu table có nhiều UPDATE/DELETE làm mất correlation, BRIN kém hiệu quả — rebuild định kỳ"
+  ],
+  "references": [
+    {
+      "title": "BRIN Indexes - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/brin.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "EXPLAIN ANALYZE: compare B-Tree vs BRIN query plan cho range scan",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/indexing.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "11+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

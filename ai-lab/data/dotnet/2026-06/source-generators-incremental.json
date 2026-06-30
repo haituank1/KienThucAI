@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-source-generators-incremental-20260630",
+  "topic": "Incremental Source Generators: Code gen tại compile time trong .NET",
+  "category": "dotnet",
+  "subcategory": "Productivity",
+  "tags": [
+    "source-generators",
+    "roslyn",
+    "code-generation",
+    "compile-time",
+    "performance",
+    "aot"
+  ],
+  "difficulty": "expert",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.88,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Incremental Source Generators (Roslyn) tạo code tại compile time: tránh reflection runtime, hỗ trợ AOT, IDE-friendly. Dùng cho serialization, DI registration, mapping. System.Text.Json và Refit dùng cách này.",
+  "problem": "Reflection-based frameworks (AutoMapper, traditional DI) slow startup, không tương thích AOT, và che giấu logic. Viết tay thì verbose và dễ lỗi.",
+  "solution": "Tạo IIncrementalGenerator: analyze Roslyn SyntaxTree/SemanticModel với ForAttributeWithMetadataName(), phát sinh .cs files. Cache intermediate steps để chỉ re-run khi relevant inputs thay đổi.",
+  "codeExample": "[Generator]\npublic class MapperGenerator : IIncrementalGenerator\n{\n    public void Initialize(IncrementalGeneratorInitializationContext ctx)\n    {\n        var mapperDecls = ctx.SyntaxProvider\n            .ForAttributeWithMetadataName(\n                \"MyLib.GenerateMapperAttribute\",\n                predicate: (node, _) => node is ClassDeclarationSyntax,\n                transform: (ctx, _) => GetMapperInfo(ctx))\n            .Where(x => x is not null);\n\n        ctx.RegisterSourceOutput(mapperDecls, (spc, info) =>\n        {\n            var source = GenerateMapper(info!);\n            spc.AddSource($\"{info!.ClassName}.g.cs\", source);\n        });\n    }\n}\n\n// Consumer project\n[GenerateMapper]\npublic partial class OrderMapper { }\n// Generator tự thêm:\n// public partial class OrderMapper {\n//     public OrderDto Map(Order src) => new() { Id = src.Id, ... };\n// }",
+  "tradeoffs": [
+    "Incremental generator phải dùng value equality trên intermediate models để tránh re-run toàn bộ",
+    "Debug generator khó: phải attach debugger vào Roslyn process",
+    "Generator không thể modify existing code (chỉ add) — partial class là workaround",
+    "Build time tăng khi generator logic phức tạp"
+  ],
+  "references": [
+    {
+      "title": "Incremental generators cookbook - Roslyn",
+      "url": "https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.cookbook.md"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh build time: reflection vs source-generated DI registration",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/advanced.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

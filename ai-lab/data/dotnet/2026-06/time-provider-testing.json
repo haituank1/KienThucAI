@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-time-provider-testing-20260630",
+  "topic": "TimeProvider trong .NET 8: Testable time abstraction",
+  "category": "dotnet",
+  "subcategory": "Testing",
+  "tags": [
+    "timeprovider",
+    "testing",
+    "dotnet8",
+    "abstraction",
+    "fake",
+    "datetime"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "TimeProvider (.NET 8) là abstract class thay thế DateTime.UtcNow và Task.Delay trực tiếp. Inject TimeProvider vào services, dùng FakeTimeProvider trong test để control time. Polly và .NET internals đã migrate sang TimeProvider.",
+  "problem": "DateTime.UtcNow trong production code không testable: không thể giả lập thời gian trong unit test. Phải dùng IClock interface tự viết hoặc thư viện như NodaTime Clock.",
+  "solution": "Inject TimeProvider vào class, gọi time.GetUtcNow(). Trong test dùng Microsoft.Extensions.TimeProvider.Testing.FakeTimeProvider để set và advance time.",
+  "codeExample": "// Service dùng TimeProvider\npublic class TokenService(TimeProvider time)\n{\n    public bool IsExpired(Token token) =>\n        time.GetUtcNow() > token.ExpiresAt;\n\n    public async Task WaitForRefreshAsync(CancellationToken ct) =>\n        await Task.Delay(TimeSpan.FromSeconds(30), time, ct);\n}\n\n// Registration (production)\nbuilder.Services.AddSingleton(TimeProvider.System);\n\n// Test với FakeTimeProvider\n// NuGet: Microsoft.Extensions.TimeProvider.Testing\n[Fact]\npublic void Token_IsExpired_WhenPastExpiry()\n{\n    var fake = new FakeTimeProvider(\n        DateTimeOffset.Parse(\"2026-06-30T00:00:00Z\"));\n    var svc = new TokenService(fake);\n    var token = new Token { ExpiresAt = DateTimeOffset.Parse(\"2026-06-29T23:59:00Z\") };\n\n    Assert.True(svc.IsExpired(token));\n}\n\n[Fact]\npublic async Task WaitForRefresh_CompletesAfterAdvance()\n{\n    var fake = new FakeTimeProvider();\n    var svc = new TokenService(fake);\n    var task = svc.WaitForRefreshAsync(CancellationToken.None);\n\n    fake.Advance(TimeSpan.FromSeconds(30)); // advance time\n    await task; // completes immediately\n}",
+  "tradeoffs": [
+    "FakeTimeProvider.Advance() chỉ resolve timers đang await — phức tạp khi nhiều async operations parallel",
+    "Code cũ dùng DateTime.UtcNow trực tiếp phải refactor — có thể dùng 1 adapter interface tạm thời",
+    "NodaTime IClock vẫn mạnh hơn cho time zone-aware operations"
+  ],
+  "references": [
+    {
+      "title": "TimeProvider - .NET 8",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.timeprovider"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Unit test: advance FakeTimeProvider, verify expiry check",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/testing.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 730,
+  "techVersions": {
+    "dotnet": "8+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

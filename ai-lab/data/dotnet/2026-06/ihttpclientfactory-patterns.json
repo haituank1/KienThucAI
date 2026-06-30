@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-ihttpclientfactory-patterns-20260630",
+  "topic": "IHttpClientFactory: Dùng đúng cách và tránh socket exhaustion",
+  "category": "dotnet",
+  "subcategory": "HTTP",
+  "tags": [
+    "httpclientfactory",
+    "httpclient",
+    "socket-exhaustion",
+    "dns-refresh",
+    "typed-client"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "new HttpClient() mỗi lần = socket exhaustion risk (TIME_WAIT accumulation). HttpClient static field = DNS không refresh. IHttpClientFactory giải quyết cả hai: pool và rotate HttpMessageHandler mỗi 2 phút.",
+  "problem": "Anti-pattern 1: new HttpClient() trong method → socket exhaustion với traffic cao. Anti-pattern 2: static HttpClient → DNS thay đổi không được cập nhật (blue-green deployment fail).",
+  "solution": "Luôn dùng IHttpClientFactory. Typed client: AddHttpClient<T>() inject HttpClient vào T. Handler pooling tự động, HandlerLifetime = 2 min.",
+  "codeExample": "// Registration — Typed Client\nbuilder.Services.AddHttpClient<PaymentClient>(client =>\n{\n    client.BaseAddress = new Uri(\"https://payment-api.example.com\");\n    client.Timeout = TimeSpan.FromSeconds(30);\n    client.DefaultRequestHeaders.Add(\"Accept\", \"application/json\");\n})\n.AddStandardResilienceHandler();\n\n// Typed Client\npublic class PaymentClient(HttpClient http)\n{\n    public async Task<PaymentResult> ChargeAsync(ChargeRequest req, CancellationToken ct)\n    {\n        var response = await http.PostAsJsonAsync(\"/v1/charges\", req, ct);\n        response.EnsureSuccessStatusCode();\n        return await response.Content.ReadFromJsonAsync<PaymentResult>(ct)\n            ?? throw new InvalidOperationException(\"Empty response\");\n    }\n}\n\n// WRONG — anti-patterns\nusing var client = new HttpClient();            // socket exhaustion\nprivate static readonly HttpClient _c = new(); // DNS stale\n\n// Tùy chỉnh HandlerLifetime\nbuilder.Services.AddHttpClient<InventoryClient>()\n    .SetHandlerLifetime(TimeSpan.FromMinutes(5));",
+  "tradeoffs": [
+    "Typed client là Transient: mỗi inject tạo instance mới nhưng dùng chung HttpMessageHandler pool",
+    "Timeout trên HttpClient là per-request timeout; Polly timeout là separate — không double-set",
+    "Primary handler được dispose sau HandlerLifetime nhưng request đang chạy vẫn tiếp tục",
+    "MockHttpMessageHandler trong test: AddHttpClient().AddHttpMessageHandler(() => mockHandler)"
+  ],
+  "references": [
+    {
+      "title": "IHttpClientFactory in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-factory"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "netstat -an | grep TIME_WAIT: compare new HttpClient() vs factory",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/http-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "2.1+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

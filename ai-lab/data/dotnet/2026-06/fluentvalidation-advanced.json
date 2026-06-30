@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-fluentvalidation-advanced-20260630",
+  "topic": "FluentValidation: Async validators, conditional rules và custom message",
+  "category": "dotnet",
+  "subcategory": "Validation",
+  "tags": [
+    "fluentvalidation",
+    "validation",
+    "async",
+    "rules",
+    "aspnetcore",
+    "dotnet"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.93,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "FluentValidation cho phép validation rules phức tạp: async rules (check DB uniqueness), conditional rules (When/Unless), RuleSet cho validation theo context, custom message với placeholder. Integrate với ASP.NET Core automatic validation.",
+  "problem": "DataAnnotations không đủ cho business rules: check email uniqueness cần DB query, validate credit card số chỉ khi payment method là 'card'. Custom error message không có structured format.",
+  "solution": "AbstractValidator<T> với RuleFor chains. MustAsync cho async DB checks. When/Unless cho conditional rules. WithMessage với {PropertyName} placeholder.",
+  "codeExample": "public class CreateOrderValidator : AbstractValidator<CreateOrderDto>\n{\n    public CreateOrderValidator(IProductRepository productRepo)\n    {\n        RuleFor(x => x.CustomerId)\n            .NotEmpty()\n            .GreaterThan(0).WithMessage(\"CustomerId phải lớn hơn 0\");\n\n        RuleFor(x => x.ProductId)\n            .MustAsync(async (id, ct) => await productRepo.ExistsAsync(id, ct))\n            .WithMessage(\"Sản phẩm {PropertyValue} không tồn tại\");\n\n        RuleFor(x => x.Quantity)\n            .GreaterThan(0)\n            .LessThanOrEqualTo(100).WithMessage(\"Số lượng tối đa là 100\");\n\n        // Conditional: chỉ validate coupon khi có coupon\n        When(x => !string.IsNullOrEmpty(x.CouponCode), () =>\n        {\n            RuleFor(x => x.CouponCode!)\n                .Length(6, 20)\n                .MustAsync(async (code, ct) =>\n                    await productRepo.IsCouponValidAsync(code, ct))\n                .WithMessage(\"Mã giảm giá '{PropertyValue}' không hợp lệ\");\n        });\n    }\n}\n\n// Integration với ASP.NET Core DI\nbuilder.Services.AddFluentValidationAutoValidation();\nbuilder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());\n\n// Manual validate trong service\npublic async Task<Result> Handle(CreateOrderDto dto, CancellationToken ct)\n{\n    var validation = await _validator.ValidateAsync(dto, ct);\n    if (!validation.IsValid)\n        return Result.Fail(validation.ToDictionary()); // dictionary[field] = [errors]\n    // ...\n}",
+  "tradeoffs": [
+    "MustAsync gọi DB mỗi lần validate: batch validation có thể tốn nhiều DB calls",
+    "FluentValidation và MediatR ValidationBehavior phổ biến kết hợp — đừng validate 2 lần",
+    "AddFluentValidationAutoValidation: validation chạy cho mọi controller action tự động — có thể ảnh hưởng performance nếu validator phức tạp"
+  ],
+  "references": [
+    {
+      "title": "FluentValidation docs",
+      "url": "https://docs.fluentvalidation.net/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Unit test: async rule với mock repo, verify error message format",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/validation.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

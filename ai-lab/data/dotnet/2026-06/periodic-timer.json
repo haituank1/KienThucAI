@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-periodic-timer-20260630",
+  "topic": "PeriodicTimer: Background scheduler đúng cách trong .NET 6+",
+  "category": "dotnet",
+  "subcategory": "Background Services",
+  "tags": [
+    "periodictimer",
+    "background-service",
+    "ihostedservice",
+    "timer",
+    "async",
+    "dotnet6"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PeriodicTimer (.NET 6) là cách chính xác để viết background loop trong IHostedService: async-friendly, không overlap (WaitForNextTickAsync block đến khi tick), cancelable. Thay thế Timer callback + SemaphoreSlim pattern.",
+  "problem": "System.Threading.Timer callback có thể overlap nếu work mất lâu hơn interval. Task.Delay(interval) loop drift (interval + work time). Cả hai khó cancel sạch sẽ.",
+  "solution": "PeriodicTimer.WaitForNextTickAsync() await cho đến tick tiếp theo. Nếu work mất lâu hơn interval, tick tiếp theo bị skip (không overlap). CancellationToken được tích hợp trực tiếp.",
+  "codeExample": "public class CleanupService(ILogger<CleanupService> logger) : BackgroundService\n{\n    protected override async Task ExecuteAsync(CancellationToken stoppingToken)\n    {\n        using var timer = new PeriodicTimer(TimeSpan.FromHours(1));\n\n        // Chạy ngay 1 lần trước khi vào loop\n        await DoCleanupAsync(stoppingToken);\n\n        // Mỗi 1h — không overlap, auto-skip nếu slow\n        while (await timer.WaitForNextTickAsync(stoppingToken))\n        {\n            try { await DoCleanupAsync(stoppingToken); }\n            catch (Exception ex) when (ex is not OperationCanceledException)\n            {\n                logger.LogError(ex, \"Cleanup thất bại\");\n                // Tiếp tục loop — không crash service\n            }\n        }\n    }\n\n    private async Task DoCleanupAsync(CancellationToken ct) { /* ... */ }\n}\n\nbuilder.Services.AddHostedService<CleanupService>();",
+  "tradeoffs": [
+    "PeriodicTimer không có built-in missed-tick detection (nếu app down 2h, job chỉ chạy 1 lần khi restart)",
+    "Không phù hợp cho cron-style scheduling — dùng Hangfire, Quartz.NET nếu cần cron expression",
+    "Period không thay đổi được sau khi tạo (immutable) — nếu cần dynamic period, phải dispose và tạo lại"
+  ],
+  "references": [
+    {
+      "title": "PeriodicTimer - .NET 6",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.periodictimer"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test: work time > period → verify no overlap, verify cancellation",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/background-services.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

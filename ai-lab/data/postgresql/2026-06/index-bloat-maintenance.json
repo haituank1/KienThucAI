@@ -1,0 +1,60 @@
+{
+  "id": "postgresql-index-bloat-maintenance-20260630",
+  "topic": "Index Bloat Detection và REINDEX CONCURRENTLY trong PostgreSQL",
+  "category": "postgresql",
+  "subcategory": "Maintenance",
+  "tags": [
+    "index-bloat",
+    "reindex",
+    "concurrently",
+    "maintenance",
+    "postgresql",
+    "performance"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Index bloat xảy ra khi UPDATE/DELETE tạo dead tuples trong index pages không được reclaim bởi VACUUM đủ nhanh. Bloated index lớn hơn cần thiết, scan chậm hơn. REINDEX CONCURRENTLY rebuild index không lock table.",
+  "problem": "Index trên status column (orders) với nhiều updates: index size tăng liên tục dù row count ổn định. Query scan index chậm hơn vì phải traverse nhiều pages.",
+  "solution": "Detect bloat với pgstattuple hoặc pgstatindex. REINDEX CONCURRENTLY rebuild index online không block. Tune autovacuum để giảm tích tụ bloat.",
+  "codeExample": "-- Phát hiện index bloat\nCREATE EXTENSION pgstattuple;\n\nSELECT indexrelname,\n    pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,\n    (pgstatindex(indexrelid)).avg_leaf_density,     -- < 70%: bloated\n    (pgstatindex(indexrelid)).leaf_fragmentation    -- > 30%: fragmented\nFROM pg_stat_user_indexes\nWHERE indexrelname NOT LIKE 'pg_%'\nORDER BY pg_relation_size(indexrelid) DESC;\n\n-- REINDEX CONCURRENTLY (không lock, PostgreSQL 12+)\nREINDEX INDEX CONCURRENTLY idx_orders_status_created;\n\n-- Rebuild tất cả indexes của table\nREINDEX TABLE CONCURRENTLY orders;\n\n-- pg_repack để rebuild table + indexes (ít disruptive hơn REINDEX TABLE)\n-- pg_repack -t orders myapp_db\n\n-- Kiểm tra sau rebuild\nSELECT indexrelname, pg_size_pretty(pg_relation_size(indexrelid))\nFROM pg_stat_user_indexes WHERE indexrelname = 'idx_orders_status_created';\n\n-- Tự động maintenance với pg_cron\nCREATE EXTENSION pg_cron;\nSELECT cron.schedule('reindex-orders', '0 3 * * 0', -- Mỗi chủ nhật 3AM\n    'REINDEX INDEX CONCURRENTLY idx_orders_status_created');",
+  "tradeoffs": [
+    "REINDEX CONCURRENTLY tạo index mới song song với index cũ: tạm thời cần 2× disk space",
+    "REINDEX CONCURRENTLY không thể chạy trong transaction block",
+    "pg_repack tốt hơn cho full table reclaim (cả table heap + indexes) nhưng cần extension",
+    "Index bloat ảnh hưởng write heavy tables nhiều hơn read heavy tables"
+  ],
+  "references": [
+    {
+      "title": "REINDEX - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/sql-reindex.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Đo index size trước/sau REINDEX CONCURRENTLY — verify reduction",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/maintenance.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "12+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

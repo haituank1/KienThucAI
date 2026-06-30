@@ -1,0 +1,64 @@
+{
+  "id": "dotnet-polly-v8-resilience-20260630",
+  "topic": "Polly v8 và Microsoft.Extensions.Resilience: Retry, Circuit Breaker, Hedging",
+  "category": "dotnet",
+  "subcategory": "Resilience",
+  "tags": [
+    "polly",
+    "resilience",
+    "retry",
+    "circuit-breaker",
+    "hedging",
+    "timeout",
+    "dotnet8"
+  ],
+  "difficulty": "advanced",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.91,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Polly v8 và Microsoft.Extensions.Resilience (.NET 8) redesign API: pipeline-based, telemetry built-in, jitter tự động. AddStandardResilienceHandler() tích hợp với IHttpClientFactory. Hedging strategy cho low-latency critical path.",
+  "problem": "Polly v7 API phức tạp, không nhất quán với async/sync, telemetry phải tự add. Retry không có jitter gây thundering herd. Không có hedging built-in.",
+  "solution": "Dùng AddStandardResilienceHandler() cho defaults tốt. Custom với AddResiliencePipeline() khi cần fine-tune. Hedging: gửi request thứ 2 nếu request thứ 1 không xong trong N ms.",
+  "codeExample": "// Standard resilience handler (retry + circuit breaker + timeout)\nbuilder.Services.AddHttpClient<ProductClient>()\n    .AddStandardResilienceHandler(opt =>\n    {\n        opt.Retry.MaxRetryAttempts = 3;\n        opt.Retry.Delay = TimeSpan.FromMilliseconds(200);\n        opt.Retry.UseJitter = true;\n        opt.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);\n        opt.CircuitBreaker.FailureRatio = 0.5;\n        opt.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(10);\n    });\n\n// Custom pipeline với Hedging (critical path)\nbuilder.Services.AddResiliencePipeline(\"payment\", b => b\n    .AddHedging(new HedgingStrategyOptions<HttpResponseMessage>\n    {\n        MaxHedgedAttempts = 2,\n        Delay = TimeSpan.FromMilliseconds(200),\n        ShouldHandle = args => args.Outcome.Result?.IsSuccessStatusCode == false\n            ? PredicateResult.True() : PredicateResult.False()\n    })\n    .AddTimeout(TimeSpan.FromSeconds(5))\n    .AddRetry(new RetryStrategyOptions\n    {\n        MaxRetryAttempts = 2,\n        BackoffType = DelayBackoffType.Exponential,\n        UseJitter = true\n    }));",
+  "tradeoffs": [
+    "Hedging tăng tải lên backend (2× requests) — chỉ dùng cho idempotent GET hoặc khi SLA quan trọng hơn cost",
+    "Circuit breaker state là per-instance: mỗi replica có circuit riêng — distributed circuit breaker cần Redis",
+    "Polly v8 breaking changes từ v7: AsyncPolicy<T> bị xóa, phải migrate sang ResiliencePipeline<T>"
+  ],
+  "references": [
+    {
+      "title": "Microsoft.Extensions.Resilience - docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/core/resilience/"
+    },
+    {
+      "title": "Polly v8 migration guide",
+      "url": "https://github.com/App-vNext/Polly/blob/main/docs/migration-v8.md"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Chaos test: inject 50% failure rate, verify circuit breaker opens",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/resilience.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "8+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

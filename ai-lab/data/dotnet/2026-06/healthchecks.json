@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-healthchecks-20260630",
+  "topic": "Health Checks trong ASP.NET Core: Liveness, Readiness và custom checks",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "healthchecks",
+    "kubernetes",
+    "liveness",
+    "readiness",
+    "aspnetcore",
+    "monitoring"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ASP.NET Core Health Checks cho Kubernetes liveness/readiness probes. Tách /health/live (process alive) và /health/ready (ready to serve traffic: DB connected, Redis connected). Custom checks với IHealthCheck interface.",
+  "problem": "Kubernetes cần 2 endpoints khác nhau: liveness (có restart pod không) và readiness (có route traffic không). Dùng chung 1 endpoint: DB slow → pod restart không cần thiết.",
+  "solution": "MapHealthChecks với tags để phân biệt. /health/live: chỉ check process. /health/ready: check dependencies (DB, Redis, external APIs). Custom IHealthCheck cho business-specific logic.",
+  "codeExample": "// NuGet: AspNetCore.HealthChecks.NpgSql, AspNetCore.HealthChecks.Redis\nbuilder.Services\n    .AddHealthChecks()\n    .AddNpgSql(\n        conn,\n        name: \"postgresql\",\n        tags: [\"ready\"],\n        timeout: TimeSpan.FromSeconds(3))\n    .AddRedis(\n        redisConn,\n        name: \"redis\",\n        tags: [\"ready\"],\n        timeout: TimeSpan.FromSeconds(2))\n    .AddCheck<DiskSpaceHealthCheck>(\"disk-space\", tags: [\"ready\"])\n    .AddCheck<ExternalApiHealthCheck>(\"payment-api\", tags: [\"ready\"]);\n\n// Endpoints phân biệt\napp.MapHealthChecks(\"/health/live\", new HealthCheckOptions\n{\n    Predicate = _ => false, // không chạy check nào — chỉ verify process alive\n    ResponseWriter = WriteHealthResponse\n});\n\napp.MapHealthChecks(\"/health/ready\", new HealthCheckOptions\n{\n    Predicate = check => check.Tags.Contains(\"ready\"),\n    ResponseWriter = WriteHealthResponse\n}).RequireAuthorization(\"internal\");\n\n// Custom health check\npublic class DiskSpaceHealthCheck : IHealthCheck\n{\n    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext ctx, CancellationToken ct)\n    {\n        var drive = DriveInfo.GetDrives().First(d => d.IsReady && d.Name == \"/\");\n        var freePercent = 100.0 * drive.AvailableFreeSpace / drive.TotalSize;\n        return Task.FromResult(freePercent < 10\n            ? HealthCheckResult.Degraded($\"Disk space thấp: {freePercent:F1}%\")\n            : HealthCheckResult.Healthy($\"Disk OK: {freePercent:F1}% free\"));\n    }\n}",
+  "tradeoffs": [
+    "Readiness check timeout phải ngắn hơn Kubernetes probe timeout để không false-negative",
+    "Health check cũng consume DB connections: không set quá frequent interval",
+    "External API check: nếu third-party down → readiness fail → pod stop receive traffic — có thể là expected hoặc không"
+  ],
+  "references": [
+    {
+      "title": "Health checks in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Docker: verify /health/live 200 khi app up, /health/ready 503 khi DB down",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

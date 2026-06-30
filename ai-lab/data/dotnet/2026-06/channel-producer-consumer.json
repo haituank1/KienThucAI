@@ -1,0 +1,59 @@
+{
+    "id": "dotnet-channel-producer-consumer-20260630",
+    "topic": "Channel<T>: High-performance producer-consumer queue",
+    "category": "dotnet",
+    "subcategory": "Concurrency",
+    "tags": [
+        "channel",
+        "producer-consumer",
+        "concurrency",
+        "async",
+        "backpressure"
+    ],
+    "difficulty": "advanced",
+    "relevance": "high",
+    "status": "pending_review",
+    "confidence": 0.92,
+    "researchedAt": "2026-06-30T08:00:00Z",
+    "validatedAt": null,
+    "validatedBy": null,
+    "summary": "System.Threading.Channels.Channel<T> là lock-free producer-consumer queue hỗ trợ backpressure. Tốt hơn ConcurrentQueue + SemaphoreSlim cho async workload.",
+    "problem": "ConcurrentQueue không có backpressure (producer outrun consumer). BlockingCollection block thread. Cần async producer-consumer với bounded capacity.",
+    "solution": "Channel.CreateBounded<T>(capacity). Producer dùng WriteAsync, consumer dùng ReadAllAsync() (IAsyncEnumerable). CreateUnbounded khi không giới hạn.",
+    "codeExample": "var channel = Channel.CreateBounded<WorkItem>(new BoundedChannelOptions(1000) {\n    FullMode = BoundedChannelFullMode.Wait,\n    SingleWriter = false, SingleReader = false\n});\n\nasync Task ProduceAsync(ChannelWriter<WorkItem> writer, CancellationToken ct) {\n    try {\n        await foreach (var item in GetItemsAsync(ct))\n            await writer.WriteAsync(item, ct);\n    } finally { writer.Complete(); }\n}\n\nasync Task ConsumeAsync(ChannelReader<WorkItem> reader, CancellationToken ct) {\n    await foreach (var item in reader.ReadAllAsync(ct))\n        await ProcessAsync(item, ct);\n}\n\nvar producer = ProduceAsync(channel.Writer, ct);\nvar consumers = Enumerable.Range(0,4).Select(_ => ConsumeAsync(channel.Reader, ct));\nawait Task.WhenAll(Enumerable.Concat([producer], consumers));",
+    "tradeoffs": [
+        "FullMode=DropOldest/DropNewest mất data - chỉ dùng cho telemetry/metrics",
+        "SingleWriter/Reader=true enable optimized path",
+        "Channel không persist: app crash mất queue - cần message broker nếu durability quan trọng",
+        "producer crash mà không gọi Complete() thì consumer bị treo"
+    ],
+    "references": [
+        {
+            "title": "Channels - Stephen Toub",
+            "url": "https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/"
+        }
+    ],
+    "selfVerification": {
+        "verified": false,
+        "method": "Benchmark throughput vs ConcurrentQueue+SemaphoreSlim",
+        "caveats": ""
+    },
+    "demo": {
+        "exists": false,
+        "type": "backend",
+        "path": "",
+        "description": ""
+    },
+    "validation": {
+        "notes": "",
+        "toolkitTarget": "05-snippets/dotnet/concurrency.md",
+        "action": "append"
+    },
+    "toolkitContent": "",
+    "staleAfterDays": 365,
+    "techVersions": {
+        "dotnet": "5+"
+    },
+    "mergedIntoFile": null,
+    "mergedAt": null
+}

@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-openapi-versioning-20260630",
+  "topic": "API Versioning trong ASP.NET Core: URL segment, header và query string",
+  "category": "dotnet",
+  "subcategory": "APIs",
+  "tags": [
+    "api-versioning",
+    "aspnetcore",
+    "openapi",
+    "swagger",
+    "versioning",
+    "dotnet"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.91,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Asp.Versioning.Http (.NET 6+) cung cấp API versioning: URL (/api/v1/), header (api-version: 1.0), query string (?api-version=1.0). Kết hợp với Swagger/OpenAPI tạo doc riêng cho mỗi version.",
+  "problem": "Breaking changes trong API không có versioning strategy → phá vỡ existing clients. Không có cách để deprecate version cũ và migrate client dần dần.",
+  "solution": "Asp.Versioning.Http: khai báo version trên controller/endpoint. ApiVersionReader chain để support nhiều version strategies. Deprecate version cũ với [ApiVersion(\"1.0\", Deprecated = true)].",
+  "codeExample": "// NuGet: Asp.Versioning.Http (Minimal API) hoặc Asp.Versioning.Mvc (Controllers)\nbuilder.Services.AddApiVersioning(opt =>\n{\n    opt.DefaultApiVersion = new ApiVersion(1);\n    opt.AssumeDefaultVersionWhenUnspecified = true;\n    opt.ReportApiVersions = true; // thêm api-supported-versions header\n    opt.ApiVersionReader = ApiVersionReader.Combine(\n        new UrlSegmentApiVersionReader(),    // /api/v1/\n        new HeaderApiVersionReader(\"api-version\"), // header\n        new QueryStringApiVersionReader(\"api-version\")); // ?api-version=1.0\n});\n\n// Minimal API\nvar apiV1 = app.NewApiVersionSet()\n    .HasApiVersion(new ApiVersion(1))\n    .HasDeprecatedApiVersion(new ApiVersion(0, 9))\n    .Build();\n\nvar v1 = app.MapGroup(\"/api/v{version:apiVersion}/orders\")\n    .WithApiVersionSet(apiV1);\n\nv1.MapGet(\"\", async (ApiVersion version, OrderService svc, CancellationToken ct) =>\n    await svc.GetAllAsync(ct))\n   .MapToApiVersion(1);\n\n// Swagger per version\nbuilder.Services.AddEndpointsApiExplorer();\nbuilder.Services.AddSwaggerGen(opt =>\n{\n    opt.SwaggerDoc(\"v1\", new() { Title = \"Order API\", Version = \"v1\" });\n    opt.SwaggerDoc(\"v2\", new() { Title = \"Order API\", Version = \"v2\" });\n});",
+  "tradeoffs": [
+    "URL versioning (/api/v1/) dễ nhất cho client nhưng pollutes URL — REST purists không thích",
+    "Header versioning cleaner nhưng khó test bằng browser/simple curl",
+    "Deprecated version: nên giữ ít nhất 1 major version cycle (6–12 tháng) trước khi remove",
+    "Swagger với nhiều versions: mỗi version có doc riêng — dễ gây confusing nếu không document changelog"
+  ],
+  "references": [
+    {
+      "title": "API versioning for ASP.NET Core",
+      "url": "https://github.com/dotnet/aspnet-api-versioning"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test: /api/v1/orders và /api/v2/orders trả schema khác nhau",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

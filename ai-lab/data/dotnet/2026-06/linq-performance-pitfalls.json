@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-linq-performance-pitfalls-20260630",
+  "topic": "LINQ Performance Pitfalls: Multiple enumeration, ToList() sớm và deferred execution",
+  "category": "dotnet",
+  "subcategory": "Performance",
+  "tags": [
+    "linq",
+    "performance",
+    "deferred-execution",
+    "tolist",
+    "multiple-enumeration",
+    "ienumerable"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "LINQ deferred execution: query không chạy cho đến khi enumerate. Multiple enumeration của IEnumerable<T> chạy query nhiều lần (ví dụ DB query). ToList() sớm buffer toàn bộ khi không cần thiết. Count() trên IQueryable translate sang SQL COUNT; Count() trên materialized list thì iterate toàn bộ.",
+  "problem": "if (query.Any()) { var first = query.First(); } — 2 queries sang DB. foreach + Count() + ElementAt() trên IEnumerable: nhiều iteration. Truyền IQueryable qua nhiều layer rồi mới ToList(): mất control query shape.",
+  "solution": "Materialize đúng lúc. Dùng .Any() thay .Count() > 0. Tránh multiple enumeration với ToList()/ToArray() khi cần dùng nhiều lần. Với IQueryable, materialize tại repo layer.",
+  "codeExample": "// WRONG: multiple enumeration — 2 DB queries\nvar orders = db.Orders.Where(o => o.Status == \"pending\");\nif (orders.Any())  // query 1\n    var first = orders.First(); // query 2\n\n// RIGHT: materialize 1 lần\nvar orders = await db.Orders.Where(o => o.Status == \"pending\").ToListAsync();\nvar first = orders.FirstOrDefault();\n\n// WRONG: Count() > 0 — full COUNT(*) query\nif (db.Orders.Count() > 0) { } // COUNT(*) toàn bộ bảng\n\n// RIGHT: .Any() — SELECT 1 WHERE ... LIMIT 1\nif (await db.Orders.AnyAsync()) { }\n\n// WRONG: deferred execution leak — IQueryable ra khỏi repo\npublic IQueryable<Order> GetActive() =>   // caller có thể thêm filter nhưng cũng có thể\n    db.Orders.Where(o => o.IsActive);     // materialize sau khi DbContext bị dispose\n\n// RIGHT: materialize trong repo\npublic async Task<IReadOnlyList<Order>> GetActiveAsync(CancellationToken ct) =>\n    await db.Orders.Where(o => o.IsActive).AsNoTracking().ToListAsync(ct);\n\n// Multiple enumeration detection\n// Install: Meziantou.Analyzer — Roslyn analyzer detect IEnumerable multiple enumeration",
+  "tradeoffs": [
+    "ToList() sớm: mất query composability (không thể thêm Where, Skip, Take sau) — cân nhắc kỹ",
+    "IQueryable leak: linh hoạt cho caller nhưng DbContext lifetime phải match → scoped context giải quyết",
+    "Meziantou.Analyzer: NuGet package Roslyn analyzer detect multiple enumeration tại compile time"
+  ],
+  "references": [
+    {
+      "title": "LINQ deferred execution - docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/linq/deferred-execution-lazy-evaluation"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "EF Core logging: đếm SQL queries khi gọi Any() + First() vs ToList() + FirstOrDefault()",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

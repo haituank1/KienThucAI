@@ -1,0 +1,59 @@
+{
+  "id": "postgresql-advisory-locks-20260630",
+  "topic": "Advisory Locks trong PostgreSQL: Application-level distributed locking",
+  "category": "postgresql",
+  "subcategory": "Concurrency",
+  "tags": [
+    "advisory-locks",
+    "distributed-lock",
+    "concurrency",
+    "postgresql",
+    "pg_advisory_lock"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.92,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PostgreSQL Advisory Locks cho phép application acquire named locks được quản lý bởi PostgreSQL: pg_advisory_lock(key), pg_advisory_try_lock(key) non-blocking. Phù hợp cho distributed mutex khi đã dùng PostgreSQL — không cần Redis thêm.",
+  "problem": "Distributed scheduled jobs: nhiều app instances cùng chạy job lúc midnight. Cần distributed lock nhưng đã có PostgreSQL, không muốn thêm Redis chỉ cho lock.",
+  "solution": "pg_advisory_xact_lock(bigint): lock được release tự động khi transaction end. pg_try_advisory_lock: non-blocking, trả false nếu locked. Dùng hash key nhất quán từ job name.",
+  "codeExample": "-- Session-level lock (phải manual unlock)\nSELECT pg_advisory_lock(12345);\n-- critical section\nSELECT pg_advisory_unlock(12345);\n\n-- Transaction-level lock (tự release khi commit/rollback)\nBEGIN;\nSELECT pg_advisory_xact_lock(42);\n-- critical section\nCOMMIT; -- lock tự release\n\n-- Try lock (non-blocking)\nSELECT pg_try_advisory_lock(789); -- trả true/false ngay lập tức\n\n-- C# wrapper\npublic async Task<bool> TryAcquireDistributedLockAsync(\n    string lockName, CancellationToken ct)\n{\n    // Hash lockName sang bigint\n    long lockKey = (long)lockName.GetHashCode();\n    var result = await db.Database.SqlQueryRaw<bool>(\n        \"SELECT pg_try_advisory_xact_lock({0})\", lockKey)\n        .FirstAsync(ct);\n    return result;\n}\n\n// Scheduled job pattern\npublic async Task RunExclusiveJobAsync(string jobName, CancellationToken ct)\n{\n    await using var tx = await db.Database.BeginTransactionAsync(ct);\n    bool locked = await TryAcquireDistributedLockAsync(jobName, ct);\n    if (!locked)\n    {\n        _logger.LogInformation(\"Job {Job} đang chạy trên instance khác — bỏ qua\", jobName);\n        return;\n    }\n    await ExecuteJobAsync(ct);\n    await tx.CommitAsync(ct); // lock release\n}",
+  "tradeoffs": [
+    "Advisory locks là per-session: nếu connection drop, session-level locks tự release (tốt); xact locks cũng release",
+    "Lock key là bigint: string key phải hash sang bigint — collision risk với GetHashCode() (32-bit) → dùng xxHash hoặc SHA256 truncated",
+    "Không thể xem advisory lock owner như table locks — debug khó hơn",
+    "pgBouncer transaction mode: advisory lock bị release khi connection trả về pool — phải dùng session mode"
+  ],
+  "references": [
+    {
+      "title": "Advisory Locks - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/explicit-locking.html#ADVISORY-LOCKS"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test: 10 concurrent processes try lock — verify chỉ 1 succeed",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/concurrency.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "8.2+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-primary-constructors-20260630",
+  "topic": "Primary Constructors C# 12: Simplify dependency injection",
+  "category": "dotnet",
+  "subcategory": "Language",
+  "tags": [
+    "primary-constructors",
+    "csharp12",
+    "dependency-injection",
+    "syntax",
+    "class"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "C# 12 Primary Constructors cho class và struct: inject dependencies trực tiếp trong class signature, không cần private fields và constructor body. Parameters có scope là toàn bộ class. Lưu ý: parameters là mutable trong class (khác record).",
+  "problem": "Boilerplate cho DI injection: private readonly IService _svc; constructor(IService svc) { _svc = svc; } — lặp lại cho mỗi dependency. Với 5 dependencies là 15 lines code không có logic.",
+  "solution": "C# 12: class MyService(IRepo repo, ILogger<MyService> logger) — parameters tự động available trong mọi method. Chỉ tạo field nếu thực sự cần.",
+  "codeExample": "// C# 12: Primary Constructor\npublic class OrderService(\n    IOrderRepository repo,\n    IProductService productSvc,\n    ILogger<OrderService> logger,\n    TimeProvider time)\n{\n    public async Task<Order> CreateAsync(CreateOrderDto dto, CancellationToken ct)\n    {\n        // repo, productSvc, logger, time đều available trực tiếp\n        var product = await productSvc.GetAsync(dto.ProductId, ct);\n        if (product is null)\n            throw new NotFoundException($\"Product {dto.ProductId} not found\");\n\n        logger.LogInformation(\"Creating order for product {ProductId}\", dto.ProductId);\n\n        return await repo.CreateAsync(new Order\n        {\n            ProductId = dto.ProductId,\n            Quantity = dto.Quantity,\n            CreatedAt = time.GetUtcNow()\n        }, ct);\n    }\n}\n\n// Khác record: primary ctor param trong class là MUTABLE\n// Nếu cần immutable field, phải explicit:\npublic class Config(string connectionString)\n{\n    private readonly string _conn = connectionString; // explicit immutable field\n}\n\n// Inheritance với primary ctor\npublic class AdminOrderService(IOrderRepository repo, ILogger<AdminOrderService> logger)\n    : OrderService(repo, NullProductService.Instance, NullLogger<OrderService>.Instance, TimeProvider.System)\n{ }",
+  "tradeoffs": [
+    "Primary ctor parameters trong class không phải là readonly fields — có thể bị reassign trong method (bug potential)",
+    "Khó add validation logic cho constructor — phải extract sang private method",
+    "Serialization: Newtonsoft.Json có thể conflict với primary ctor — kiểm tra kỹ",
+    "Debugger hiển thị parameters khác nhau tùy IDE"
+  ],
+  "references": [
+    {
+      "title": "Primary constructors - C# 12",
+      "url": "https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-12#primary-constructors"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Compile và verify dependency resolution trong DI container",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/language-features.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 730,
+  "techVersions": {
+    "dotnet": "8+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

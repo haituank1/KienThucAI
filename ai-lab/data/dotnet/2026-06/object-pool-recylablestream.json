@@ -1,0 +1,64 @@
+{
+  "id": "dotnet-object-pool-recylablestream-20260630",
+  "topic": "ObjectPool<T> và RecyclableMemoryStream: Giảm GC pressure trong .NET",
+  "category": "dotnet",
+  "subcategory": "Performance",
+  "tags": [
+    "objectpool",
+    "recyclablememorystream",
+    "gc-pressure",
+    "memory",
+    "performance",
+    "allocation"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.89,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ObjectPool<T> tái sử dụng objects tốn kém (StringBuilder, byte[], custom complex objects). RecyclableMemoryStream (Microsoft.IO) tái sử dụng MemoryStream không LOH, không memory leak. Kết hợp ArrayPool<byte> cho zero-alloc serialization.",
+  "problem": "new MemoryStream() với large data → Large Object Heap (>85KB) → Gen2 GC full collection = stop-the-world pause. StringBuilder được tạo mới mỗi lần trong hot path = allocation pressure.",
+  "solution": "RecyclableMemoryStream: pool-backed, không LOH, không memory leak pattern của MemoryStream không Dispose. ObjectPool<StringBuilder> tái sử dụng trong hot path.",
+  "codeExample": "// RecyclableMemoryStream (Microsoft.IO.RecyclableMemoryStream)\nprivate static readonly RecyclableMemoryStreamManager _manager = new();\n\npublic async Task<byte[]> SerializeAsync<T>(T data, CancellationToken ct)\n{\n    using var stream = _manager.GetStream();  // pool-backed, tự trả về khi Dispose\n    await JsonSerializer.SerializeAsync(stream, data, AppJsonContext.Default.GetTypeInfo(typeof(T))!, ct);\n    return stream.ToArray(); // chỉ alloc tại đây\n}\n\n// Hoặc dùng ArrayPool để tránh alloc hoàn toàn\npublic async Task SerializeToWriterAsync<T>(T data, PipeWriter writer, CancellationToken ct)\n{\n    await JsonSerializer.SerializeAsync(writer.AsStream(), data, ct: ct);\n    await writer.FlushAsync(ct);\n}\n\n// ObjectPool<StringBuilder>\nprivate static readonly ObjectPool<StringBuilder> _sbPool =\n    new DefaultObjectPoolProvider().CreateStringBuilderPool();\n\npublic string BuildComplexMessage(Order order)\n{\n    var sb = _sbPool.Get();\n    try\n    {\n        sb.Append(\"Order #\").Append(order.Id).Append(\" - \");\n        sb.Append(order.Status).Append(\" - \").Append(order.Total.ToString(\"C\"));\n        return sb.ToString();\n    }\n    finally { _sbPool.Return(sb); } // PHẢI trong finally\n}",
+  "tradeoffs": [
+    "ObjectPool không có max size mặc định: với nhiều threads, pool có thể grow lớn — cấu hình MaximumRetained",
+    "RecyclableMemoryStream chia sẻ blocks: nếu quên Dispose, memory bị giữ nhưng không leak như MemoryStream",
+    "ArrayPool.Shared không zero memory sau rent: data từ lần trước có thể còn → phải zero nếu security-sensitive",
+    "Pool warm-up: cold start có pool miss → alloc; với consistent traffic, pool hiệu quả hơn"
+  ],
+  "references": [
+    {
+      "title": "Microsoft.IO.RecyclableMemoryStream - GitHub",
+      "url": "https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream"
+    },
+    {
+      "title": "ObjectPool<T> - ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/objectpool"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Memory profiler: LOH allocation count với/không RecyclableMemoryStream",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "3.1+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

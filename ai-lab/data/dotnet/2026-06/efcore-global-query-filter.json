@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-efcore-global-query-filter-20260630",
+  "topic": "EF Core Global Query Filters: Multi-tenancy và soft delete tự động",
+  "category": "dotnet",
+  "subcategory": "EF Core",
+  "tags": [
+    "ef-core",
+    "global-query-filter",
+    "multi-tenancy",
+    "soft-delete",
+    "tenant",
+    "row-level-security"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "EF Core Global Query Filters tự động thêm WHERE clause vào mọi query của entity type: multi-tenancy (WHERE tenant_id = @tenantId) và soft delete (WHERE is_deleted = false). Không cần nhớ thêm filter thủ công trong mỗi query.",
+  "problem": "Multi-tenant app: quên thêm .Where(x => x.TenantId == currentTenantId) trong 1 query → data leak cross-tenant. Soft delete: quên WHERE is_deleted = 0 → hiện data đã xóa.",
+  "solution": "HasQueryFilter() trong OnModelCreating với closure capture current tenant/soft delete flag. IgnoreQueryFilters() khi cần bypass (admin, migration).",
+  "codeExample": "// DbContext với multi-tenancy + soft delete\npublic class AppDbContext(\n    DbContextOptions<AppDbContext> options,\n    ICurrentTenantService tenant) : DbContext(options)\n{\n    protected override void OnModelCreating(ModelBuilder model)\n    {\n        // Multi-tenancy filter\n        foreach (var entityType in model.Model.GetEntityTypes()\n            .Where(e => typeof(ITenantEntity).IsAssignableFrom(e.ClrType)))\n        {\n            model.Entity(entityType.ClrType).HasQueryFilter(\n                e => EF.Property<int>(e, \"TenantId\") == tenant.CurrentTenantId);\n        }\n\n        // Soft delete filter\n        foreach (var entityType in model.Model.GetEntityTypes()\n            .Where(e => typeof(ISoftDelete).IsAssignableFrom(e.ClrType)))\n        {\n            model.Entity(entityType.ClrType).HasQueryFilter(\n                e => !EF.Property<bool>(e, \"IsDeleted\"));\n        }\n    }\n}\n\n// Bypass filter khi cần (admin, super-admin)\nvar allOrders = await db.Orders.IgnoreQueryFilters().ToListAsync();\n\n// Kiểm tra filter đang áp dụng\nvar sql = db.Orders.ToQueryString(); // SELECT * FROM orders WHERE tenant_id=@p AND is_deleted=0\n\n// Performance: index phải include tenant_id và is_deleted columns\n// CREATE INDEX ix_orders_tenant_active ON orders (tenant_id, is_deleted) WHERE is_deleted = false",
+  "tradeoffs": [
+    "Global filter áp dụng cho mọi query bao gồm navigation property loading — include đúng cách",
+    "IgnoreQueryFilters() bypass TẤT CẢ filters: nếu cần bypass một filter thì phải tách riêng",
+    "Filter dùng closure (tenant.CurrentTenantId): nếu tenant service là singleton, có thể stale — phải scoped",
+    "Performance: filter thêm WHERE clause mọi query — đảm bảo index bao gồm filter columns"
+  ],
+  "references": [
+    {
+      "title": "Global query filters - EF Core",
+      "url": "https://learn.microsoft.com/en-us/ef/core/querying/filters"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Integration test: query từ tenant A không thấy data của tenant B",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "2.0+",
+    "efcore": "2.0+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

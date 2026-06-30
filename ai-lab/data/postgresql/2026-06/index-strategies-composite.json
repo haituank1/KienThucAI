@@ -1,0 +1,60 @@
+{
+  "id": "postgresql-index-strategies-composite-20260630",
+  "topic": "Composite Index Strategy: Column order và query matching trong PostgreSQL",
+  "category": "postgresql",
+  "subcategory": "Indexing",
+  "tags": [
+    "composite-index",
+    "index",
+    "column-order",
+    "cardinality",
+    "postgresql",
+    "performance"
+  ],
+  "difficulty": "advanced",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Composite index (a, b, c): có thể dùng cho queries trên (a), (a, b), (a, b, c) nhưng KHÔNG cho (b), (b, c), (c) một mình. Đặt high-selectivity columns trước KHÔNG phải luôn đúng: tùy query pattern. Equality trước range.",
+  "problem": "Index (status, user_id, created_at) không được dùng cho WHERE user_id = @uid ORDER BY created_at. Tạo quá nhiều indexes cho mọi query pattern, overlapping indexes waste storage.",
+  "solution": "Phân tích query patterns trước khi tạo index. Equality conditions trước, range sau. Prefix matching rule. EXPLAIN để verify index được dùng.",
+  "codeExample": "-- Bảng orders (100M rows)\n-- Query patterns cần cover:\n-- 1. WHERE tenant_id = @t AND status = 'pending' ORDER BY created_at\n-- 2. WHERE tenant_id = @t AND user_id = @u\n-- 3. WHERE tenant_id = @t ORDER BY created_at DESC LIMIT 20\n\n-- Index design\nCREATE INDEX idx_orders_main ON orders\n    (tenant_id, status, created_at);   -- covers query 1 và 3 (prefix match)\n\nCREATE INDEX idx_orders_user ON orders\n    (tenant_id, user_id)               -- covers query 2\n    INCLUDE (status, total);           -- covering cho common SELECT columns\n\n-- Rule: Equality conditions trước Range conditions\n-- WRONG: (status, tenant_id, created_at) nếu created_at là range\n-- RIGHT: (tenant_id, status, created_at) — equality (tenant_id, status) trước range (created_at)\n\n-- Kiểm tra unused indexes (maintenance overhead không có lợi)\nSELECT s.indexrelname, s.idx_scan, s.idx_tup_read, pg_size_pretty(pg_relation_size(i.indexrelid))\nFROM pg_stat_user_indexes s\nJOIN pg_index i ON s.indexrelid = i.indexrelid\nWHERE s.idx_scan = 0        -- chưa bao giờ được dùng\nAND NOT i.indisprimary      -- không phải PK\nAND NOT i.indisunique       -- không phải unique\nORDER BY pg_relation_size(i.indexrelid) DESC;\n\n-- Index bloat từ updates: rebuild\nREINDEX INDEX CONCURRENTLY idx_orders_main;",
+  "tradeoffs": [
+    "Prefix rule: composite (a, b, c) không giúp cho WHERE b = x nếu không có a",
+    "High cardinality first: đúng khi queries thường include column đó; sai khi phân phối skewed",
+    "Too many indexes: INSERT/UPDATE/DELETE chậm vì phải cập nhật mỗi index; VACUUM cũng chậm hơn",
+    "pg_stat_user_indexes: cần statistics từ production traffic; dev/staging queries khác production"
+  ],
+  "references": [
+    {
+      "title": "Multicolumn indexes - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/indexes-multicolumn.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "EXPLAIN ANALYZE: verify all query patterns use expected index",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/indexing.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "9.0+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

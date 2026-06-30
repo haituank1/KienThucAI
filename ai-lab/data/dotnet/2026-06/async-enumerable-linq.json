@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-async-enumerable-linq-20260630",
+  "topic": "LINQ cho IAsyncEnumerable: Streaming processing với System.Linq.Async",
+  "category": "dotnet",
+  "subcategory": "Async",
+  "tags": [
+    "iasyncenumerable",
+    "linq",
+    "async",
+    "streaming",
+    "system-linq-async",
+    "reactive"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.92,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "IAsyncEnumerable<T> không có LINQ extension methods built-in (.NET chỉ có await foreach). System.Linq.Async (NuGet) thêm Where, Select, SelectMany, GroupBy, ToListAsync cho async streams. Xử lý data pipeline mà không buffer toàn bộ.",
+  "problem": "IAsyncEnumerable từ EF Core hoặc gRPC stream: muốn filter, transform, aggregate nhưng không có LINQ. Phải viết await foreach thủ công cho mỗi operation.",
+  "solution": "System.Linq.Async (AsyncEnumerable): đầy đủ LINQ operators cho IAsyncEnumerable. Compose pipeline không buffer. WithCancellation() pass CT xuống source.",
+  "codeExample": "// NuGet: System.Linq.Async\nusing System.Linq;\n\n// EF Core AsAsyncEnumerable() → LINQ pipeline không buffer\nvar result = await db.Orders\n    .Where(o => o.CreatedAt > cutoff)\n    .AsAsyncEnumerable()                        // stream từ DB\n    .Where(o => o.Total > 1000)                 // filter sau khi nhận\n    .Select(o => new OrderSummary(o.Id, o.Total, o.Status))\n    .Take(100)\n    .ToListAsync(ct);\n\n// GroupBy với streaming (cẩn thận: GroupBy buffer per key)\nvar grouped = db.Products.AsAsyncEnumerable()\n    .GroupBy(p => p.Category)\n    .SelectMany(g => g.Where(p => p.Stock > 0).Take(5));\n\n// Aggregate operators\nvar totalRevenue = await db.Orders\n    .Where(o => o.Status == \"completed\")\n    .AsAsyncEnumerable()\n    .SumAsync(o => o.Total, ct);\n\n// Merge nhiều async streams\nvar merged = AsyncEnumerableEx.Merge(\n    GetOrdersStream(tenantA, ct),\n    GetOrdersStream(tenantB, ct));  // AsyncEnumerableEx từ System.Reactive\n\nawait foreach (var item in merged.WithCancellation(ct))\n    await ProcessAsync(item);",
+  "tradeoffs": [
+    "GroupBy trên IAsyncEnumerable không streaming cho groups: phải buffer mỗi group key trong memory",
+    "System.Linq.Async không phải Microsoft official (cộng đồng maintained): check compatibility",
+    "So với IQueryable<T>: IAsyncEnumerable<T> filter/project trong ứng dụng, không phải trong DB — chỉ dùng khi cần streaming",
+    "ToListAsync từ System.Linq.Async khác EF Core ToListAsync: không thể dùng lẫn nhau"
+  ],
+  "references": [
+    {
+      "title": "System.Linq.Async - GitHub",
+      "url": "https://github.com/dotnet/reactive/tree/main/Ix.NET/Source/System.Linq.Async"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Compare memory: ToList() vs IAsyncEnumerable pipeline với 100K rows",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/async-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

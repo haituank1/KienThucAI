@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-channels-advanced-20260630",
+  "topic": "Channel<T> nâng cao: Bounded channel, backpressure và producer-consumer orchestration",
+  "category": "dotnet",
+  "subcategory": "Concurrency",
+  "tags": [
+    "channel",
+    "bounded",
+    "backpressure",
+    "producer-consumer",
+    "concurrency",
+    "async",
+    "dataflow"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.91,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Channel<T>.CreateBounded() với FullMode.Wait áp dụng backpressure: producer bị block khi consumer chưa kịp xử lý. FullMode.DropOldest/DropWrite cho loss-tolerant scenarios. Multiple concurrent consumers tăng throughput.",
+  "problem": "Unbounded channel: producer nhanh hơn consumer → queue tăng vô hạn → OOM. Không có cơ chế backpressure, producer không biết consumer đang overwhelmed.",
+  "solution": "Bounded channel với capacity phù hợp. FullMode.Wait: producer await khi full (backpressure). Nhiều consumers đọc cùng channel để scale out processing.",
+  "codeExample": "// Bounded channel với backpressure\nvar channel = Channel.CreateBounded<WorkItem>(new BoundedChannelOptions(1000)\n{\n    FullMode = BoundedChannelFullMode.Wait,  // producer chờ khi channel full\n    SingleWriter = false,\n    SingleReader = false\n});\n\n// Multiple producers (concurrent safe)\nasync Task ProduceAsync(IEnumerable<WorkItem> items, CancellationToken ct)\n{\n    foreach (var item in items)\n        await channel.Writer.WriteAsync(item, ct); // block khi full — backpressure\n    channel.Writer.TryComplete();\n}\n\n// Multiple consumers (scale out processing)\nasync Task StartConsumersAsync(int count, CancellationToken ct)\n{\n    var consumers = Enumerable.Range(0, count)\n        .Select(_ => ConsumeAsync(ct));\n    await Task.WhenAll(consumers);\n}\n\nasync Task ConsumeAsync(CancellationToken ct)\n{\n    await foreach (var item in channel.Reader.ReadAllAsync(ct))\n    {\n        try { await ProcessAsync(item, ct); }\n        catch (Exception ex) { _logger.LogError(ex, \"Failed {ItemId}\", item.Id); }\n        // tiếp tục — không crash consumer\n    }\n}\n\n// Pipeline: chain nhiều channels\nvar ingestionCh = Channel.CreateBounded<RawData>(500);\nvar parsedCh    = Channel.CreateBounded<ParsedData>(500);\nvar storedCh    = Channel.CreateBounded<StoredEvent>(500);\n\n// Stage 1: ingest → parse\nTask.Run(() => TransformAsync(ingestionCh.Reader, parsedCh.Writer, ParseRaw, ct));\n// Stage 2: parse → store\nTask.Run(() => TransformAsync(parsedCh.Reader, storedCh.Writer, StoreParsed, ct));",
+  "tradeoffs": [
+    "Bounded với FullMode.Wait: producer bị block nếu consumer down → careful deadlock analysis",
+    "FullMode.DropOldest: loss acceptable nhưng phải handle gaps (log gaps, metrics)",
+    "Channel không có persistence: nếu app crash, items trong queue bị mất — kết hợp với outbox pattern",
+    "Multiple consumers: không guarantee ordering — nếu cần ordered processing, dùng 1 consumer"
+  ],
+  "references": [
+    {
+      "title": "Channels in .NET - docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/channels"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Load test: producer 2×, consumer 1× — verify no OOM với bounded channel",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/concurrency.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

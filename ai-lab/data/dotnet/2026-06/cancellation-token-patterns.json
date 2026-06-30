@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-cancellation-token-patterns-20260630",
+  "topic": "CancellationToken: Patterns đúng và pitfalls trong .NET",
+  "category": "dotnet",
+  "subcategory": "Async",
+  "tags": [
+    "cancellationtoken",
+    "async",
+    "timeout",
+    "cts",
+    "linked-token",
+    "cooperative-cancellation"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "CancellationToken là cooperative: method phải check hoặc pass token xuống. Linked tokens kết hợp nhiều tokens (user cancel + timeout). Sai lầm phổ biến: catch OperationCanceledException rồi tiếp tục, không pass token xuống call stack.",
+  "problem": "API methods nhận CancellationToken nhưng không pass xuống service/repo: cancel button click trên client nhưng server vẫn xử lý. Timeout CT bị bỏ qua vì không linked. OperationCanceledException bị catch và hidden.",
+  "solution": "Luôn pass CT xuống toàn bộ call stack. Linked tokens cho timeout + user cancel. Log và rethrow OperationCanceledException (không swallow).",
+  "codeExample": "// WRONG: CT không được pass xuống\npublic async Task<Order> CreateOrderAsync(CreateOrderDto dto, CancellationToken ct)\n{\n    var product = await _productSvc.GetAsync(dto.ProductId); // WRONG: mất CT\n    return await _repo.CreateAsync(dto);                     // WRONG: mất CT\n}\n\n// RIGHT: pass CT xuống toàn bộ stack\npublic async Task<Order> CreateOrderAsync(CreateOrderDto dto, CancellationToken ct)\n{\n    var product = await _productSvc.GetAsync(dto.ProductId, ct);\n    return await _repo.CreateAsync(dto, ct);\n}\n\n// Linked token: timeout + user cancel\npublic async Task<Result> ProcessWithTimeoutAsync(Request req, CancellationToken userCt)\n{\n    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));\n    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(\n        userCt, timeoutCts.Token);\n    try\n    {\n        return await DoWorkAsync(req, linkedCts.Token);\n    }\n    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)\n    {\n        throw new TimeoutException(\"Operation timed out after 30 seconds\");\n    }\n    // OperationCanceledException từ userCt sẽ propagate tự nhiên\n}\n\n// WRONG: swallow cancellation — NEVER\ncatch (OperationCanceledException) { return default; }",
+  "tradeoffs": [
+    "CreateLinkedTokenSource allocates: nếu gọi trong hot path, có thể pool CTS hoặc chấp nhận overhead",
+    "Khi Cancel() được gọi, tất cả WaitAsync(ct) pending sẽ throw ngay — đảm bảo finally blocks release resources",
+    "HttpContext.RequestAborted là CT từ ASP.NET Core: sử dụng trực tiếp thay vì tạo thêm"
+  ],
+  "references": [
+    {
+      "title": "Cancellation in managed threads",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Integration test: cancel request, verify DB transaction rolled back",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/async-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "4.5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

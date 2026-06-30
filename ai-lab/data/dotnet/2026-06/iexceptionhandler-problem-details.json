@@ -1,0 +1,58 @@
+{
+  "id": "dotnet-iexceptionhandler-problem-details-20260630",
+  "topic": "IExceptionHandler và ProblemDetails trong ASP.NET Core 8",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "exception-handling",
+    "problem-details",
+    "rfc7807",
+    "aspnetcore8",
+    "error-response"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.93,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ASP.NET Core 8 giới thiệu IExceptionHandler interface: xử lý exception theo loại, trả ProblemDetails (RFC 7807) chuẩn. Chain nhiều handlers theo thứ tự đăng ký. AddProblemDetails() tự động format lỗi đúng chuẩn.",
+  "problem": "Trước .NET 8: phải viết custom middleware cho global exception handling, format response thủ công, khó kết hợp nhiều handlers theo loại exception.",
+  "solution": "Implement IExceptionHandler cho mỗi loại exception. AddProblemDetails() + UseExceptionHandler() tự động format lỗi RFC 7807. Chain nhiều handlers theo thứ tự đăng ký.",
+  "codeExample": "public class ValidationExceptionHandler(IProblemDetailsService pds) : IExceptionHandler\n{\n    public async ValueTask<bool> TryHandleAsync(\n        HttpContext ctx, Exception ex, CancellationToken ct)\n    {\n        if (ex is not ValidationException validEx) return false; // next handler\n\n        ctx.Response.StatusCode = 422;\n        await pds.WriteAsync(new ProblemDetailsContext\n        {\n            HttpContext = ctx,\n            ProblemDetails = new ValidationProblemDetails(validEx.Errors)\n            {\n                Title = \"Validation failed\", Status = 422\n            },\n            Exception = ex\n        });\n        return true; // handled\n    }\n}\n\n// Program.cs\nbuilder.Services.AddProblemDetails(opt =>\n{\n    opt.CustomizeProblemDetails = ctx =>\n    {\n        ctx.ProblemDetails.Extensions[\"requestId\"] = ctx.HttpContext.TraceIdentifier;\n        ctx.ProblemDetails.Extensions[\"timestamp\"] = DateTime.UtcNow;\n    };\n});\nbuilder.Services.AddExceptionHandler<ValidationExceptionHandler>();\nbuilder.Services.AddExceptionHandler<NotFoundExceptionHandler>();\nbuilder.Services.AddExceptionHandler<GlobalExceptionHandler>(); // fallback\n\napp.UseExceptionHandler();",
+  "tradeoffs": [
+    "IExceptionHandler chain theo thứ tự đăng ký — đặt specific handlers trước, generic fallback cuối",
+    "ProblemDetails không tự động serialize exception details trong Production (bảo mật)",
+    "Kết hợp với Serilog: log exception trong GlobalExceptionHandler trước khi trả response"
+  ],
+  "references": [
+    {
+      "title": "IExceptionHandler - ASP.NET Core 8",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Integration test: throw ValidationException → verify 422 + ProblemDetails format",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "8+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

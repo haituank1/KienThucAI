@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-upsert-on-conflict-20260630",
+  "topic": "UPSERT với ON CONFLICT trong PostgreSQL: Idempotent writes",
+  "category": "postgresql",
+  "subcategory": "SQL",
+  "tags": [
+    "upsert",
+    "on-conflict",
+    "idempotent",
+    "insert",
+    "update",
+    "postgresql",
+    "conflict-target"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "INSERT ... ON CONFLICT (col) DO UPDATE: atomic UPSERT không cần SELECT trước. Idempotent write pattern cho duplicate detection. ON CONFLICT DO NOTHING cho insert-if-not-exists. Chính xác hơn SELECT+INSERT logic race condition.",
+  "problem": "Pattern SELECT → nếu tồn tại UPDATE, nếu không INSERT: race condition giữa hai queries. Cần lock hoặc retry. Duplicate key error khi concurrent inserts.",
+  "solution": "ON CONFLICT DO UPDATE (UPSERT) hoặc ON CONFLICT DO NOTHING là atomic. Không cần external locking. Conflict target phải là unique/PK constraint.",
+  "codeExample": "-- UPSERT: insert hoặc update nếu conflict\nINSERT INTO products (sku, name, price, updated_at)\nVALUES (@sku, @name, @price, NOW())\nON CONFLICT (sku)\nDO UPDATE SET\n    name = EXCLUDED.name,\n    price = EXCLUDED.price,\n    updated_at = NOW()\nRETURNING id, created_at, updated_at;\n\n-- EXCLUDED: refers to values được attempt insert\n-- Chỉ update nếu giá trị thực sự thay đổi (tránh unnecessary update)\nINSERT INTO products (sku, name, price)\nVALUES (@sku, @name, @price)\nON CONFLICT (sku)\nDO UPDATE SET\n    name = EXCLUDED.name,\n    price = EXCLUDED.price\nWHERE products.price <> EXCLUDED.price  -- only update nếu price thay đổi\n   OR products.name <> EXCLUDED.name;\n\n-- Insert-if-not-exists (idempotent)\nINSERT INTO user_achievements (user_id, achievement_id, earned_at)\nVALUES (@userId, @achievementId, NOW())\nON CONFLICT (user_id, achievement_id)\nDO NOTHING;\n\n-- Bulk UPSERT\nINSERT INTO daily_metrics (date, metric_name, value)\nSELECT date, metric_name, value\nFROM (VALUES\n    ('2026-06-30', 'orders', 1234),\n    ('2026-06-30', 'revenue', 567890)\n) AS t(date, metric_name, value)\nON CONFLICT (date, metric_name)\nDO UPDATE SET value = EXCLUDED.value;",
+  "tradeoffs": [
+    "ON CONFLICT target phải là column(s) có unique constraint hoặc PK",
+    "Không thể dùng partial index trực tiếp làm conflict target — phải specify index name",
+    "DO UPDATE tăng dead tuples giống UPDATE bình thường — autovacuum cần theo kịp",
+    "RETURNING trả row sau update: có thể không biết nếu là insert hay update — thêm inserted flag nếu cần"
+  ],
+  "references": [
+    {
+      "title": "INSERT ON CONFLICT - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/sql-insert.html#SQL-ON-CONFLICT"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Concurrent test: 100 parallel inserts cùng SKU — verify không duplicate, đúng value",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/sql-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "9.5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

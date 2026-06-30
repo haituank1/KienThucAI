@@ -1,0 +1,62 @@
+{
+  "id": "postgresql-pg-vector-embeddings-20260630",
+  "topic": "pgvector: Vector similarity search trong PostgreSQL cho AI applications",
+  "category": "postgresql",
+  "subcategory": "Advanced",
+  "tags": [
+    "pgvector",
+    "vector",
+    "embedding",
+    "similarity",
+    "ai",
+    "postgresql",
+    "cosine",
+    "l2"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.87,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "pgvector extension cho PostgreSQL: lưu và tìm kiếm vector embeddings. Cosine similarity, L2 distance, inner product. IVFFlat và HNSW indexes cho approximate nearest neighbor (ANN) search. Không cần Pinecone hay Weaviate cho basic use cases.",
+  "problem": "Semantic search, recommendation system, RAG (Retrieval Augmented Generation): cần tìm vectors gần nhất trong không gian embedding 1536+ dimensions. Brute force O(n) quá chậm với 1M+ vectors.",
+  "solution": "pgvector với HNSW index: approximate nearest neighbor search O(log n). Kết hợp metadata filtering với SQL WHERE. Hybrid search: keyword + semantic.",
+  "codeExample": "-- Enable extension\nCREATE EXTENSION vector;\n\n-- Bảng với vector column\nCREATE TABLE documents (\n    id BIGSERIAL PRIMARY KEY,\n    content TEXT,\n    embedding vector(1536),   -- OpenAI ada-002 dimension\n    metadata JSONB,\n    created_at TIMESTAMPTZ DEFAULT NOW()\n);\n\n-- HNSW index (tốt hơn IVFFlat cho recall và build time)\nCREATE INDEX idx_docs_embedding_hnsw ON documents\n    USING hnsw (embedding vector_cosine_ops)\n    WITH (m = 16, ef_construction = 64);\n\n-- Semantic search: tìm 5 documents gần nhất\nSELECT id, content, 1 - (embedding <=> @queryVector) AS similarity\nFROM documents\nWHERE metadata->>'category' = 'technical'   -- metadata filter\nORDER BY embedding <=> @queryVector          -- cosine distance\nLIMIT 5;\n\n-- C# với Npgsql\nvar results = await db.Documents\n    .Where(d => d.Metadata != null && (string)d.Metadata[\"category\"]! == \"technical\")\n    .OrderBy(d => EF.Functions.Distance(d.Embedding, queryVector))\n    .Take(5)\n    .ToListAsync();\n\n-- Hybrid search: keyword + semantic reranking\nWITH semantic AS (\n    SELECT id, content, 1 - (embedding <=> @vec) AS sem_score\n    FROM documents WHERE embedding <=> @vec < 0.3  -- cosine distance threshold\n    ORDER BY embedding <=> @vec LIMIT 50\n),\nkeyword_filtered AS (\n    SELECT id FROM semantic WHERE content @@ to_tsquery(@keywords)\n)\nSELECT s.*, ts_rank(to_tsvector(s.content), to_tsquery(@keywords)) AS text_score\nFROM semantic s JOIN keyword_filtered k USING (id)\nORDER BY sem_score * 0.7 + text_score * 0.3 DESC LIMIT 5;",
+  "tradeoffs": [
+    "HNSW index: build time lâu (vài phút cho 1M vectors), recall ~95% không phải 100%",
+    "pgvector vs Pinecone: pgvector đơn giản hơn nhưng không scale tốt bằng managed vector DB > 10M vectors",
+    "Dimension: 1536 dims (OpenAI ada) = 6KB per vector, 1M docs = 6GB chỉ cho embeddings",
+    "m=16, ef_construction=64: recall/build time trade-off; tăng m và ef_construction để tăng recall nhưng chậm hơn"
+  ],
+  "references": [
+    {
+      "title": "pgvector - GitHub",
+      "url": "https://github.com/pgvector/pgvector"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Verify recall: compare ANN vs exact search kết quả cho 100 queries",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/advanced.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 180,
+  "techVersions": {
+    "postgresql": "12+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

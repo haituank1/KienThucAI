@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-options-pattern-validation-20260630",
+  "topic": "Options Pattern với ValidateOnStart: Fail-fast configuration validation",
+  "category": "dotnet",
+  "subcategory": "Configuration",
+  "tags": [
+    "options-pattern",
+    "configuration",
+    "validation",
+    "dotnet",
+    "strongly-typed",
+    "ivalidateoptions"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Options Pattern (IOptions<T>, IOptionsSnapshot<T>, IOptionsMonitor<T>) cung cấp strongly-typed config. ValidateOnStart() fail fast tại startup thay vì lúc runtime. IOptionsMonitor cho hot-reload config.",
+  "problem": "IConfiguration[\"MyKey\"] trả string, không type-safe, phải parse thủ công. Lỗi config không hiện thị đến khi feature được dùng (lúc runtime). Hot-reload config phải tự implement.",
+  "solution": "IOptions<T> cho singleton config. IOptionsSnapshot<T> cho scoped (cập nhật mỗi request). IOptionsMonitor<T> cho singleton + change notification. ValidateDataAnnotations() + ValidateOnStart() = fail fast.",
+  "codeExample": "public class DatabaseOptions\n{\n    public const string SectionName = \"Database\";\n\n    [Required, MinLength(10)]\n    public string ConnectionString { get; init; } = \"\";\n\n    [Range(1, 100)]\n    public int MaxPoolSize { get; init; } = 20;\n\n    [Range(1, 300)]\n    public int CommandTimeoutSeconds { get; init; } = 30;\n}\n\n// Registration với validation và fail-fast\nbuilder.Services\n    .AddOptions<DatabaseOptions>()\n    .BindConfiguration(DatabaseOptions.SectionName)\n    .ValidateDataAnnotations()\n    .ValidateOnStart(); // throw ở startup nếu invalid\n\n// Custom validation logic\nbuilder.Services\n    .AddOptions<SmtpOptions>()\n    .BindConfiguration(\"Smtp\")\n    .Validate(opt => !(opt.EnableTls && opt.Port != 587),\n        \"TLS yêu cầu port 587\")\n    .ValidateOnStart();\n\n// Usage\npublic class OrderService(IOptions<DatabaseOptions> dbOpts)\n{\n    private readonly DatabaseOptions _db = dbOpts.Value; // cached, singleton\n}\n\n// Hot-reload với IOptionsMonitor\npublic class FeatureFlagService(IOptionsMonitor<FeatureFlags> monitor)\n{\n    public bool IsEnabled(string flag) =>\n        monitor.CurrentValue.EnabledFlags.Contains(flag);\n}",
+  "tradeoffs": [
+    "IOptions<T>: singleton, đọc 1 lần — thay đổi config không được cập nhật",
+    "IOptionsSnapshot<T>: scoped, cập nhật mỗi request — không inject vào Singleton services",
+    "IOptionsMonitor<T>: singleton + change events — overhead nhỏ cho change detection",
+    "ValidateOnStart() làm app không khởi động được nếu config sai — tốt cho production, khó cho dev khi test"
+  ],
+  "references": [
+    {
+      "title": "Options pattern in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Unit test: missing required config → verify startup exception",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

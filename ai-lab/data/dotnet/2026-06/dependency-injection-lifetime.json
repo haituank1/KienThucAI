@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-dependency-injection-lifetime-20260630",
+  "topic": "DI Lifetime trong .NET: Singleton, Scoped, Transient và captive dependency",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "dependency-injection",
+    "singleton",
+    "scoped",
+    "transient",
+    "captive-dependency",
+    "di"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Captive dependency: Singleton inject Scoped service → Scoped bị giữ suốt lifetime app (memory leak + shared state). Transient inject Singleton: transient bị shared không mong muốn. IServiceScopeFactory giải quyết Singleton cần Scoped service.",
+  "problem": "Singleton service inject DbContext (Scoped) → DbContext không được dispose sau request, shared across requests → race conditions, stale data. Phổ biến trong Background Services.",
+  "solution": "Background Service (Singleton): inject IServiceScopeFactory, tạo scope mỗi lần cần Scoped service. ValidateScopes=true phát hiện captive dependency ở startup.",
+  "codeExample": "// WRONG: Captive dependency — Singleton inject Scoped\npublic class EmailNotificationService(AppDbContext db) // db là Scoped!\n    : BackgroundService\n{\n    protected override async Task ExecuteAsync(CancellationToken ct)\n    {\n        // db bị capture từ lúc Singleton khởi tạo → không bao giờ dispose → LEAK\n        while (!ct.IsCancellationRequested) { await DoWorkAsync(db, ct); }\n    }\n}\n\n// RIGHT: IServiceScopeFactory trong Singleton\npublic class EmailNotificationService(IServiceScopeFactory scopeFactory)\n    : BackgroundService\n{\n    protected override async Task ExecuteAsync(CancellationToken ct)\n    {\n        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));\n        while (await timer.WaitForNextTickAsync(ct))\n        {\n            await using var scope = scopeFactory.CreateAsyncScope();\n            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();\n            await SendPendingEmailsAsync(db, ct);\n        } // scope dispose → db dispose sau mỗi iteration\n    }\n}\n\n// Phát hiện captive dependency tại startup:\nbuilder.Host.UseDefaultServiceProvider(opt =>\n{\n    opt.ValidateScopes = true;      // phát hiện captive dependency\n    opt.ValidateOnBuild = true;     // verify tất cả registered services có thể resolve\n});",
+  "tradeoffs": [
+    "ValidateOnBuild: tốt cho development, nhưng tăng startup time nếu có nhiều services phức tạp",
+    "Transient trong Singleton: không bị chặn nhưng memory không được giải phóng sớm",
+    "IHttpContextAccessor là Singleton nhưng HttpContext là Scoped — phải dùng cẩn thận trong Singleton"
+  ],
+  "references": [
+    {
+      "title": "DI service lifetimes in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection#service-lifetimes"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Thêm ValidateScopes=true và ValidateOnBuild=true → verify exception tại startup",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "3.1+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-configuration-transform-20260630",
+  "topic": "Configuration binding: appsettings.json + Environment Variables + Secret Manager",
+  "category": "dotnet",
+  "subcategory": "Configuration",
+  "tags": [
+    "configuration",
+    "appsettings",
+    "environment-variables",
+    "secrets",
+    "dotnet",
+    "12factor"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ASP.NET Core configuration hệ thống phân lớp: appsettings.json < appsettings.{env}.json < Environment Variables < Command line. Environment variables override key dùng '__' thay ':'. Secret Manager cho dev; Vault/Key Vault cho production.",
+  "problem": "Hardcode config trong appsettings: connection string bị lộ khi commit git. Không biết override priority. Docker environment variables không match config key hierarchy.",
+  "solution": "Dùng Environment Variables với __ để override hierarchy. Secret Manager cho local dev (không commit). Azure Key Vault hoặc HashiCorp Vault cho production secrets.",
+  "codeExample": "// appsettings.json\n{\n  \"Database\": {\n    \"ConnectionString\": \"Server=localhost;Database=myapp;\",\n    \"MaxPoolSize\": 20\n  }\n}\n\n// Override với environment variable\n// Database:ConnectionString → Database__ConnectionString (dùng __ thay :)\n// Linux: export Database__ConnectionString=\"Server=prod;...\"\n// Docker compose:\n// environment:\n//   - Database__ConnectionString=Server=prod;...\n//   - Database__MaxPoolSize=50\n\n// appsettings.Development.json override không-sensitive config\n// {\n//   \"Database\": { \"MaxPoolSize\": 5 }\n// }\n\n// Secret Manager (dev only, không commit)\n// dotnet user-secrets set \"Database:ConnectionString\" \"Server=local;...\"\n\n// Azure Key Vault (production)\nif (!builder.Environment.IsDevelopment())\n{\n    builder.Configuration.AddAzureKeyVault(\n        new Uri($\"https://{builder.Configuration[\"KeyVault:Name\"]}.vault.azure.net/\"),\n        new DefaultAzureCredential());\n}\n\n// Verify config order (debug)\nforeach (var provider in ((IConfigurationRoot)builder.Configuration).Providers)\n    Console.WriteLine($\"Provider: {provider.GetType().Name}\");",
+  "tradeoffs": [
+    "Environment Variables override mọi thứ: Docker secrets qua env var là pattern phổ biến nhưng dễ bị log",
+    "Secret Manager lưu cleartext trong %APPDATA%: không dùng cho sensitive production creds",
+    "Azure Key Vault: mỗi restart reload secrets — với large apps nhiều secrets có thể slow startup",
+    "Multiple appsettings files: dễ confuse overrides — document rõ ràng trong CONTRIBUTING.md"
+  ],
+  "references": [
+    {
+      "title": "Configuration in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Verify override priority: env var > appsettings.json cho same key",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

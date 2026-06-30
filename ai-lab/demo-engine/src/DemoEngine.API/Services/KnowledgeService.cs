@@ -128,6 +128,47 @@ public class KnowledgeService(IConfiguration config, ILogger<KnowledgeService> l
         return item;
     }
 
+    /// <summary>
+    /// Tìm các knowledge items liên quan đến item có id cho trước.
+    /// Score = tagOverlap×2 + sameCategory×2 + sameSubcategory×1.
+    /// Chỉ xét items đã validated (tránh noise từ items chưa review).
+    /// </summary>
+    public async Task<List<RelatedKnowledgeItem>> GetRelatedItemsAsync(string id, int limit = 6)
+    {
+        var target = await GetByIdAsync(id);
+        if (target is null) return [];
+
+        var all = await GetAllAsync();   // meta-only, nhanh
+
+        var results = all
+            .Where(i => i.Id != id && i.Status == "validated")
+            .Select(i =>
+            {
+                var commonTags = i.Tags.Intersect(target.Tags, StringComparer.OrdinalIgnoreCase).ToList();
+                var score      = commonTags.Count * 2
+                               + (i.Category    .Equals(target.Category,    StringComparison.OrdinalIgnoreCase) ? 2 : 0)
+                               + (i.Subcategory .Equals(target.Subcategory, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(i.Subcategory) ? 1 : 0);
+                return (item: i, score, commonTags);
+            })
+            .Where(x => x.score > 0)
+            .OrderByDescending(x => x.score)
+            .Take(limit)
+            .Select(x => new RelatedKnowledgeItem
+            {
+                Id          = x.item.Id,
+                Topic       = x.item.Topic,
+                Category    = x.item.Category,
+                Subcategory = x.item.Subcategory,
+                Tags        = x.item.Tags,
+                Status      = x.item.Status,
+                Score       = x.score,
+                CommonTags  = x.commonTags
+            })
+            .ToList();
+
+        return results;
+    }
+
     public async Task<KnowledgeItem?> UpdateStatusAsync(
         string id, string status, string notes, string validatedBy = "Tuan")
     {

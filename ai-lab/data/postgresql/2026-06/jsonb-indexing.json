@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-jsonb-indexing-20260630",
+  "topic": "JSONB và GIN Index trong PostgreSQL: Flexible schema với hiệu năng cao",
+  "category": "postgresql",
+  "subcategory": "Data Types",
+  "tags": [
+    "jsonb",
+    "gin",
+    "index",
+    "json",
+    "flexible-schema",
+    "postgresql",
+    "containment"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.93,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "JSONB lưu JSON binary (nhanh hơn JSON cho query), hỗ trợ GIN index cho containment operators (@>, ?). Dùng cho semi-structured data, metadata, product attributes. jsonb_path_query với JSONPath (PG 12+) cho query phức tạp.",
+  "problem": "Sản phẩm có attributes khác nhau (T-shirt có size/màu, laptop có RAM/CPU): schema fixed không linh hoạt. EAV (Entity-Attribute-Value) table phức tạp và slow query.",
+  "solution": "JSONB column cho attributes: flexible schema, GIN index cho fast containment check. Kết hợp với regular columns cho thông tin cố định.",
+  "codeExample": "-- Schema\nCREATE TABLE products (\n    id SERIAL PRIMARY KEY,\n    name TEXT NOT NULL,\n    category TEXT NOT NULL,\n    price DECIMAL(10,2),\n    attributes JSONB DEFAULT '{}'\n);\n\n-- GIN index cho containment và key existence\nCREATE INDEX idx_products_attrs_gin ON products USING GIN (attributes);\n\n-- Containment: tìm sản phẩm có color = 'red'\nSELECT * FROM products WHERE attributes @> '{\"color\": \"red\"}';\n\n-- Key existence\nSELECT * FROM products WHERE attributes ? 'wifi_speed';\n\n-- Path access\nSELECT name, attributes->>'cpu' AS cpu\nFROM products WHERE category = 'laptop';\n\n-- JSONPath (PostgreSQL 12+) — phức tạp hơn\nSELECT * FROM products\nWHERE jsonb_path_exists(\n    attributes, '$.sizes[*] ? (@ == \"XL\")');\n\n-- Cập nhật field trong JSONB\nUPDATE products\nSET attributes = attributes || '{\"stock\": 50}'::jsonb\nWHERE id = 1;\n\n-- Remove key\nUPDATE products\nSET attributes = attributes - 'temp_flag'\nWHERE category = 'electronics';\n\n-- Index trên specific path (hữu ích khi query field cụ thể nhiều)\nCREATE INDEX idx_products_color ON products ((attributes->>'color'))\nWHERE attributes ? 'color';",
+  "tradeoffs": [
+    "GIN index tốt cho @> và ? nhưng không cho range queries trên JSON values — cần functional index riêng",
+    "JSONB không enforce schema: bad data có thể insert — cần CHECK constraint hoặc application validation",
+    "JSONB vs EAV: JSONB dễ query hơn nhưng không thể add foreign key trên JSON values",
+    "Quá nhiều JSONB dùng như relational: nên normalize. JSONB tốt nhất khi schema thực sự flexible"
+  ],
+  "references": [
+    {
+      "title": "JSON Types - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/datatype-json.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "EXPLAIN ANALYZE: containment query với/không GIN index — verify index được dùng",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/data-types.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "9.4+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

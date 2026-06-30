@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-efcore-bulk-operations-20260630",
+  "topic": "EF Core 7+ Bulk Operations: ExecuteUpdateAsync và ExecuteDeleteAsync",
+  "category": "dotnet",
+  "subcategory": "EF Core",
+  "tags": [
+    "ef-core",
+    "bulk-update",
+    "bulk-delete",
+    "executeupdate",
+    "executedelete",
+    "performance"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "EF Core 7 thêm ExecuteUpdateAsync và ExecuteDeleteAsync: UPDATE/DELETE trực tiếp trên DB không cần load entities vào memory. Nhanh hơn SaveChanges() hàng chục lần với large datasets.",
+  "problem": "Cách cũ: Load 10K entities → modify → SaveChanges() = 10K roundtrip + GC pressure. EF Core 6 trở xuống không có built-in bulk update.",
+  "solution": "ExecuteUpdateAsync() và ExecuteDeleteAsync() translate sang SQL UPDATE/DELETE trực tiếp. Không cần DbSet.Load(). Kết hợp với WHERE clause linh hoạt.",
+  "codeExample": "// WRONG: load toàn bộ trước khi update\nvar expired = await db.Sessions.Where(s => s.ExpiresAt < now).ToListAsync();\nforeach (var s in expired) s.Status = \"expired\";\nawait db.SaveChangesAsync(); // N roundtrips\n\n// RIGHT: ExecuteUpdateAsync — 1 SQL UPDATE\nawait db.Sessions\n    .Where(s => s.ExpiresAt < now)\n    .ExecuteUpdateAsync(setters => setters\n        .SetProperty(s => s.Status, \"expired\")\n        .SetProperty(s => s.UpdatedAt, DateTime.UtcNow), ct);\n\n// ExecuteDeleteAsync — 1 SQL DELETE\nint deleted = await db.AuditLogs\n    .Where(l => l.CreatedAt < cutoff)\n    .ExecuteDeleteAsync(ct);\n\n// Kết hợp subquery\nawait db.Orders\n    .Where(o => db.Customers\n        .Where(c => c.IsBlocked)\n        .Select(c => c.Id)\n        .Contains(o.CustomerId))\n    .ExecuteDeleteAsync(ct);",
+  "tradeoffs": [
+    "Không trigger EF Core interceptors hay ChangeTracker events — business logic trong events sẽ bị bỏ qua",
+    "Không cập nhật shadow properties tự động (UpdatedAt interceptor sẽ không chạy)",
+    "DbContext cache (ChangeTracker) không được cập nhật — nếu có entities đã track, cache sẽ stale",
+    "Cần explicit transaction nếu muốn kết hợp với các operations khác"
+  ],
+  "references": [
+    {
+      "title": "ExecuteUpdate and ExecuteDelete - EF Core 7",
+      "url": "https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-7.0/whatsnew#executeupdate-and-executedelete-bulk-updates"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh thời gian: Load+Update vs ExecuteUpdate với 10K rows",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "7+",
+    "efcore": "7+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-hybrid-cache-20260630",
+  "topic": "HybridCache trong .NET 9: L1+L2 cache với stampede protection",
+  "category": "dotnet",
+  "subcategory": "Caching",
+  "tags": [
+    "hybrid-cache",
+    "cache",
+    "dotnet9",
+    "redis",
+    "stampede",
+    "l1-l2",
+    "performance"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.89,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "HybridCache (.NET 9) kết hợp L1 (IMemoryCache, per-node) và L2 (IDistributedCache, Redis). Cache stampede protection built-in: chỉ 1 request gọi factory khi cache miss, số lượt khác chờ đợi. Thay IMemoryCache + IDistributedCache pattern phức tạp.",
+  "problem": "IMemoryCache không shared giữa nodes. IDistributedCache slow (network roundtrip). Kết hợp hai layer tự viết: phải xử lý stampede (nhiều concurrent misses gọi factory đồng thời), serialization, expiry sync.",
+  "solution": "GetOrCreateAsync() đã xử lý tất cả: check L1, check L2, gọi factory (chỉ 1 lần khi concurrent miss), lưu cả hai layer. Serialize với IBufferWriter<byte> để tránh extra allocation.",
+  "codeExample": "// Install: dotnet add package Microsoft.Extensions.Caching.Hybrid\n\nbuilder.Services.AddHybridCache(opt =>\n{\n    opt.DefaultEntryOptions = new HybridCacheEntryOptions\n    {\n        Expiration = TimeSpan.FromMinutes(5),          // L2 TTL\n        LocalCacheExpiration = TimeSpan.FromMinutes(1) // L1 TTL (ngắn hơn)\n    };\n    opt.MaximumPayloadBytes = 1024 * 1024; // 1MB max\n});\n\n// L2 via Redis (optional)\nbuilder.Services.AddStackExchangeRedisCache(opt =>\n    opt.Configuration = config[\"Redis\"]);\n\n// Usage\npublic class ProductService(HybridCache cache, ProductRepo repo)\n{\n    public async Task<ProductDto?> GetAsync(int id, CancellationToken ct)\n    {\n        return await cache.GetOrCreateAsync(\n            $\"product:{id}\",\n            async innerCt => await repo.GetDtoAsync(id, innerCt),\n            options: new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(10) },\n            cancellationToken: ct);\n    }\n\n    public async Task InvalidateAsync(int id, CancellationToken ct) =>\n        await cache.RemoveAsync($\"product:{id}\", ct);\n}",
+  "tradeoffs": [
+    "HybridCache là Preview trong .NET 9 GA — API có thể thay đổi nhỏ ở .NET 10",
+    "L1 cache không sync giữa nodes: trong 1 phút (local TTL), node khác có thể thấy data cũ",
+    "Stampede protection chỉ trong cùng 1 process: cross-node stampede vẫn có thể xảy ra",
+    "Serialization mặc định dùng System.Text.Json — custom IHybridCacheSerializer cho protobuf/MessagePack"
+  ],
+  "references": [
+    {
+      "title": "HybridCache - .NET 9",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/hybrid"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test: 100 concurrent requests on cache miss → verify factory called once",
+    "caveats": "API có thể thay đổi (preview)"
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/caching.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 180,
+  "techVersions": {
+    "dotnet": "9+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

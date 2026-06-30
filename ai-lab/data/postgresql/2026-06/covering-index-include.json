@@ -1,0 +1,60 @@
+{
+  "id": "postgresql-covering-index-include-20260630",
+  "topic": "Covering Index với INCLUDE: Index-only scan trong PostgreSQL",
+  "category": "postgresql",
+  "subcategory": "Indexing",
+  "tags": [
+    "covering-index",
+    "include",
+    "index-only-scan",
+    "postgresql",
+    "performance",
+    "heap-access"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Covering index (PostgreSQL 11+ INCLUDE clause): thêm extra columns vào index để tránh heap access. Index-only scan đọc từ index mà không cần fetch row từ heap. Hiệu suất tăng đặc biệt với nhiều concurrent reads.",
+  "problem": "Query SELECT user_id, email, created_at FROM users WHERE user_id = @id: index trên user_id nhưng phải heap fetch để lấy email và created_at. High concurrent reads → nhiều random IO.",
+  "solution": "CREATE INDEX ... INCLUDE (email, created_at): email và created_at được lưu trong index leaf nodes. Index-only scan tránh hoàn toàn heap access.",
+  "codeExample": "-- Index với INCLUDE — covering index\nCREATE INDEX idx_users_id_covering ON users (user_id)\nINCLUDE (email, created_at, status);\n\n-- Kiểm tra index-only scan\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT user_id, email, created_at, status\nFROM users WHERE user_id = 42;\n-- Index Only Scan using idx_users_id_covering\n-- Heap Fetches: 0  ← quan trọng\n\n-- INCLUDE cho composite index\nCREATE INDEX idx_orders_status_covering ON orders (status, created_at)\nINCLUDE (user_id, total, product_id);\n\n-- Query index-only\nSELECT status, created_at, user_id, total\nFROM orders WHERE status = 'pending'\nORDER BY created_at DESC LIMIT 20;\n\n-- Lưu ý: INCLUDE columns không thể dùng trong WHERE hoặc ORDER BY của index\n-- Chỉ thêm vào INCLUDE những columns cần SELECT nhưng không filter\n\n-- Autovacuum cần chạy để giữ visibility map up-to-date\n-- Nếu visibility map stale → Index Only Scan → Heap Fetches > 0",
+  "tradeoffs": [
+    "INCLUDE columns tăng index size: chỉ thêm columns thực sự cần trong hot queries",
+    "Covering index không thể dùng INCLUDE columns trong WHERE clause index condition",
+    "Visibility map phải current để Index Only Scan work: autovacuum phải hoạt động đều đặn",
+    "Với text columns lớn, INCLUDE tăng index size đáng kể — cân nhắc kỹ"
+  ],
+  "references": [
+    {
+      "title": "Index-only scans and covering indexes - PostgreSQL",
+      "url": "https://www.postgresql.org/docs/current/indexes-index-only-scans.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "EXPLAIN ANALYZE: verify 'Index Only Scan' và 'Heap Fetches: 0'",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/indexing.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "11+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

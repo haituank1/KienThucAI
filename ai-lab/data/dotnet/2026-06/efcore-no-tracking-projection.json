@@ -1,0 +1,62 @@
+{
+  "id": "dotnet-efcore-no-tracking-projection-20260630",
+  "topic": "EF Core AsNoTracking + Projection: Tối ưu read-only queries",
+  "category": "dotnet",
+  "subcategory": "EF Core",
+  "tags": [
+    "ef-core",
+    "no-tracking",
+    "projection",
+    "asnotracking",
+    "select",
+    "performance",
+    "read-only"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "AsNoTracking() loại bỏ overhead của ChangeTracker cho read-only queries (~30% nhanh hơn, ít RAM hơn). Projection với .Select(x => new DTO{}) còn tối hơn: chỉ fetch columns cần thiết.",
+  "problem": "API endpoint trả list không bao giờ update data vẫn dùng DbSet.ToListAsync() mặc định: ChangeTracker theo dõi toàn bộ entities, tốn RAM và CPU. Fetch toàn bộ entity khi chỉ cần 3 fields của 20-column table.",
+  "solution": "Thêm AsNoTracking() cho mọi read-only query. Dùng .Select() để project sang DTO chỉ chứa columns cần thiết. Kết hợp: AsNoTracking() + projection = tối ưu nhất.",
+  "codeExample": "// WRONG: load full entity, có tracking\nvar users = await db.Users.Where(u => u.IsActive).ToListAsync();\n\n// BETTER: AsNoTracking\nvar users = await db.Users.Where(u => u.IsActive).AsNoTracking().ToListAsync();\n\n// BEST: Projection (AsNoTracking tự động áp dụng)\nvar dtos = await db.Users\n    .Where(u => u.IsActive)\n    .Select(u => new UserListDto(u.Id, u.Name, u.Email, u.CreatedAt))\n    .ToListAsync();\n\n// Global config\ndb.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;\n\n// AsNoTrackingWithIdentityResolution: dedup related entities\nvar orders = await db.Orders\n    .Include(o => o.Customer) // cùng customer trong nhiều orders → chỉ 1 object\n    .AsNoTrackingWithIdentityResolution()\n    .ToListAsync();",
+  "tradeoffs": [
+    "AsNoTracking() không thể dùng với SaveChanges() — nếu cần update phải Attach() lại hoặc dùng ExecuteUpdate",
+    "Projection sang DTO break lazy loading — phải explicit Include() hoặc nested Select()",
+    "AsNoTrackingWithIdentityResolution chậm hơn AsNoTracking do phải maintain identity map trong memory",
+    ".NET 5+: khi dùng Select() projection, EF tự động NoTracking (không cần explicit gọi)"
+  ],
+  "references": [
+    {
+      "title": "No-tracking queries - EF Core",
+      "url": "https://learn.microsoft.com/en-us/ef/core/querying/no-tracking"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "BenchmarkDotNet: tracking vs no-tracking vs projection — memory + time",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "5+",
+    "efcore": "5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

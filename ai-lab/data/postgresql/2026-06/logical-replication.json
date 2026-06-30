@@ -1,0 +1,65 @@
+{
+  "id": "postgresql-logical-replication-20260630",
+  "topic": "Logical Replication trong PostgreSQL: CDC và zero-downtime migration",
+  "category": "postgresql",
+  "subcategory": "Replication",
+  "tags": [
+    "logical-replication",
+    "cdc",
+    "replication",
+    "postgresql",
+    "migration",
+    "debezium",
+    "wal"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.88,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Logical Replication stream WAL changes theo row-level: cho phép replicate chọn tables, transform data, subscribe từ khác version PostgreSQL. Dùng cho Change Data Capture (CDC), zero-downtime migration, real-time analytics.",
+  "problem": "Physical replication copy toàn bộ cluster, không thể filter tables, không thể subscribe từ different PostgreSQL version. CDC cần stream changes sang Kafka/Elasticsearch.",
+  "solution": "Logical replication: CREATE PUBLICATION, CREATE SUBSCRIPTION. Debezium connector cho CDC từ PostgreSQL WAL sang Kafka. Outbox pattern tận dụng logical replication.",
+  "codeExample": "-- Publisher (source DB)\n-- postgresql.conf: wal_level = logical\n\nCREATE PUBLICATION orders_pub FOR TABLE orders, order_items;\n-- Hoặc: all tables\nCREATE PUBLICATION all_tables_pub FOR ALL TABLES;\n\n-- Subscriber (destination DB)\nCREATE SUBSCRIPTION orders_sub\n    CONNECTION 'host=source-db dbname=myapp user=replicator'\n    PUBLICATION orders_pub;\n\n-- Monitor replication lag\nSELECT slot_name, active, confirmed_flush_lsn,\n    pg_current_wal_lsn() - confirmed_flush_lsn AS lag_bytes\nFROM pg_replication_slots;\n\n-- CDC với Debezium (không cần viết code)\n-- Debezium reads PostgreSQL WAL → Kafka topics\n-- Topic per table: myapp.public.orders, myapp.public.order_items\n-- Message: {op: \"c\"/\"u\"/\"d\", before: {...}, after: {...}}\n\n-- Outbox pattern với logical replication\nCREATE TABLE outbox_events (\n    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n    aggregate_type TEXT, aggregate_id TEXT,\n    event_type TEXT, payload JSONB,\n    created_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE PUBLICATION outbox_pub FOR TABLE outbox_events;\n-- Debezium → Kafka: mỗi INSERT vào outbox → Kafka message\n-- At-least-once delivery, idempotent consumer phía Kafka",
+  "tradeoffs": [
+    "Logical replication slot giữ WAL cho đến khi subscriber consume: nếu subscriber lag, disk fill up",
+    "Không replicate DDL (CREATE INDEX, ALTER TABLE): phải apply manual trên subscriber",
+    "Initial snapshot với large tables: subscription copy dữ liệu ban đầu có thể lâu và tốn tài nguyên",
+    "Row-level filtering trong publication (PostgreSQL 15+): WHERE clause cho mỗi table"
+  ],
+  "references": [
+    {
+      "title": "Logical Replication - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/logical-replication.html"
+    },
+    {
+      "title": "Debezium PostgreSQL connector",
+      "url": "https://debezium.io/documentation/reference/connectors/postgresql.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Verify replication slot lag: INSERT trên source, check SELECT trên subscriber",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/replication.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "10+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

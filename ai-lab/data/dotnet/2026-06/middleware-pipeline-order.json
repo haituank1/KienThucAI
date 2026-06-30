@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-middleware-pipeline-order-20260630",
+  "topic": "ASP.NET Core Middleware Pipeline: Thứ tự và cạm bẫy",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "middleware",
+    "aspnetcore",
+    "pipeline",
+    "order",
+    "short-circuit"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Middleware pipeline trong ASP.NET Core xử lý request theo thứ tự LIFO (Last In, First Out cho response). Thứ tự đăng ký cực kỳ quan trọng: đặt sai thứ tự có thể gây lỗi 401 trước khi Authentication chạy, hoặc Rate Limiting bypass Authentication.",
+  "problem": "Đặt UseAuthorization() trước UseAuthentication() → 401 mọi request. Đặt UseRateLimiter() trước UseRouting() → rate limiter không biết endpoint. CORS policy không có tác dụng do đặt sau UseMvc().",
+  "solution": "Tuân thủ thứ tự chuẩn do Microsoft khuyến nghị. Hiểu rõ: Request đi theo thứ tự đăng ký, Response đi ngược lại. Short-circuit middleware (UseStaticFiles) dừng pipeline.",
+  "codeExample": "// Thứ tự ĐÚNG cho ASP.NET Core app\napp.UseExceptionHandler(\"/error\");      // 1. Bắt exception toàn cục\napp.UseHsts();                          // 2. Security headers\napp.UseHttpsRedirection();              // 3. HTTPS redirect\napp.UseStaticFiles();                   // 4. Static files (short-circuit nếu tìm thấy)\napp.UseRouting();                       // 5. Route matching (phải trước Auth)\napp.UseCors(\"MyPolicy\");               // 6. CORS (phải sau Routing, trước Auth)\napp.UseRateLimiter();                   // 7. Rate limiting (biết endpoint qua routing)\napp.UseAuthentication();               // 8. Xác thực danh tính\napp.UseAuthorization();                // 9. Kiểm tra quyền (phải SAU Authentication)\napp.MapControllers();                  // 10. Endpoint execution\n\n// Custom middleware: Use vs Run vs Map\n// Use: có thể gọi next\napp.Use(async (ctx, next) => {\n    // Before next middleware\n    await next.Invoke();\n    // After next middleware (response phase)\n});\n\n// Run: terminal — không gọi next\napp.Run(ctx => ctx.Response.WriteAsync(\"Terminal\"));\n\n// Map: branch pipeline theo path\napp.Map(\"/health\", healthApp => healthApp.Run(async ctx =>\n    await ctx.Response.WriteAsJsonAsync(new { status = \"healthy\" })));",
+  "tradeoffs": [
+    "Static Files middleware phải đặt trước Authentication: static files public không cần auth",
+    "CORS phải đặt trước Response-modifying middleware để không bị override headers",
+    "UseOutputCache phải đặt trước UseResponseCompression để cache compressed response",
+    "Middleware tự viết: kiểm tra kỹ rằng mọi path đều gọi next() hoặc write response — không để request treo"
+  ],
+  "references": [
+    {
+      "title": "Middleware order in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/#middleware-order"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Integration test: verify 401 với wrong order, 200 với correct order",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

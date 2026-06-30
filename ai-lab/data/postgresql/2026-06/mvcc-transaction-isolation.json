@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-mvcc-transaction-isolation-20260630",
+  "topic": "MVCC và Transaction Isolation Levels trong PostgreSQL",
+  "category": "postgresql",
+  "subcategory": "Transactions",
+  "tags": [
+    "mvcc",
+    "transaction",
+    "isolation",
+    "read-committed",
+    "serializable",
+    "phantom-read",
+    "postgresql"
+  ],
+  "difficulty": "advanced",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PostgreSQL MVCC: mỗi transaction thấy snapshot của data tại thời điểm begin. Read không block write và ngược lại. Isolation levels: Read Committed (default), Repeatable Read, Serializable. Serializable SSI tránh anomalies mà không cần explicit locking.",
+  "problem": "Không hiểu isolation level dẫn đến phantom reads, non-repeatable reads trong business logic. SERIALIZABLE quá conservative gây serialization failures cần retry. Deadlock giữa transactions.",
+  "solution": "Chọn đúng isolation level theo business requirement. Read Committed đủ cho phần lớn use cases. Repeatable Read cho financial calculations. Serializable SSI cho strictly correct concurrent transactions.",
+  "codeExample": "-- Isolation levels\nBEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;   -- default\nBEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;  -- tài chính\nBEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;      -- strictest\n\n-- Phantom Read example (với READ COMMITTED):\n-- Tx1: SELECT COUNT(*) FROM orders WHERE user=42 → 5\n-- Tx2: INSERT INTO orders (user_id=42) → COMMIT\n-- Tx1: SELECT COUNT(*) FROM orders WHERE user=42 → 6 (phantom!)\n-- → Dùng REPEATABLE READ để tránh\n\n-- Serialization Failure (SERIALIZABLE):\n-- Khi 2 transactions conflict, 1 sẽ fail với:\n-- ERROR: could not serialize access due to read/write dependencies among transactions\n-- → Application phải retry với exponential backoff\n\n-- Deadlock Detection\n-- PostgreSQL tự detect deadlock sau deadlock_timeout (default 1s)\n-- Log deadlock: log_lock_waits = on trong postgresql.conf\n\n-- Advisory Locks — explicit application-level locks\nSELECT pg_advisory_lock(12345); -- acquire lock (session level)\n-- ... critical section ...\nSELECT pg_advisory_unlock(12345);\n\n-- Transaction-scoped advisory lock\nSELECT pg_advisory_xact_lock(42); -- auto release khi transaction end\n\n-- Xem locks đang active\nSELECT pid, locktype, relation::regclass, mode, granted\nFROM pg_locks l JOIN pg_stat_activity a USING (pid)\nWHERE NOT granted; -- locks đang chờ\n\n-- Terminate blocking query\nSELECT pg_cancel_backend(blocking_pid);",
+  "tradeoffs": [
+    "SERIALIZABLE: ~10–30% performance overhead từ SSI tracking; chỉ dùng khi cần correctness tuyệt đối",
+    "REPEATABLE READ: không có phantom read anomaly nhưng cũng không block writers như mọi người nghĩ",
+    "READ COMMITTED: phải cẩn thận với logic đọc-check-write trong cùng transaction (TOCTOU)",
+    "Serialization failures phải được retry ở application layer: không tự động retry trong PostgreSQL"
+  ],
+  "references": [
+    {
+      "title": "Transaction Isolation - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/transaction-iso.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test phantom read: 2 connections, verify với READ COMMITTED vs REPEATABLE READ",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/transactions.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "9.1+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

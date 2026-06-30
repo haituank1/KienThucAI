@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-dapper-performance-patterns-20260630",
+  "topic": "Dapper: Performance patterns và so sánh với EF Core",
+  "category": "dotnet",
+  "subcategory": "Database",
+  "tags": [
+    "dapper",
+    "sql",
+    "orm",
+    "performance",
+    "micro-orm",
+    "stored-proc",
+    "multi-mapping"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Dapper là micro-ORM: viết SQL thủ công, mapping tự động. Nhanh hơn EF Core ~2× cho simple queries. Phù hợp cho complex report queries, stored procedures, raw SQL optimization. Buffered=false cho large result sets.",
+  "problem": "EF Core LINQ complex không translate sang efficient SQL. Report query với nhiều joins, window functions, CTEs khó viết bằng LINQ. EF Core overhead không chấp nhận được cho hot path đã tối ưu.",
+  "solution": "Dùng Dapper với explicit SQL. QueryAsync<T>() cho type-safe mapping. QueryMultipleAsync() cho multi-result set. Unbuffered cho streaming large results.",
+  "codeExample": "// Basic query\npublic async Task<IEnumerable<OrderDto>> GetOrdersAsync(string status, CancellationToken ct)\n{\n    await using var conn = await _factory.OpenConnectionAsync(ct);\n    return await conn.QueryAsync<OrderDto>(\n        \"SELECT id, status, total, created_at FROM orders WHERE status = @Status\",\n        new { Status = status });\n}\n\n// Multi-mapping: JOIN với split mapping\nvar orders = await conn.QueryAsync<Order, Customer, Order>(\n    \"SELECT o.*, c.id, c.name FROM orders o JOIN customers c ON o.customer_id = c.id\",\n    (order, customer) => { order.Customer = customer; return order; },\n    splitOn: \"id\");\n\n// QueryMultiple: nhiều result set trong 1 roundtrip\nusing var multi = await conn.QueryMultipleAsync(\n    \"SELECT COUNT(*) FROM orders WHERE status=@s; SELECT * FROM orders WHERE status=@s LIMIT 20\",\n    new { s = status });\nvar total = await multi.ReadSingleAsync<int>();\nvar items = await multi.ReadAsync<OrderDto>();\n\n// Stored procedure\nvar id = await conn.ExecuteScalarAsync<int>(\n    \"usp_create_order\",\n    new { CustomerId = customerId, ProductId = productId },\n    commandType: CommandType.StoredProcedure);",
+  "tradeoffs": [
+    "Dapper: phải viết SQL thủ công — refactor schema = update all queries manually",
+    "EF Core: migrations, change tracking, lazy loading built-in — Dapper phải tự lo",
+    "Hybrid: dùng EF Core cho CRUD, Dapper cho complex read/report queries là pattern phổ biến nhất",
+    "Dapper không có SQL injection protection built-in ngoài parameterized queries — phải lưu ý"
+  ],
+  "references": [
+    {
+      "title": "Dapper - GitHub",
+      "url": "https://github.com/DapperLib/Dapper"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "BenchmarkDotNet: Dapper vs EF Core simple select 10K rows",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/database.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

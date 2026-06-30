@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-system-text-json-performance-20260630",
+  "topic": "System.Text.Json performance: Source gen, custom converters và Utf8JsonWriter",
+  "category": "dotnet",
+  "subcategory": "Serialization",
+  "tags": [
+    "system-text-json",
+    "json",
+    "serialization",
+    "source-gen",
+    "performance",
+    "utf8jsonwriter"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "System.Text.Json với JsonSerializerContext (source gen) nhanh hơn Newtonsoft 2–5× và zero-reflection, AOT compatible. Utf8JsonWriter cho serialize trực tiếp sang byte stream không qua string.",
+  "problem": "Newtonsoft.Json dùng reflection runtime: chậm startup và mỗi serialize. Không tương thích AOT. Utf8JsonWriter không quen dùng nhưng tránh được intermediate string allocation.",
+  "solution": "JsonSerializerContext cho compile-time codegen. Utf8JsonWriter khi cần stream JSON ra PipeWriter hay IBufferWriter. Custom JsonConverter<T> cho domain types (Ulid, DateOnly, Money).",
+  "codeExample": "// Source generation context\n[JsonSerializable(typeof(OrderDto))]\n[JsonSerializable(typeof(List<OrderDto>))]\n[JsonSerializable(typeof(PagedResult<OrderDto>))]\n[JsonSourceGenerationOptions(\n    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,\n    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]\ninternal partial class AppJsonContext : JsonSerializerContext { }\n\n// Register globally\nbuilder.Services.ConfigureHttpJsonOptions(opt =>\n    opt.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));\n\n// Custom converter cho DateOnly\npublic class DateOnlyConverter : JsonConverter<DateOnly>\n{\n    public override DateOnly Read(ref Utf8JsonReader r, Type t, JsonSerializerOptions o)\n        => DateOnly.ParseExact(r.GetString()!, \"yyyy-MM-dd\");\n    public override void Write(Utf8JsonWriter w, DateOnly v, JsonSerializerOptions o)\n        => w.WriteStringValue(v.ToString(\"yyyy-MM-dd\"));\n}\n\n// Utf8JsonWriter — stream trực tiếp, zero intermediate string\nasync Task WriteOrdersAsync(\n    IAsyncEnumerable<Order> orders, PipeWriter pipe, CancellationToken ct)\n{\n    using var writer = new Utf8JsonWriter(pipe);\n    writer.WriteStartArray();\n    await foreach (var o in orders.WithCancellation(ct))\n    {\n        writer.WriteStartObject();\n        writer.WriteNumber(\"id\", o.Id);\n        writer.WriteString(\"status\", o.Status);\n        writer.WriteEndObject();\n        await pipe.FlushAsync(ct);\n    }\n    writer.WriteEndArray();\n    await writer.FlushAsync(ct);\n}",
+  "tradeoffs": [
+    "JsonSerializerContext phải khai báo trước toàn bộ types cần serialize — khó với generic types",
+    "System.Text.Json strict hơn Newtonsoft: không deserialize private setters, không auto-handle missing properties",
+    "ReferenceHandler.Preserve tạo $id/$ref format khác JSON standard — không compatible với API clients khác"
+  ],
+  "references": [
+    {
+      "title": "System.Text.Json source generation",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/source-generation"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "BenchmarkDotNet: Newtonsoft vs STJ default vs STJ source-gen",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/serialization.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

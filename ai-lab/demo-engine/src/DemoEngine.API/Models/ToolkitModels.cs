@@ -120,3 +120,67 @@ public class ToolkitIndexHeading
     public string Text       { get; init; } = "";
     public int    LineNumber { get; init; }
 }
+
+// ── Full-text content search ───────────────────────────────────────────────────
+
+public class ContentSearchResult
+{
+    public string                    RelPath   { get; init; } = "";
+    public string                    FileName  { get; init; } = "";
+    public string                    Directory { get; init; } = "";
+    public List<ContentSearchMatch>  Matches   { get; init; } = [];
+}
+
+public class ContentSearchMatch
+{
+    public int    LineNumber { get; init; }
+    public string LineText   { get; init; } = "";
+}
+
+// ── Section content (diff view) ───────────────────────────────────────────────
+
+/// <summary>Nội dung của một ## section trong file toolkit — dùng cho diff view khi Replace.</summary>
+public class SectionContent
+{
+    public string RelPath     { get; init; } = "";
+    public string HeadingText { get; init; } = "";
+    public string Content     { get; init; } = "";  // toàn bộ section markdown (bao gồm heading)
+    public int    LineStart   { get; init; }
+    public int    LineEnd     { get; init; }
+    public bool   Found       { get; init; }
+}
+
+// ── Cross-reference (Feature: related knowledge items) ───────────────────────
+
+/// <summary>
+/// Một knowledge item liên quan — trả về khi query cross-references.
+/// Score tính theo: tag overlap ×2 + same category +2 + same subcategory +1.
+/// </summary>
+public class RelatedKnowledgeItem
+{
+    public string       Id           { get; init; } = "";
+    public string       Topic        { get; init; } = "";
+    public string       Category     { get; init; } = "";
+    public string       Subcategory  { get; init; } = "";
+    public List<string> Tags         { get; init; } = [];
+    public string       Status       { get; init; } = "";
+    public int          Score        { get; init; }           // overlap score
+    public List<string> CommonTags   { get; init; } = [];     // tags trùng nhau
+}
+
+// ── Session Starter Generator (Feature 2) ────────────────────────────────────
+
+/// <summary>Session starter prompt được generate từ toolkit content.</summary>
+public class SessionStarter
+{
+    public string             Type    { get; init; } = "";   // debug | feature | refactor | schema
+    public string             Prompt  { get; init; } = "";   // assembled prompt text
+    public List<StarterSource> Sources { get; init; } = [];  // sections đã được dùng
+}
+
+public class StarterSource
+{
+    public string RelPath     { get; init; } = "";
+    public string HeadingText { get; init; } = "";
+    public int    LineNumber  { get; init; }
+}

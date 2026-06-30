@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-output-caching-20260630",
+  "topic": "Output Caching trong ASP.NET Core 7+: Server-side response cache",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "output-caching",
+    "aspnetcore",
+    "cache",
+    "performance",
+    "dotnet7",
+    "redis"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.92,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ASP.NET Core 7 Output Caching cache toàn bộ HTTP response tại middleware level, trước khi request đến controller/handler. Mạnh hơn ResponseCache (HTTP headers only) vì hoạt động phía server.",
+  "problem": "ResponseCache chỉ set HTTP cache headers — browser/CDN cache nhưng server vẫn phải xử lý request. Với GET /api/products ít thay đổi, mỗi request vẫn chạy DB query.",
+  "solution": "AddOutputCache() tại middleware cache entire response in-memory. Hỗ trợ vary-by (user, query, header), cache tags để invalidate theo nhóm, và IOutputCacheStore (Redis trong .NET 8).",
+  "codeExample": "builder.Services.AddOutputCache(opt =>\n{\n    opt.AddPolicy(\"products\", b => b\n        .Cache()\n        .Expire(TimeSpan.FromMinutes(5))\n        .SetVaryByQuery(\"category\", \"page\")\n        .Tag(\"products\")); // để invalidate theo tag\n});\n\napp.UseOutputCache();\n\napp.MapGet(\"/api/products\", async (ProductService svc, CancellationToken ct) =>\n    await svc.GetListAsync(ct))\n   .CacheOutput(\"products\");\n\n// Invalidate khi data thay đổi\napp.MapPost(\"/api/products\", async (\n    CreateProductDto dto, ProductService svc,\n    IOutputCacheStore cache, CancellationToken ct) =>\n{\n    var product = await svc.CreateAsync(dto, ct);\n    await cache.EvictByTagAsync(\"products\", ct); // xóa cache \"products\"\n    return Results.Created($\"/api/products/{product.Id}\", product);\n});\n\n// .NET 8+: Redis store\nbuilder.Services.AddStackExchangeRedisOutputCache(opt =>\n    opt.Configuration = builder.Configuration[\"Redis\"]);",
+  "tradeoffs": [
+    "In-memory store (mặc định) không hoạt động với multiple instances — dùng Redis store cho distributed",
+    "Cache vary-by user: mỗi user có 1 cache entry riêng → RAM tăng theo số users",
+    "Không cache authenticated responses mặc định (bảo vệ data leakage) — phải explicit opt-in",
+    "Output cache và response compression phải cấu hình đúng thứ tự: OutputCache TRƯỚC Compression"
+  ],
+  "references": [
+    {
+      "title": "Output caching in ASP.NET Core 7",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh RPS: no cache vs output cache với k6 load test",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "7+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

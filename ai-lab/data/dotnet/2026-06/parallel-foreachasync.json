@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-parallel-foreachasync-20260630",
+  "topic": "Parallel.ForEachAsync: Controlled parallelism cho async workloads",
+  "category": "dotnet",
+  "subcategory": "Concurrency",
+  "tags": [
+    "parallel",
+    "foreachasync",
+    "concurrency",
+    "async",
+    "throttling",
+    "dotnet6"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Parallel.ForEachAsync (.NET 6+) là cách chính xác để xử lý nhiều items async với max degree of parallelism cố định. Tránh được SemaphoreSlim boilerplate và Task.WhenAll(items.Select()) gây OOM với tập lớn.",
+  "problem": "Task.WhenAll(items.Select(i => ProcessAsync(i))) khởi động TẤT CẢ tasks cùng lúc — với 10K items có thể tạo 10K concurrent HTTP calls, gây server overwhelm hoặc OOM.",
+  "solution": "Parallel.ForEachAsync(source, new ParallelOptions { MaxDegreeOfParallelism = N, CancellationToken = ct }, action) xử lý N items đồng thời, tự động throttle.",
+  "codeExample": "// WRONG: khởi động tất cả cùng lúc\nawait Task.WhenAll(items.Select(item => ProcessAsync(item, ct)));\n\n// RIGHT: Parallel.ForEachAsync với throttle\nawait Parallel.ForEachAsync(\n    items,\n    new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct },\n    async (item, innerCt) => await ProcessAsync(item, innerCt));\n\n// Với IAsyncEnumerable source (streaming + parallel)\nawait Parallel.ForEachAsync(\n    GetItemsAsync(ct),\n    new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = ct },\n    async (item, innerCt) => await SaveToDbAsync(item, innerCt));\n\n// Khi cần kết quả: dùng ConcurrentBag\nvar results = new ConcurrentBag<Result>();\nawait Parallel.ForEachAsync(items, opts, async (item, innerCt) =>\n{\n    var r = await ComputeAsync(item, innerCt);\n    results.Add(r);\n});",
+  "tradeoffs": [
+    "MaxDegreeOfParallelism = ProcessorCount phù hợp cho CPU-bound; IO-bound nên cao hơn (2–4× CPU count)",
+    "Exception trong 1 item → AggregateException được propagate, các item đang chạy vẫn chạy xong",
+    "Không guarantee thứ tự xử lý — không dùng nếu order quan trọng",
+    "Với IAsyncEnumerable source, items được fetch tuần tự theo tốc độ consume"
+  ],
+  "references": [
+    {
+      "title": "Parallel.ForEachAsync - .NET 6",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.parallel.foreachasync"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Load test: Task.WhenAll vs ForEachAsync với 1000 HTTP calls",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/concurrency.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

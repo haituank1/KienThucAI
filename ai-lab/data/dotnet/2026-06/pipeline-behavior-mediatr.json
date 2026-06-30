@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-pipeline-behavior-mediatr-20260630",
+  "topic": "MediatR Pipeline Behaviors: Cross-cutting concerns cho CQRS",
+  "category": "dotnet",
+  "subcategory": "Architecture",
+  "tags": [
+    "mediatr",
+    "cqrs",
+    "pipeline-behavior",
+    "validation",
+    "logging",
+    "transaction",
+    "decorator"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.93,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "MediatR IPipelineBehavior<TRequest, TResponse> cho phép wrap mọi command/query với cross-cutting concerns: validation (FluentValidation), logging, transaction, authorization, caching. Không sửa từng handler.",
+  "problem": "Mỗi handler phải tự validate, log, wrap transaction. Duplicated code cho N handlers. Thêm cross-cutting concern mới phải sửa tất cả handlers.",
+  "solution": "Đăng ký IPipelineBehavior<,> chain: mỗi behavior wrap xung quanh handler. Thêm behavior mới = 0 thay đổi handler code.",
+  "codeExample": "// Validation Behavior\npublic class ValidationBehavior<TRequest, TResponse>(\n    IEnumerable<IValidator<TRequest>> validators)\n    : IPipelineBehavior<TRequest, TResponse>\n    where TRequest : notnull\n{\n    public async Task<TResponse> Handle(\n        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)\n    {\n        if (!validators.Any()) return await next();\n\n        var context = new ValidationContext<TRequest>(request);\n        var results = await Task.WhenAll(validators.Select(v => v.ValidateAsync(context, ct)));\n        var failures = results.SelectMany(r => r.Errors).Where(f => f != null).ToList();\n\n        if (failures.Count > 0) throw new ValidationException(failures);\n        return await next();\n    }\n}\n\n// Transaction Behavior (chỉ cho Commands)\npublic class TransactionBehavior<TRequest, TResponse>(AppDbContext db)\n    : IPipelineBehavior<TRequest, TResponse>\n    where TRequest : ICommand  // marker interface\n{\n    public async Task<TResponse> Handle(\n        TRequest req, RequestHandlerDelegate<TResponse> next, CancellationToken ct)\n    {\n        await using var tx = await db.Database.BeginTransactionAsync(ct);\n        try\n        {\n            var result = await next();\n            await tx.CommitAsync(ct);\n            return result;\n        }\n        catch { await tx.RollbackAsync(ct); throw; }\n    }\n}\n\n// Registration (thứ tự quan trọng: đăng ký theo thứ tự bao bọc)\nbuilder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));\nbuilder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));\nbuilder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));\nbuilder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));",
+  "tradeoffs": [
+    "MediatR thêm 1 layer gián tiếp: debug khó hơn, stack trace dài hơn",
+    "TransactionBehavior áp dụng cho tất cả Commands: nếu có command không cần transaction phải skip",
+    "IPipelineBehavior được resolve qua DI: open generics registration phải cẩn thận lifetime (Scoped vs Transient)",
+    "Không dùng MediatR cho mọi thứ: đơn giản operations không cần CQRS overhead"
+  ],
+  "references": [
+    {
+      "title": "MediatR Pipeline behaviors",
+      "url": "https://github.com/jbogard/MediatR/wiki/Behaviors"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Integration test: invalid command → verify ValidationException, not reaching handler",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/architecture.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

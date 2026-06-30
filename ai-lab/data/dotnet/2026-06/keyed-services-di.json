@@ -1,0 +1,58 @@
+{
+  "id": "dotnet-keyed-services-di-20260630",
+  "topic": "Keyed Services trong .NET 8 DI: Đăng ký nhiều implementation cùng interface",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "keyed-services",
+    "dependency-injection",
+    "dotnet8",
+    "di",
+    "strategy-pattern"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": ".NET 8 thêm keyed services: đăng ký nhiều implementation cùng 1 interface với key khác nhau, resolve qua [FromKeyedServices] hoặc IServiceProvider.GetRequiredKeyedService(). Thay thế Factory pattern và Dictionary<string, Func<IService>> workaround.",
+  "problem": "Trước .NET 8: nếu có IPaymentProcessor với implementations Stripe, PayPal, MoMo, phải dùng Factory hoặc Dictionary<string, IPaymentProcessor> tự build. Verbose, không DI-friendly.",
+  "solution": "services.AddKeyedScoped<IPaymentProcessor, StripeProcessor>(\"stripe\") → resolve qua [FromKeyedServices(\"stripe\")] trong constructor hoặc endpoint parameter.",
+  "codeExample": "// Registration\nbuilder.Services.AddKeyedScoped<IPaymentProcessor, StripeProcessor>(\"stripe\");\nbuilder.Services.AddKeyedScoped<IPaymentProcessor, PayPalProcessor>(\"paypal\");\nbuilder.Services.AddKeyedScoped<IPaymentProcessor, MoMoProcessor>(\"momo\");\n\n// Resolve trong constructor\npublic class CheckoutService(\n    [FromKeyedServices(\"stripe\")] IPaymentProcessor stripe,\n    [FromKeyedServices(\"paypal\")] IPaymentProcessor paypal) { }\n\n// Resolve dynamically theo user input\npublic class PaymentRouter(IServiceProvider sp)\n{\n    public IPaymentProcessor Get(string provider) =>\n        sp.GetRequiredKeyedService<IPaymentProcessor>(provider);\n}\n\n// Enumerate tất cả implementations\nvar allProcessors = sp.GetKeyedServices<IPaymentProcessor>(KeyedService.AnyKey);",
+  "tradeoffs": [
+    "Key phải là string hoặc Enum — không type-safe như generics riêng biệt",
+    "Không hoạt động với IEnumerable<IService> injection — phải dùng GetKeyedServices() explicitly",
+    "Third-party DI containers (Autofac, Lamar) đã có tương đương trước .NET 8 — migration có thể có chênh lệch"
+  ],
+  "references": [
+    {
+      "title": "Keyed services in .NET 8",
+      "url": "https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-8/runtime#keyed-di-services"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Unit test: resolve by key, verify correct implementation returned",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 730,
+  "techVersions": {
+    "dotnet": "8+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

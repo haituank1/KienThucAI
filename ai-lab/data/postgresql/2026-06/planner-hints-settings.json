@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-planner-hints-settings-20260630",
+  "topic": "PostgreSQL Query Planner: Tune settings khi planner chọn sai plan",
+  "category": "postgresql",
+  "subcategory": "Performance",
+  "tags": [
+    "query-planner",
+    "enable-indexscan",
+    "cost",
+    "statistics",
+    "postgresql",
+    "hints",
+    "performance"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.88,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PostgreSQL planner chọn plan dựa trên cost estimates. Khi plan sai: statistics stale, selectivity estimate sai, hardware khác default assumptions. Tune bằng ALTER TABLE SET STATISTICS, enable/disable operators, hoặc pg_hint_plan extension.",
+  "problem": "Planner chọn Seq Scan thay vì Index Scan dù có index. Nested Loop Join chậm hơn Hash Join cho case này. Không thể force planner dùng index như SQL Server NOLOCK/INDEX hint.",
+  "solution": "Bước 1: ANALYZE để update statistics. Bước 2: tăng statistics target cho problematic columns. Bước 3: tune cost parameters (random_page_cost cho SSD). Bước 4: pg_hint_plan nếu cần override.",
+  "codeExample": "-- 1. Kiểm tra statistics quality\nSELECT attname, n_distinct, correlation, most_common_vals, histogram_bounds\nFROM pg_stats WHERE tablename = 'orders' AND attname = 'status';\n\n-- 2. Tăng statistics target (default = 100 samples, max = 10000)\nALTER TABLE orders ALTER COLUMN status SET STATISTICS 500;\nANALYZE orders;\n\n-- 3. Tune cost parameters cho SSD (default tối ưu cho HDD)\n-- postgresql.conf hoặc ALTER SYSTEM:\nALTER SYSTEM SET random_page_cost = 1.1;  -- SSD: 1.1-1.5 (default 4.0)\nALTER SYSTEM SET effective_cache_size = '4GB';  -- RAM available cho OS cache\nSELECT pg_reload_conf();\n\n-- 4. Debug: tắt operators để test\nSET enable_seqscan = off;  -- force index scan\nSET enable_nestloop = off;  -- avoid nested loop\nEXPLAIN SELECT * FROM orders WHERE status = 'pending';\n-- Nếu plan tốt hơn → statistics issue, không phải missing index\nSET enable_seqscan = on;\n\n-- 5. pg_hint_plan (extension) — SQL Server-style hints\n-- Cài đặt: shared_preload_libraries = 'pg_hint_plan'\nSELECT /*+ IndexScan(orders idx_orders_status) */ *\nFROM orders WHERE status = 'pending';\n\n-- 6. Planner statistics cho join estimation\nALTER TABLE orders ALTER COLUMN customer_id SET STATISTICS 1000;\n-- CREATE STATISTICS cho correlation giữa columns\nCREATE STATISTICS orders_status_customer_stat ON status, customer_id\nFROM orders;\nANALYZE orders;",
+  "tradeoffs": [
+    "SET enable_seqscan = off: chỉ dùng cho debug, KHÔNG set globally trong production",
+    "random_page_cost cho SSD: reduce để planner prefer index scans; quá thấp có thể gây over-indexing",
+    "pg_hint_plan: SQL hints giống Oracle/SQL Server; tốt cho one-off fixes nhưng brittle với schema changes",
+    "Statistics target cao hơn: chậm ANALYZE hơn nhưng estimates tốt hơn — balance theo table update frequency"
+  ],
+  "references": [
+    {
+      "title": "Planner Cost Constants - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/runtime-config-query.html#RUNTIME-CONFIG-QUERY-CONSTANTS"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Trước/sau ANALYZE: so sánh estimated rows trong EXPLAIN — verify improvement",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/performance.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "12+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

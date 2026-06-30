@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-full-text-search-20260630",
+  "topic": "Full-Text Search trong PostgreSQL: tsvector, tsquery và GIN index",
+  "category": "postgresql",
+  "subcategory": "Search",
+  "tags": [
+    "full-text-search",
+    "tsvector",
+    "tsquery",
+    "gin",
+    "fts",
+    "postgresql",
+    "search"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PostgreSQL built-in Full-Text Search: to_tsvector() chuyển text sang searchable vector, to_tsquery() tạo query. GIN index trên tsvector cho fast search. Không cần Elasticsearch cho basic search needs.",
+  "problem": "LIKE '%keyword%' không dùng được index, phải full scan, không hiểu morphology (searching 'run' không match 'running'). Elasticsearch overhead quá lớn cho basic search.",
+  "solution": "Tạo tsvector column (generated column PostgreSQL 12+) với GIN index. to_tsquery() search với AND/OR operators. ts_rank() cho relevance ordering.",
+  "codeExample": "-- Tạo generated tsvector column (PostgreSQL 12+)\nALTER TABLE products ADD COLUMN search_vector tsvector\n    GENERATED ALWAYS AS (\n        to_tsvector('english',\n            coalesce(name, '') || ' ' ||\n            coalesce(description, '') || ' ' ||\n            coalesce(category, ''))\n    ) STORED;\n\n-- GIN index\nCREATE INDEX idx_products_search ON products USING GIN (search_vector);\n\n-- Search\nSELECT id, name, ts_rank(search_vector, query) AS rank\nFROM products, to_tsquery('english', 'laptop & wireless') query\nWHERE search_vector @@ query\nORDER BY rank DESC\nLIMIT 20;\n\n-- Phrase search\nSELECT * FROM products\nWHERE search_vector @@ phraseto_tsquery('english', 'gaming laptop');\n\n-- Highlight kết quả\nSELECT name, ts_headline('english', description,\n    to_tsquery('laptop'), 'MaxFragments=2, ShortWord=3') AS snippet\nFROM products WHERE search_vector @@ to_tsquery('laptop');\n\n-- Vietnamese (cần unaccent + custom config)\nCREATE TEXT SEARCH CONFIGURATION vietnamese (COPY = simple);\nALTER TEXT SEARCH CONFIGURATION vietnamese\n    ALTER MAPPING FOR hword, hword_part, word WITH unaccent, simple;\n\n-- Fuzzy search với pg_trgm extension\nCREATE EXTENSION pg_trgm;\nSELECT * FROM products WHERE name % 'labtop'; -- typo tolerance",
+  "tradeoffs": [
+    "FTS tốt cho simple search; Elasticsearch tốt hơn cho faceted search, analytics, distributed search",
+    "Vietnamese không có built-in stemmer: cần custom config với unaccent và word segmentation",
+    "Generated column tăng storage (~20–30% cho tsvector); đánh đổi với query performance",
+    "pg_trgm cho fuzzy: GIN index lớn hơn nhưng hỗ trợ LIKE và similarity search"
+  ],
+  "references": [
+    {
+      "title": "Full Text Search - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/textsearch.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh: LIKE '%laptop%' vs FTS với GIN index — query time và index usage",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/search.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "11+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

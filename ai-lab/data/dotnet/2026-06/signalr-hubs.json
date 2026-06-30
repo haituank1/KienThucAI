@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-signalr-hubs-20260630",
+  "topic": "SignalR Hubs trong .NET 8: Real-time bi-directional với WebSocket",
+  "category": "dotnet",
+  "subcategory": "Real-time",
+  "tags": [
+    "signalr",
+    "websocket",
+    "real-time",
+    "hub",
+    "groups",
+    "aspnetcore",
+    "push"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.92,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "SignalR Hub cung cấp real-time bi-directional communication: server push tới client, client gọi server method. Groups cho broadcast tới subset (user, tenant). Horizontal scaling cần Redis backplane.",
+  "problem": "Polling API cho real-time updates: tốn bandwidth, latency cao. Server-Sent Events chỉ server-to-client. WebSocket raw cần protocol tự viết.",
+  "solution": "SignalR Hub: strongly-typed, Groups, scale-out với Redis backplane. Client SDK cho JS, .NET, Java, Swift.",
+  "codeExample": "// Strongly-typed hub\npublic interface IOrderClient\n{\n    Task OrderStatusUpdated(OrderStatusDto status);\n    Task OrderCreated(OrderDto order);\n}\n\npublic class OrderHub(IOrderService orderSvc) : Hub<IOrderClient>\n{\n    public async Task SubscribeToOrder(int orderId)\n    {\n        // Thêm connection vào group theo orderId\n        await Groups.AddToGroupAsync(Context.ConnectionId, $\"order:{orderId}\");\n    }\n\n    public async Task<OrderDto> GetOrderStatus(int orderId)\n    {\n        return await orderSvc.GetAsync(orderId, Context.GetHttpContext()!.RequestAborted);\n    }\n\n    public override async Task OnDisconnectedAsync(Exception? ex)\n    {\n        _logger.LogInformation(\"Client {ConnectionId} disconnected: {Reason}\",\n            Context.ConnectionId, ex?.Message ?? \"normal\");\n        await base.OnDisconnectedAsync(ex);\n    }\n}\n\n// Server push từ background service\npublic class OrderEventHandler(IHubContext<OrderHub, IOrderClient> hubCtx)\n{\n    public async Task HandleStatusChanged(int orderId, string status, CancellationToken ct)\n    {\n        // Push tới tất cả subscribers của order này\n        await hubCtx.Clients.Group($\"order:{orderId}\")\n            .OrderStatusUpdated(new OrderStatusDto(orderId, status));\n    }\n}\n\n// Scale-out với Redis\nbuilder.Services.AddSignalR().AddStackExchangeRedis(redisConn);\n\n// Registration\napp.MapHub<OrderHub>(\"/hubs/orders\").RequireAuthorization();",
+  "tradeoffs": [
+    "Redis backplane cho SignalR: 2–5ms latency per message, chi phí Redis connection từ mỗi instance",
+    "SignalR không phải cho high-frequency data (>100 msgs/sec per connection): dùng WebSocket raw",
+    "Long-running connections consume server resources: estimate connections × memory per connection",
+    "Load balancer phải support sticky sessions hoặc WebSocket protocol upgrade"
+  ],
+  "references": [
+    {
+      "title": "SignalR in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/signalr/introduction"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Integration test: connect client, verify server push received",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/realtime.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

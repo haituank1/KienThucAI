@@ -1,0 +1,60 @@
+{
+  "id": "postgresql-row-level-security-20260630",
+  "topic": "Row Level Security (RLS) trong PostgreSQL: Multi-tenancy ở DB layer",
+  "category": "postgresql",
+  "subcategory": "Security",
+  "tags": [
+    "rls",
+    "row-level-security",
+    "multi-tenancy",
+    "postgresql",
+    "security",
+    "policy"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "RLS cho phép định nghĩa policy SQL-level: mỗi row chỉ visible cho đúng user/tenant. Không cần WHERE clause trong mỗi query — DB engine tự thêm. Bảo vệ ngay cả khi application code có bug quên filter.",
+  "problem": "Multi-tenant app: toàn bộ trust đặt vào application code thêm WHERE tenant_id = @tid. SQL injection hoặc bug quên filter → data leak. Defense in depth thiếu ở DB layer.",
+  "solution": "ALTER TABLE ... ENABLE ROW LEVEL SECURITY; CREATE POLICY ... USING (tenant_id = current_setting('app.current_tenant')::int). Set app.current_tenant cho mỗi connection/session.",
+  "codeExample": "-- Enable RLS\nALTER TABLE orders ENABLE ROW LEVEL SECURITY;\nALTER TABLE orders FORCE ROW LEVEL SECURITY; -- áp dụng cả cho table owner\n\n-- Policy: mỗi tenant chỉ thấy data của mình\nCREATE POLICY orders_tenant_isolation ON orders\n    USING (tenant_id = current_setting('app.current_tenant', TRUE)::INT);\n\n-- Policy riêng cho SELECT, INSERT, UPDATE, DELETE\nCREATE POLICY orders_select ON orders FOR SELECT\n    USING (tenant_id = current_setting('app.current_tenant')::INT);\n\nCREATE POLICY orders_insert ON orders FOR INSERT\n    WITH CHECK (tenant_id = current_setting('app.current_tenant')::INT);\n\n-- C# setup (EF Core connection interceptor)\npublic class TenantConnectionInterceptor(ICurrentTenantService tenantSvc)\n    : DbConnectionInterceptor\n{\n    public override async Task ConnectionOpenedAsync(\n        DbConnection conn, ConnectionEndEventData data, CancellationToken ct)\n    {\n        using var cmd = conn.CreateCommand();\n        cmd.CommandText = $\"SET app.current_tenant = {tenantSvc.CurrentTenantId}\";\n        await cmd.ExecuteNonQueryAsync(ct);\n    }\n}\n\n-- Admin bypass RLS\nSET ROLE admin_role; -- role có BYPASSRLS\n-- Hoặc: SET row_security = off; -- tạm thời tắt cho session\n\n-- Verify RLS đang hoạt động\nSELECT * FROM pg_policies WHERE tablename = 'orders';",
+  "tradeoffs": [
+    "RLS performance: mỗi query thêm WHERE clause bởi PostgreSQL engine — overhead nhỏ (~5%)",
+    "current_setting() trả NULL nếu không set: dùng tham số thứ 2 TRUE để tránh error → xử lý NULL policy",
+    "RLS bypass với SUPERUSER: cần cẩn thận không dùng superuser connection trong application",
+    "Connection pooling (pgBouncer): shared connections có thể leak tenant settings — transaction mode pooling an toàn hơn"
+  ],
+  "references": [
+    {
+      "title": "Row Security Policies - PostgreSQL",
+      "url": "https://www.postgresql.org/docs/current/ddl-rowsecurity.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test: set current_tenant=1, query orders, verify chỉ thấy tenant 1 data",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/security.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "9.5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

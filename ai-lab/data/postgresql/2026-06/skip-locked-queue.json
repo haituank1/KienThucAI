@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-skip-locked-queue-20260630",
+  "topic": "SKIP LOCKED: Implement job queue đúng cách trong PostgreSQL",
+  "category": "postgresql",
+  "subcategory": "Concurrency",
+  "tags": [
+    "skip-locked",
+    "queue",
+    "job-queue",
+    "concurrency",
+    "locking",
+    "for-update",
+    "postgresql"
+  ],
+  "difficulty": "advanced",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.96,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "SKIP LOCKED (PostgreSQL 9.5+) trong SELECT ... FOR UPDATE: bỏ qua rows đang bị lock thay vì chờ. Hoàn hảo cho job queue: nhiều workers cạnh tranh lấy job mà không block nhau. Không cần Redis hay RabbitMQ cho basic queue.",
+  "problem": "SELECT ... FOR UPDATE không có SKIP LOCKED: nhiều workers block nhau khi cùng lấy pending job. Performance giảm khi nhiều concurrent workers. Deadlock risk cao.",
+  "solution": "SELECT ... FOR UPDATE SKIP LOCKED: mỗi worker lấy job khác nhau, không block. Kết hợp LIMIT 1 để lấy 1 job mỗi lần. Transaction tự động release lock sau processing.",
+  "codeExample": "-- Tạo bảng queue\nCREATE TABLE job_queue (\n    id BIGSERIAL PRIMARY KEY,\n    payload JSONB NOT NULL,\n    status TEXT NOT NULL DEFAULT 'pending',\n    worker_id TEXT,\n    created_at TIMESTAMPTZ DEFAULT NOW(),\n    picked_up_at TIMESTAMPTZ,\n    completed_at TIMESTAMPTZ,\n    error TEXT\n);\n\nCREATE INDEX idx_queue_pending ON job_queue (created_at)\nWHERE status = 'pending';\n\n-- Worker: pick up 1 job — safe với concurrent workers\nWITH picked AS (\n    SELECT id FROM job_queue\n    WHERE status = 'pending'\n    ORDER BY created_at\n    LIMIT 1\n    FOR UPDATE SKIP LOCKED  -- core feature\n)\nUPDATE job_queue\nSET status = 'processing', worker_id = @workerId, picked_up_at = NOW()\nWHERE id = (SELECT id FROM picked)\nRETURNING *;\n\n-- C# implementation\npublic async Task<JobQueueItem?> DequeueAsync(string workerId, CancellationToken ct)\n{\n    var sql = @\"WITH picked AS (\n        SELECT id FROM job_queue WHERE status = 'pending'\n        ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED\n    )\n    UPDATE job_queue\n    SET status = 'processing', worker_id = {0}, picked_up_at = NOW()\n    WHERE id = (SELECT id FROM picked)\n    RETURNING *\";\n    return await db.Database.SqlQueryRaw<JobQueueItem>(sql, workerId).FirstOrDefaultAsync(ct);\n}\n\n-- Retry: requeue stuck jobs (worker crash)\nUPDATE job_queue\nSET status = 'pending', worker_id = NULL\nWHERE status = 'processing'\nAND picked_up_at < NOW() - INTERVAL '5 minutes';",
+  "tradeoffs": [
+    "SKIP LOCKED không đảm bảo FIFO nghiêm ngặt nếu có nhiều workers: một số jobs có thể bị skip rồi retry",
+    "Transaction phải ngắn: lock giữ suốt transaction. Long-running job nên separate lock acquisition từ execution",
+    "Partition job_queue theo tháng nếu volume lớn — tránh bloat từ completed jobs",
+    "So với Redis Streams hay RabbitMQ: PostgreSQL queue đủ cho <1000 jobs/s; trên đó cần dedicated queue system"
+  ],
+  "references": [
+    {
+      "title": "FOR UPDATE SKIP LOCKED - PostgreSQL",
+      "url": "https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Concurrent test: 10 workers dequeue simultaneously — verify no duplicate processing",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/concurrency.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "9.5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

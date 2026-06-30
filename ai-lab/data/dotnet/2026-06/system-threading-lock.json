@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-system-threading-lock-20260630",
+  "topic": "System.Threading.Lock trong .NET 9: Cú pháp mới cho mutual exclusion",
+  "category": "dotnet",
+  "subcategory": "Concurrency",
+  "tags": [
+    "threading",
+    "lock",
+    "mutex",
+    "dotnet9",
+    "concurrency",
+    "thread-safety"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.92,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": ".NET 9 giới thiệu System.Threading.Lock type thay thế lock(object): EnterScope() trả IDisposable để dùng với using. Rõ ràng hơn, tránh lock(this) và lock(typeof) anti-pattern. Compiler optimize tốt hơn.",
+  "problem": "lock(object) là primitive nhưng dễ làm sai: lock(this) expose internals, lock(typeof(X)) là global lock. Không rõ khi nào lock được release nếu không đọc kỹ code.",
+  "solution": "Dùng Lock type: private readonly Lock _lock = new(). EnterScope() returns Scope struct với Dispose(). Compiler check kiểu đúng với lock(_lockObj) như cũ nhưng type-safe hơn.",
+  "codeExample": "// .NET 9: Lock type\npublic class ThreadSafeCounter\n{\n    private readonly Lock _lock = new();\n    private int _count;\n\n    public void Increment()\n    {\n        using (_lock.EnterScope()) // Scope là ref struct, tự động release\n        {\n            _count++;\n        }\n    }\n\n    // Compiler nhận ra Lock type, gọi EnterScope()\n    public int GetCount()\n    {\n        lock (_lock) { return _count; }\n    }\n}\n\n// WRONG anti-patterns (cũ):\n// lock(this) — bất kỳ caller nào cũng có thể lock object của bạn\n// lock(typeof(MyClass)) — global lock cho toàn bộ app\n// lock(\"constant\") — string interning gây shared lock cross-class\n\n// Kiểm tra deadlock với lock ordering\nprivate static readonly Lock _lockA = new();\nprivate static readonly Lock _lockB = new();\n\nvoid SafeOp()\n{\n    using (_lockA.EnterScope()) // luôn A trước B\n    using (_lockB.EnterScope())\n    {\n        // safe\n    }\n}",
+  "tradeoffs": [
+    "Lock là synchronous (block thread) — không dùng trong async context, prefer SemaphoreSlim(1,1)",
+    ".NET 9+ only: code cần target older runtime phải dùng lock(object) cũ",
+    "Lock không support timeout như Monitor.TryEnter() — nếu cần timeout phải dùng Monitor trực tiếp"
+  ],
+  "references": [
+    {
+      "title": "System.Threading.Lock - .NET 9",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.lock"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Race condition test: 1000 concurrent increments, verify final count = 1000",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/concurrency.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 730,
+  "techVersions": {
+    "dotnet": "9+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

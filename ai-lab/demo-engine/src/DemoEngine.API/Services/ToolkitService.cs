@@ -484,6 +484,102 @@ public class ToolkitService(IConfiguration config, ILogger<ToolkitService> logge
         }
     }
 
+    /// <summary>
+    /// Full-text search trong toàn bộ .md files của toolkit.
+    /// Trả về list files có match, mỗi file có danh sách matching lines.
+    /// </summary>
+    public async Task<List<ContentSearchResult>> SearchContentAsync(string query, int maxMatchesPerFile = 8)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Length < 2) return [];
+
+        var diskFiles = ListToolkitFiles();
+        var results   = new List<ContentSearchResult>();
+
+        foreach (var (relPath, absPath) in diskFiles)
+        {
+            if (!File.Exists(absPath)) continue;
+
+            var lines   = await File.ReadAllLinesAsync(absPath, Encoding.UTF8);
+            var matches = lines
+                .Select((line, idx) => (line, idx))
+                .Where(x => x.line.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Take(maxMatchesPerFile)
+                .Select(x => new ContentSearchMatch
+                {
+                    LineNumber = x.idx + 1,
+                    LineText   = x.line.Trim()
+                })
+                .ToList();
+
+            if (matches.Count == 0) continue;
+
+            results.Add(new ContentSearchResult
+            {
+                RelPath   = relPath,
+                FileName  = Path.GetFileName(relPath),
+                Directory = Path.GetDirectoryName(relPath)?.Replace('\\', '/') ?? "",
+                Matches   = matches
+            });
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Lấy nội dung hiện tại của một ## section trong file toolkit.
+    /// Dùng cho diff view trước khi Replace section.
+    /// </summary>
+    public async Task<SectionContent> GetSectionContentAsync(string relPath, string headingText)
+    {
+        var absPath = ResolvePath(relPath);
+        var notFound = new SectionContent { RelPath = relPath, HeadingText = headingText, Found = false };
+
+        if (!File.Exists(absPath)) return notFound;
+
+        var lines      = await File.ReadAllLinesAsync(absPath, Encoding.UTF8);
+        var normalized = headingText.Trim();
+
+        // Tìm dòng bắt đầu section
+        var startIdx = -1;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].StartsWith("## ", StringComparison.Ordinal) &&
+                lines[i][3..].Trim().Equals(normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                startIdx = i;
+                break;
+            }
+        }
+
+        if (startIdx < 0) return notFound;
+
+        // Tìm dòng kết thúc section (## tiếp theo hoặc EOF)
+        var endIdx = lines.Length;
+        for (var i = startIdx + 1; i < lines.Length; i++)
+        {
+            if (lines[i].StartsWith("## ", StringComparison.Ordinal))
+            {
+                endIdx = i;
+                break;
+            }
+        }
+
+        // Trim trailing blank lines nhưng giữ nội dung
+        var sectionLines = lines[startIdx..endIdx];
+        var lastNonBlank = Array.FindLastIndex(sectionLines, l => !string.IsNullOrWhiteSpace(l));
+        if (lastNonBlank >= 0) sectionLines = sectionLines[..(lastNonBlank + 1)];
+
+        return new SectionContent
+        {
+            RelPath     = relPath,
+            HeadingText = normalized,
+            Content     = string.Join('\n', sectionLines),
+            LineStart   = startIdx + 1,
+            LineEnd     = endIdx,
+            Found       = true
+        };
+    }
+
     /// <summary>Lấy text của heading đầu tiên (## ...) trong content string.</summary>
     private static string ExtractFirstHeading(string content)
     {
@@ -585,6 +681,129 @@ public class ToolkitService(IConfiguration config, ILogger<ToolkitService> logge
 
         var indexPath = Path.Combine(snippetsPath, "INDEX.md");
         await File.WriteAllTextAsync(indexPath, sb.ToString(), Encoding.UTF8);
+    }
+
+    // ── Session Starter Generator ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Generate session-starter prompt cho một task type.
+    /// Quy trình: keyword map → tìm headings trong index → đọc content → ghép prompt.
+    /// maxSections: giới hạn số sections để tránh prompt quá dài.
+    /// maxCharsPerSection: truncate content mỗi section.
+    /// </summary>
+    public async Task<SessionStarter> GenerateSessionStarterAsync(string type, int maxSections = 6, int maxCharsPerSection = 500)
+    {
+        // ── Keyword map mỗi task type ────────────────────────────────────────
+        var keywordMap = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["debug"]   = ["gotcha", "pitfall", "error", "exception", "debug", "troubleshoot", "issue", "problem", "lỗi", "cạm bẫy"],
+            ["feature"] = ["pattern", "best practice", "template", "scaffold", "architecture", "design", "implement", "approach", "cách dùng"],
+            ["refactor"]= ["principle", "solid", "clean", "maintainab", "refactor", "readab", "coupling", "separation"],
+            ["schema"]  = ["schema", "database", "migration", "index", "table", "constraint", "relationship", "normalization", "postgres", "column"],
+        };
+
+        if (!keywordMap.TryGetValue(type, out var keywords))
+            return new SessionStarter { Type = type, Prompt = $"Task type '{type}' chưa được hỗ trợ. Dùng: debug, feature, refactor, schema." };
+
+        // ── Tìm headings phù hợp trong toolkit index ─────────────────────────
+        var index = await GetToolkitIndexAsync();
+        var matches = new List<(ToolkitIndexFile File, ToolkitIndexHeading Heading, int MatchCount)>();
+
+        foreach (var file in index.Files)
+        {
+            foreach (var heading in file.Headings.Where(h => h.Level == 2))
+            {
+                var norm       = NormalizeHeading(heading.Text);
+                var matchCount = keywords.Count(kw => norm.Contains(NormalizeHeading(kw), StringComparison.Ordinal));
+                if (matchCount > 0)
+                    matches.Add((file, heading, matchCount));
+            }
+        }
+
+        // Sort by match count desc, limit sections
+        var topMatches = matches
+            .OrderByDescending(m => m.MatchCount)
+            .Take(maxSections)
+            .ToList();
+
+        // ── Đọc content từng section ─────────────────────────────────────────
+        var sb      = new StringBuilder();
+        var sources = new List<StarterSource>();
+
+        var typeLabel = type switch
+        {
+            "debug"   => "Debug / Troubleshooting",
+            "feature" => "Feature Development",
+            "refactor"=> "Refactoring",
+            "schema"  => "Schema Design",
+            _         => type
+        };
+
+        sb.AppendLine($"# Session Starter — {typeLabel}");
+        sb.AppendLine($"> Auto-generated từ my-ai-toolkit ({index.GeneratedAt:yyyy-MM-dd})");
+        sb.AppendLine();
+        sb.AppendLine("## Tech Stack Context");
+        sb.AppendLine("- Backend: C# / .NET 8, Minimal API");
+        sb.AppendLine("- Database: PostgreSQL + Entity Framework Core 8");
+        sb.AppendLine("- Serialization: System.Text.Json");
+        sb.AppendLine();
+        sb.AppendLine($"## Relevant Toolkit Knowledge ({typeLabel})");
+        sb.AppendLine();
+
+        if (topMatches.Count == 0)
+        {
+            sb.AppendLine("_(Chưa có sections phù hợp trong toolkit. Hãy add more knowledge!)_");
+        }
+        else
+        {
+            foreach (var (file, heading, _) in topMatches)
+            {
+                try
+                {
+                    var section = await GetSectionContentAsync(file.RelPath, heading.Text);
+                    if (!section.Found) continue;
+
+                    // Truncate nếu quá dài
+                    var content = section.Content.Length > maxCharsPerSection
+                        ? section.Content[..maxCharsPerSection] + "\n... _(xem thêm trong file)_"
+                        : section.Content;
+
+                    sb.AppendLine(content);
+                    sb.AppendLine();
+                    sources.Add(new StarterSource
+                    {
+                        RelPath     = file.RelPath,
+                        HeadingText = heading.Text,
+                        LineNumber  = heading.LineNumber
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Session starter: could not read section {Heading} in {File}", heading.Text, file.RelPath);
+                }
+            }
+        }
+
+        // ── Task prompt template ─────────────────────────────────────────────
+        var taskTemplate = type switch
+        {
+            "debug"   => "## Task\n[MÔ TẢ BUG / LỖI]\n\nBối cảnh:\n- Endpoint/Service: \n- Error message: \n- Reproduce steps: \n\nHãy phân tích nguyên nhân và đề xuất fix.",
+            "feature" => "## Task\n[MÔ TẢ FEATURE]\n\nYêu cầu:\n- Input: \n- Output: \n- Constraints: \n\nHãy thiết kế và implement theo clean architecture.",
+            "refactor"=> "## Task\n[CODE CẦN REFACTOR — paste vào đây]\n\nVấn đề hiện tại:\n- \n\nHãy refactor đảm bảo readability, SOLID, và không thay đổi behavior.",
+            "schema"  => "## Task\n[YÊU CẦU SCHEMA]\n\nEntities:\n- \nRelationships:\n- \n\nHãy thiết kế PostgreSQL schema với indexes phù hợp.",
+            _         => "## Task\n[MÔ TẢ TASK]"
+        };
+
+        sb.AppendLine("---");
+        sb.AppendLine();
+        sb.AppendLine(taskTemplate);
+
+        return new SessionStarter
+        {
+            Type    = type,
+            Prompt  = sb.ToString(),
+            Sources = sources
+        };
     }
 
     // ── Formatter (fallback khi toolkitContent chưa điền) ────────────────────

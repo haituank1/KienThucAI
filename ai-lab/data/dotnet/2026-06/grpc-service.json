@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-grpc-service-20260630",
+  "topic": "gRPC trong ASP.NET Core: Khi nào dùng và performance considerations",
+  "category": "dotnet",
+  "subcategory": "APIs",
+  "tags": [
+    "grpc",
+    "protobuf",
+    "aspnetcore",
+    "performance",
+    "streaming",
+    "microservices",
+    "http2"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.88,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "gRPC: binary Protobuf serialization, HTTP/2 multiplexing, strongly-typed contract (proto file), bi-directional streaming. Nhanh hơn JSON REST 2–10× về throughput. Phù hợp cho internal microservices communication.",
+  "problem": "REST JSON: text serialization overhead, HTTP/1.1 head-of-line blocking, không type-safe contract. Internal services giao tiếp qua HTTP/JSON: 2–5ms serialization overhead per call.",
+  "solution": "gRPC: code gen từ .proto file, Protobuf binary (3–10× nhỏ hơn JSON), HTTP/2. ASP.NET Core gRPC server + Grpc.Net.Client. gRPC-Web cho browser support.",
+  "codeExample": "// orders.proto\nsyntax = \"proto3\";\nservice OrderService {\n    rpc GetOrder (GetOrderRequest) returns (OrderResponse);\n    rpc ListOrders (ListOrdersRequest) returns (stream OrderResponse); // server streaming\n    rpc CreateOrder (stream CreateOrderRequest) returns (CreateOrderResponse); // client streaming\n}\nmessage GetOrderRequest { int32 id = 1; }\nmessage OrderResponse {\n    int32 id = 1; string status = 2; double total = 3;\n    google.protobuf.Timestamp created_at = 4;\n}\n\n// Server implementation\npublic class OrderGrpcService(IOrderRepository repo) : OrderService.OrderServiceBase\n{\n    public override async Task<OrderResponse> GetOrder(\n        GetOrderRequest req, ServerCallContext ctx)\n    {\n        var order = await repo.GetAsync(req.Id, ctx.CancellationToken)\n            ?? throw new RpcException(new Status(StatusCode.NotFound, $\"Order {req.Id} not found\"));\n        return new OrderResponse { Id = order.Id, Status = order.Status, Total = order.Total };\n    }\n\n    public override async Task ListOrders(\n        ListOrdersRequest req, IServerStreamWriter<OrderResponse> stream, ServerCallContext ctx)\n    {\n        await foreach (var order in repo.GetStreamAsync(ctx.CancellationToken))\n            await stream.WriteAsync(new OrderResponse { Id = order.Id });\n    }\n}\n\n// Registration\nbuilder.Services.AddGrpc(opt => { opt.EnableDetailedErrors = builder.Environment.IsDevelopment(); });\napp.MapGrpcService<OrderGrpcService>();",
+  "tradeoffs": [
+    "gRPC yêu cầu HTTP/2: không hoạt động trực tiếp qua browser (phải dùng gRPC-Web/Transcoding)",
+    "Proto schema thay đổi cần update cả client và server: cẩn thận versioning với field numbers",
+    "Debug khó hơn REST: Protobuf binary không readable, phải dùng grpcui hoặc Postman với proto",
+    "gRPC chỉ tốt với high-frequency, low-latency internal calls: cho public API vẫn nên dùng REST/JSON"
+  ],
+  "references": [
+    {
+      "title": "gRPC in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/grpc/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Benchmark: JSON REST vs gRPC với 10K/s requests — throughput và latency",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/apis.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

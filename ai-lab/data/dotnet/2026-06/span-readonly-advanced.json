@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-span-readonly-advanced-20260630",
+  "topic": "ReadOnlySpan<T> nâng cao: Parsing không allocation và stackalloc",
+  "category": "dotnet",
+  "subcategory": "Performance",
+  "tags": [
+    "span",
+    "readonly-span",
+    "stackalloc",
+    "zero-allocation",
+    "parsing",
+    "performance",
+    "memory"
+  ],
+  "difficulty": "expert",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ReadOnlySpan<char> parsing: tách chuỗi bằng Slice() và IndexOf() mà không tạo substring mới. stackalloc trên stack thay vì heap cho small temporary buffers. TryParse với Span tránh ToString().",
+  "problem": "String.Split() tạo array of strings, mỗi element là new string allocation. Int.Parse(str.Substring(start, length)) tạo substring trước khi parse. Log parser 1M entries/s = nhiều GC pressure.",
+  "solution": "IndexOf() + Slice() để navigate ReadOnlySpan<char> mà không alloc. int.TryParse(span) trực tiếp từ Span. stackalloc char[N] cho buffer tạm thời ngắn hạn.",
+  "codeExample": "// Parsing CSV line không allocation\nvoid ParseCsvLine(ReadOnlySpan<char> line, Action<int, decimal, DateOnly> handler)\n{\n    int idx;\n    // Field 1: ID\n    idx = line.IndexOf(',');\n    if (!int.TryParse(line[..idx], out int id)) return; // TryParse nhận Span trực tiếp\n    line = line[(idx + 1)..]; // Slice — zero alloc\n\n    // Field 2: Amount\n    idx = line.IndexOf(',');\n    if (!decimal.TryParse(line[..idx], out decimal amount)) return;\n    line = line[(idx + 1)..];\n\n    // Field 3: Date\n    if (!DateOnly.TryParse(line, out DateOnly date)) return;\n\n    handler(id, amount, date);\n}\n\n// stackalloc — buffer tạm trên stack\nSpan<char> FormatOrderKey(int orderId, ReadOnlySpan<char> prefix)\n{\n    Span<char> buffer = stackalloc char[32]; // stack, tự giải phóng khi method return\n    prefix.CopyTo(buffer);\n    orderId.TryFormat(buffer[prefix.Length..], out int written);\n    return buffer[..(prefix.Length + written)];\n}\n\n// Chú ý: Span<char> trên stack KHÔNG thể escape phạm vi method\n// → không return Span<char> từ method (compiler error)\n// → không async method với stackalloc\n\n// Với Span cần vượt scope: dùng ArrayPool hoặc Memory<T>\nchar[] buffer = ArrayPool<char>.Shared.Rent(256);\ntry { /* dùng buffer */ }\nfinally { ArrayPool<char>.Shared.Return(buffer); }",
+  "tradeoffs": [
+    "stackalloc: kích thước phải biết lúc compile hoặc small bounded runtime size (< 1KB an toàn, > 4KB tránh stack overflow)",
+    "ReadOnlySpan<char> không serializable, không store trong class field, không async — chỉ synchronous stack code",
+    "Debugging Span code phức tạp hơn: không có nice ToString() representation trong debugger watch",
+    "Kết hợp SequenceReader<byte> cho binary protocol parsing từ PipeReader"
+  ],
+  "references": [
+    {
+      "title": "Span<T> usage guidelines - docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/memory-and-spans/span-t-usage-guidelines"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "BenchmarkDotNet: String.Split vs Span parsing 1M CSV lines — alloc bytes",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

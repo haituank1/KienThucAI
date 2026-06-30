@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-vacuum-autovacuum-20260630",
+  "topic": "VACUUM và Autovacuum trong PostgreSQL: Hiểu và tuning",
+  "category": "postgresql",
+  "subcategory": "Maintenance",
+  "tags": [
+    "vacuum",
+    "autovacuum",
+    "bloat",
+    "postgresql",
+    "maintenance",
+    "dead-tuples",
+    "performance"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.91,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "MVCC tạo dead tuples sau UPDATE/DELETE. Autovacuum dọn dẹp dead tuples, cập nhật statistics, prevent transaction ID wraparound. Table bloat khi autovacuum không kịp: query chậm hơn vì phải scan dead tuples.",
+  "problem": "Bảng orders update nhiều (status changes): sau vài tháng, 40% pages là dead tuples. Seq Scan chậm hơn vì phải đọc và skip dead rows. VACUUM FULL block table hoàn toàn.",
+  "solution": "Tune autovacuum cho hot tables: autovacuum_vacuum_scale_factor nhỏ hơn, autovacuum_cost_delay thấp hơn. Monitor bloat. VACUUM ANALYZE định kỳ.",
+  "codeExample": "-- Kiểm tra bloat và dead tuples\nSELECT schemaname, tablename,\n    n_dead_tup, n_live_tup,\n    ROUND(n_dead_tup::float / NULLIF(n_live_tup + n_dead_tup, 0) * 100, 2) AS dead_pct,\n    last_vacuum, last_autovacuum, last_analyze\nFROM pg_stat_user_tables\nORDER BY n_dead_tup DESC LIMIT 10;\n\n-- Bloat check (query phức tạp hơn, dùng pgstattuple)\nSELECT * FROM pgstattuple('orders');\n-- dead_tuple_percent > 20% → cần vacuum\n\n-- Tune autovacuum cho hot tables\nALTER TABLE orders SET (\n    autovacuum_vacuum_scale_factor = 0.01,  -- 1% thay vì 20% default\n    autovacuum_vacuum_threshold = 100,       -- sau 100 dead tuples\n    autovacuum_analyze_scale_factor = 0.005, -- analyze thường xuyên hơn\n    autovacuum_vacuum_cost_delay = 2         -- ít throttle hơn (ms)\n);\n\n-- Manual vacuum (không lock) vs VACUUM FULL (lock + rewrite)\nVACUUM ANALYZE orders;         -- concurrent, dọn dead tuples, update stats\nVACUUM FULL orders;            -- EXCLUSIVE LOCK, không dùng trên production đang chạy\n\n-- pg_repack extension: reclaim space không lock\n-- pg_repack orders                -- chạy online, không cần maintenance window\n\n-- Transaction ID wraparound risk\nSELECT datname, age(datfrozenxid), 2147483647 - age(datfrozenxid) AS remaining\nFROM pg_database ORDER BY age(datfrozenxid) DESC;\n-- remaining < 100M → cần VACUUM FREEZE ngay",
+  "tradeoffs": [
+    "autovacuum_vacuum_cost_delay thấp: vacuum nhanh hơn nhưng impact IO nhiều hơn trong production hours",
+    "VACUUM FULL: giải phóng space hoàn toàn nhưng cần maintenance window; không dùng trên production đang serve traffic",
+    "pg_repack: tốt nhất cho reclaim space online nhưng cần extension cài đặt và có overhead",
+    "Transaction ID wraparound: PostgreSQL 14+ cải thiện autovacuum aggressive mode cho aging databases"
+  ],
+  "references": [
+    {
+      "title": "Routine vacuuming - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/routine-vacuuming.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Monitor pg_stat_user_tables: dead_tuple % giảm sau autovacuum config change",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/maintenance.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "13+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

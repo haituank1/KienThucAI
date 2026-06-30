@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-efcore-split-queries-20260630",
+  "topic": "EF Core Split Queries: Giải pháp cho cartesian explosion",
+  "category": "dotnet",
+  "subcategory": "EF Core",
+  "tags": [
+    "ef-core",
+    "split-queries",
+    "cartesian-explosion",
+    "include",
+    "performance"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Khi Include() nhiều collection navigation properties, EF Core tạo 1 query với JOIN gây cartesian explosion (rows = tích của tất cả collections). AsSplitQuery() tách thành nhiều queries riêng, giảm data transfer nhưng tăng roundtrip.",
+  "problem": "Order.Include(o => o.Items).Include(o => o.Tags) với 10 items và 5 tags mỗi order: 1 query trả 50 rows thay vì 15 rows. Với 1000 orders = 50,000 rows thay vì 15,000.",
+  "solution": "Thêm .AsSplitQuery() hoặc config global trong DbContextOptions. EF Core chạy nhiều SELECT riêng biệt và assemble trong memory.",
+  "codeExample": "// WRONG: cartesian explosion với 2+ collections\nvar orders = await db.Orders\n    .Include(o => o.Items)    // 10 items/order\n    .Include(o => o.Tags)     // 5 tags/order\n    .Include(o => o.Comments) // 3 comments/order\n    .ToListAsync();           // rows = 10×5×3 = 150 per order!\n\n// RIGHT: Split queries\nvar orders = await db.Orders\n    .Include(o => o.Items)\n    .Include(o => o.Tags)\n    .Include(o => o.Comments)\n    .AsSplitQuery()           // 4 SELECT riêng biệt\n    .ToListAsync();\n\n// Global config\nprotected override void OnConfiguring(DbContextOptionsBuilder opt) =>\n    opt.UseNpgsql(conn, o => o.UseQuerySplittingBehavior(\n        QuerySplittingBehavior.SplitQuery));\n\n// Override per-query\nvar result = await db.Orders.Include(o => o.Items)\n    .AsSingleQuery()          // override global split config\n    .ToListAsync();",
+  "tradeoffs": [
+    "Split query không transactional: data có thể thay đổi giữa các SELECT → dùng trong transaction nếu cần consistency",
+    "Nhiều roundtrip tới DB: đắt với high-latency connection (Azure SQL với 10ms latency)",
+    "Không hỗ trợ tốt với Skip/Take trên collection (paging)",
+    "Debug khó hơn: log sẽ thấy nhiều queries thay vì 1"
+  ],
+  "references": [
+    {
+      "title": "Split queries - EF Core docs",
+      "url": "https://learn.microsoft.com/en-us/ef/core/querying/single-split-queries"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh data transfer size: single vs split query với 1000 orders + 5 collections",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "5+",
+    "efcore": "5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

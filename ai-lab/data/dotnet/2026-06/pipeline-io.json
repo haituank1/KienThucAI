@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-pipeline-io-20260630",
+  "topic": "System.IO.Pipelines: Zero-copy IO cho high-throughput .NET",
+  "category": "dotnet",
+  "subcategory": "Performance",
+  "tags": [
+    "pipelines",
+    "pipewriter",
+    "pipereader",
+    "zero-copy",
+    "io",
+    "performance",
+    "networking"
+  ],
+  "difficulty": "expert",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.85,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "System.IO.Pipelines cho phép đọc/ghi IO với buffer management automatic, zero-copy, không alloc nhiều. Được dùng nội bộ bởi ASP.NET Core Kestrel và SignalR. Phù hợp cho custom network protocols, file parsing hiệu suất cao.",
+  "problem": "Stream.ReadAsync(buffer) phải biết buffer size trước. Đọc partial data phức tạp. Nhiều intermediate byte[] allocation khi parse network data.",
+  "solution": "PipeReader.ReadAsync() trả ReadResult với buffer. App xử lý rồi AdvanceTo(). PipeWriter.GetMemory() cấp phát buffer, WriteAsync() flush. Không cần biết message size trước.",
+  "codeExample": "// HTTP-like custom protocol parser\npublic async Task ParseMessagesAsync(PipeReader reader, CancellationToken ct)\n{\n    while (true)\n    {\n        var result = await reader.ReadAsync(ct);\n        var buffer = result.Buffer;\n\n        while (TryParseMessage(ref buffer, out var message))\n            await ProcessMessageAsync(message);\n\n        reader.AdvanceTo(buffer.Start, buffer.End); // consumed, examined\n\n        if (result.IsCompleted) break;\n    }\n    await reader.CompleteAsync();\n}\n\nprivate bool TryParseMessage(ref ReadOnlySequence<byte> buffer, out ReadOnlySequence<byte> message)\n{\n    // Tìm delimiter \r\n\n    var reader = new SequenceReader<byte>(buffer);\n    if (reader.TryReadTo(out message, (byte)'\n'))\n    {\n        buffer = buffer.Slice(reader.Position);\n        return true;\n    }\n    message = default;\n    return false;\n}\n\n// Sử dụng với Stream\nvar pipe = new Pipe();\nvar fillTask = FillPipeAsync(stream, pipe.Writer, ct);\nvar readTask = ParseMessagesAsync(pipe.Reader, ct);\nawait Task.WhenAll(fillTask, readTask);",
+  "tradeoffs": [
+    "Pipelines khó debug và phức tạp hơn Stream: chỉ dùng khi thực sự cần high throughput",
+    "AdvanceTo phải được gọi đúng: consumed cho data đã xử lý, examined cho data đã đọc nhưng chưa xử lý",
+    "Không phù hợp cho simple sequential read/write: overhead của abstraction không xứng đáng"
+  ],
+  "references": [
+    {
+      "title": "System.IO.Pipelines - docs",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Parse 1GB log file: Pipelines vs StreamReader — memory và throughput",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "2.1+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

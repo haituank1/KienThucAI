@@ -1,0 +1,65 @@
+{
+  "id": "dotnet-unit-test-patterns-20260630",
+  "topic": "Unit Testing patterns trong .NET: AAA, Test Doubles và xUnit best practices",
+  "category": "dotnet",
+  "subcategory": "Testing",
+  "tags": [
+    "unit-test",
+    "xunit",
+    "moq",
+    "nsubstitute",
+    "testing",
+    "aaa",
+    "test-doubles"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Arrange-Act-Assert pattern. Moq (mock) vs NSubstitute (substitute) vs Fake (hand-written). xUnit: [Fact] cho single case, [Theory] + [InlineData] cho parameterized. FluentAssertions cho readable assertions. Test naming: MethodName_Scenario_ExpectedResult.",
+  "problem": "Tests không nhất quán, khó đọc, brittle (break khi implementation thay đổi không quan trọng). Mock overuse: verify mọi method call thay vì verify behavior.",
+  "solution": "Test behavior (output/state) không test implementation (calls). NSubstitute ít verbose hơn Moq. FluentAssertions làm test failure message rõ ràng hơn.",
+  "codeExample": "// NSubstitute (ít verbose hơn Moq)\npublic class OrderServiceTests\n{\n    private readonly IOrderRepository _repo = Substitute.For<IOrderRepository>();\n    private readonly OrderService _sut;\n\n    public OrderServiceTests() => _sut = new OrderService(_repo, TimeProvider.System);\n\n    [Fact]\n    public async Task CreateOrder_WithValidInput_ReturnsCreatedOrder()\n    {\n        // Arrange\n        var dto = new CreateOrderDto(CustomerId: 1, ProductId: 42, Quantity: 2);\n        _repo.CreateAsync(Arg.Any<Order>(), Arg.Any<CancellationToken>())\n            .Returns(new Order { Id = 100, Status = \"pending\" });\n\n        // Act\n        var result = await _sut.CreateAsync(dto, CancellationToken.None);\n\n        // Assert (FluentAssertions)\n        result.Should().NotBeNull();\n        result.Id.Should().Be(100);\n        result.Status.Should().Be(\"pending\");\n    }\n\n    [Theory]\n    [InlineData(0, \"Quantity phải > 0\")]\n    [InlineData(-1, \"Quantity phải > 0\")]\n    [InlineData(101, \"Quantity tối đa 100\")]\n    public async Task CreateOrder_WithInvalidQuantity_ThrowsValidationException(\n        int quantity, string expectedMessage)\n    {\n        var dto = new CreateOrderDto(1, 1, quantity);\n        var act = () => _sut.CreateAsync(dto, CancellationToken.None);\n        await act.Should().ThrowAsync<ValidationException>()\n            .WithMessage($\"*{expectedMessage}*\");\n    }\n}",
+  "tradeoffs": [
+    "Moq: strict mocking verify mọi call — brittle, dễ fail khi refactor implementation",
+    "NSubstitute: permissive mặc định (chỉ verify những gì bạn explicit) — test behavior tốt hơn",
+    "Fake (in-memory implementation): tốt cho repository, phức tạp hơn nhưng test realistic hơn",
+    "FluentAssertions: NuGet dependency nhưng error messages rõ ràng hơn Assert.Equal() của xUnit"
+  ],
+  "references": [
+    {
+      "title": "NSubstitute",
+      "url": "https://nsubstitute.github.io/"
+    },
+    {
+      "title": "FluentAssertions",
+      "url": "https://fluentassertions.com/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Chạy test suite, verify coverage > 80% cho service layer",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/testing.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

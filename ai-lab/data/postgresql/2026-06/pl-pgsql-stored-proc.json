@@ -1,0 +1,60 @@
+{
+  "id": "postgresql-pl-pgsql-stored-proc-20260630",
+  "topic": "PL/pgSQL Stored Procedures: Khi nào dùng và best practices",
+  "category": "postgresql",
+  "subcategory": "Programming",
+  "tags": [
+    "plpgsql",
+    "stored-procedure",
+    "function",
+    "postgresql",
+    "performance",
+    "business-logic"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.88,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PL/pgSQL functions/procedures: business logic chạy trong DB server, giảm roundtrips. Phù hợp cho complex multi-step operations, triggers. SECURITY DEFINER cho privilege escalation. Không phù hợp cho logic cần external services.",
+  "problem": "Batch update phức tạp cần nhiều steps: 5 SQL statements = 5 roundtrips. Application code gọi DB 5 lần với latency 2ms/roundtrip = 10ms overhead per operation.",
+  "solution": "PL/pgSQL function: 5 statements trong 1 function call = 1 roundtrip. Trả TABLE hoặc SETOF. Triggers cho auto-maintain derived data.",
+  "codeExample": "-- Function trả SETOF (streaming result)\nCREATE OR REPLACE FUNCTION get_user_order_summary(p_user_id INT)\nRETURNS TABLE(\n    order_id INT, total DECIMAL, status TEXT, item_count BIGINT\n) AS $$\nBEGIN\n    RETURN QUERY\n    SELECT o.id, o.total, o.status, COUNT(oi.id) AS item_count\n    FROM orders o\n    LEFT JOIN order_items oi ON o.id = oi.order_id\n    WHERE o.user_id = p_user_id\n    GROUP BY o.id, o.total, o.status;\nEND;\n$$ LANGUAGE plpgsql STABLE;  -- STABLE: không modify DB\n\n-- Complex business logic\nCREATE OR REPLACE PROCEDURE process_order_batch(p_batch_id INT)\nAS $$\nDECLARE\n    v_order RECORD;\n    v_count INT := 0;\nBEGIN\n    FOR v_order IN\n        SELECT id, total FROM orders WHERE batch_id = p_batch_id AND status = 'pending'\n    LOOP\n        -- Multiple operations per order (1 trip to DB total)\n        UPDATE orders SET status = 'processing' WHERE id = v_order.id;\n        INSERT INTO order_audit (order_id, action) VALUES (v_order.id, 'processing');\n        v_count := v_count + 1;\n    END LOOP;\n    RAISE NOTICE 'Processed % orders', v_count;\nEND;\n$$ LANGUAGE plpgsql;\n\n-- CALL procedure từ application\nCALL process_order_batch(42);\n\n-- Trigger function\nCREATE OR REPLACE FUNCTION update_order_total() RETURNS TRIGGER AS $$\nBEGIN\n    UPDATE orders SET total = (SELECT SUM(subtotal) FROM order_items WHERE order_id = NEW.order_id)\n    WHERE id = NEW.order_id;\n    RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;",
+  "tradeoffs": [
+    "Business logic trong DB: khó test, khó version control, không thể dùng external services",
+    "Stored procedures tight coupling DB schema và application: refactor khó hơn",
+    "PL/pgSQL không có good debugging tools: dùng RAISE NOTICE/DEBUG cho logging",
+    "Performance: function call overhead nhỏ nhưng JIT compilation trong PostgreSQL 11+ cải thiện significantly"
+  ],
+  "references": [
+    {
+      "title": "PL/pgSQL - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/plpgsql.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh roundtrips: 5 separate SQL vs 1 procedure call — network overhead",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/programming.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "11+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-partition-tables-20260630",
+  "topic": "Table Partitioning trong PostgreSQL: Range, List và Hash partitioning",
+  "category": "postgresql",
+  "subcategory": "Advanced",
+  "tags": [
+    "partitioning",
+    "range",
+    "list",
+    "hash",
+    "postgresql",
+    "time-series",
+    "performance"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.91,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Declarative partitioning (PostgreSQL 10+): phân chia bảng lớn thành partitions nhỏ hơn. Partition pruning: planner chỉ scan partitions relevant với query. Attach/Detach partition cho archival và bulk delete.",
+  "problem": "Bảng audit_logs 1TB: VACUUM chạy lâu, DELETE nhiều rows slow, index maintenance expensive. Query WHERE created_at > '2026-06-01' phải scan toàn bộ index.",
+  "solution": "Range partitioning theo created_at: mỗi partition = 1 tháng. Partition pruning tự động. Detach partition cũ thay vì DELETE: O(1) operation.",
+  "codeExample": "-- Tạo partitioned table\nCREATE TABLE audit_logs (\n    id BIGSERIAL,\n    event_type TEXT NOT NULL,\n    user_id INT,\n    payload JSONB,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n) PARTITION BY RANGE (created_at);\n\n-- Tạo partitions\nCREATE TABLE audit_logs_2026_01 PARTITION OF audit_logs\n    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');\n\nCREATE TABLE audit_logs_2026_06 PARTITION OF audit_logs\n    FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');\n\n-- Default partition cho data không match\nCREATE TABLE audit_logs_default PARTITION OF audit_logs DEFAULT;\n\n-- Tạo index trên parent → tự động tạo trên tất cả partitions\nCREATE INDEX idx_audit_user ON audit_logs (user_id, created_at);\n\n-- Query tự động partition pruning\nEXPLAIN SELECT * FROM audit_logs\nWHERE created_at > '2026-06-01'; -- chỉ scan audit_logs_2026_06!\n\n-- Archive: detach old partition\nALTER TABLE audit_logs DETACH PARTITION audit_logs_2026_01;\n-- Giờ audit_logs_2026_01 là table bình thường, archive sang cold storage\n\n-- Attach prebuilt partition (bulk insert nhanh)\nCREATE TABLE audit_logs_2026_07 (LIKE audit_logs INCLUDING ALL);\n-- ... bulk load data ...\nALTER TABLE audit_logs ATTACH PARTITION audit_logs_2026_07\n    FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');\n\n-- Hash partitioning cho multi-tenant\nCREATE TABLE events PARTITION BY HASH (tenant_id);\nCREATE TABLE events_0 PARTITION OF events FOR VALUES WITH (MODULUS 4, REMAINDER 0);\n-- ...0-3",
+  "tradeoffs": [
+    "Declarative partitioning: global unique index không thể tạo trên parent nếu partition key không included",
+    "Cross-partition query: JOIN 2 partitioned tables phức tạp, planner phải match partition strategies",
+    "PostgreSQL 13+: logical replication hỗ trợ partitioned tables; PostgreSQL 12- có giới hạn",
+    "Partition pruning chỉ hoạt động khi WHERE clause trực tiếp trên partition column — qua CTE hoặc subquery có thể mất"
+  ],
+  "references": [
+    {
+      "title": "Table Partitioning - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/ddl-partitioning.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "EXPLAIN: verify Partition Pruning trong plan cho range query",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/advanced.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "10+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

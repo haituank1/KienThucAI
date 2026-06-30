@@ -1,0 +1,64 @@
+{
+  "id": "postgresql-pg16-features-20260630",
+  "topic": "PostgreSQL 16 và 17 features: Những cải thiện quan trọng cho developer",
+  "category": "postgresql",
+  "subcategory": "Versioning",
+  "tags": [
+    "postgresql16",
+    "postgresql17",
+    "new-features",
+    "developer",
+    "performance",
+    "logical-replication"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.86,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PostgreSQL 16: Logical replication từ standbys, parallel COPY, query plan cải thiện. PostgreSQL 17 (released 2024): MERGE với RETURNING, faster VACUUM, incremental sort cải thiện, JSON_TABLE, better aggregate streaming.",
+  "problem": "Không biết tính năng nào mới trong PostgreSQL 16/17 có thể giúp: bỏ lỡ optimizations hoặc dùng workaround phức tạp cho vấn đề đã có native solution.",
+  "solution": "Cập nhật kiến thức theo major releases. PostgreSQL 16/17 có nhiều improvements cho developer và performance.",
+  "codeExample": "-- PostgreSQL 16 Features\n\n-- 1. Logical replication từ standbys (không cần primary)\n-- subscriber có thể subscribe từ standby → giảm load primary\n\n-- 2. Parallel COPY\n-- pg16: COPY parallelism tự động với multiple workers\n\n-- 3. EXPLAIN with GENERIC_PLAN\nEXPLAIN (GENERIC_PLAN)\nSELECT * FROM orders WHERE user_id = $1;  -- xem generic plan\n\n-- 4. pg_stats_ext với range types\n-- 5. pg_hba.conf reload mà không restart\n\n-- PostgreSQL 17 Features\n\n-- 1. MERGE với RETURNING (PG 17)\nMERGE INTO inventory i USING incoming_stock s ON i.sku = s.sku\nWHEN MATCHED THEN\n    UPDATE SET quantity = i.quantity + s.quantity\nWHEN NOT MATCHED THEN\n    INSERT (sku, quantity) VALUES (s.sku, s.quantity)\nRETURNING *, (xmax = 0) AS inserted;  -- biết row nào inserted vs updated\n\n-- 2. JSON_TABLE (SQL/JSON standard, PG 17)\nSELECT jt.*\nFROM orders, JSON_TABLE(\n    metadata, '$.items[*]'\n    COLUMNS (\n        product_id INT PATH '$.id',\n        quantity INT PATH '$.qty'\n    )\n) AS jt;\n\n-- 3. Faster VACUUM (PG 17): not freeze every page\n-- Vacuum chỉ freeze pages cần thiết → ít IO hơn\n\n-- 4. pg_upgrade improvements trong PG 17\n\n-- Kiểm tra version\nSELECT version();\nSHOW server_version;",
+  "tradeoffs": [
+    "Upgrade từ PG 15 → 16 → 17: pg_upgrade hoặc logical replication migration với downtime minimize",
+    "Một số features (parallel COPY) cần tune max_parallel_workers_per_gather",
+    "JSON_TABLE (PG 17): mạnh nhưng syntax phức tạp — evaluate so với jsonb operators",
+    "Không nên dùng beta/RC releases cho production; chờ đến minor version stable (17.1+)"
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL 17 Release Notes",
+      "url": "https://www.postgresql.org/docs/17/release-17.html"
+    },
+    {
+      "title": "PostgreSQL 16 Release Notes",
+      "url": "https://www.postgresql.org/docs/16/release-16.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test MERGE ... RETURNING trong PG17: verify phân biệt insert vs update",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/versioning.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 180,
+  "techVersions": {
+    "postgresql": "16+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

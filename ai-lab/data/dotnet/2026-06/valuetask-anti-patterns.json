@@ -1,0 +1,58 @@
+{
+    "id": "dotnet-valuetask-anti-patterns-20260630",
+    "topic": "ValueTask vs Task: Anti-patterns và khi nào dùng",
+    "category": "dotnet",
+    "subcategory": "Async",
+    "tags": [
+        "valuetask",
+        "task",
+        "async",
+        "performance",
+        "allocation"
+    ],
+    "difficulty": "advanced",
+    "relevance": "high",
+    "status": "pending_review",
+    "confidence": 0.95,
+    "researchedAt": "2026-06-30T08:00:00Z",
+    "validatedAt": null,
+    "validatedBy": null,
+    "summary": "ValueTask tiết kiệm 1 heap allocation khi method thường sync (cache hit). Anti-patterns nghiêm trọng: await nhiều lần, lưu vào field, dùng .Result = undefined behavior.",
+    "problem": "Dùng Task ở mọi nơi thì allocation nhiều. Chuyển sang ValueTask mà không hiểu constraint thì gây bug khó debug.",
+    "solution": "Chỉ dùng ValueTask khi: method thường sync, là hot path. Không await ValueTask nhiều hơn 1 lần. Dùng .AsTask() nếu cần multi-await.",
+    "codeExample": "// GOOD: sync path, no alloc\npublic async ValueTask<User?> GetUserAsync(int id, CancellationToken ct = default) {\n    if (_cache.TryGetValue(id, out var cached)) return cached;\n    var user = await _db.Users.FindAsync([id], ct);\n    _cache[id] = user;\n    return user;\n}\n\n// WRONG: double await - undefined behavior!\nvar vt = GetUserAsync(1);\nvar u1 = await vt;\nvar u2 = await vt; // BUG\n\n// RIGHT: convert sang Task nếu multi-await\nTask<User?> task = GetUserAsync(1).AsTask();\nvar u1 = await task;\nvar u2 = await task; // OK",
+    "tradeoffs": [
+        "ValueTask lớn hơn Task 1 chút trên stack (2 fields) nhưng tiết kiệm 1 heap alloc khi sync",
+        "Khó debug: debugger hiển thị trạng thái ValueTask kém hơn Task",
+        "Task có pooling từ .NET 5+ nên chênh lệch nhỏ hơn trước"
+    ],
+    "references": [
+        {
+            "title": "Whys of ValueTask - Stephen Toub",
+            "url": "https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/"
+        }
+    ],
+    "selfVerification": {
+        "verified": false,
+        "method": "BenchmarkDotNet: sync-path Task vs ValueTask alloc comparison",
+        "caveats": ""
+    },
+    "demo": {
+        "exists": false,
+        "type": "backend",
+        "path": "",
+        "description": ""
+    },
+    "validation": {
+        "notes": "",
+        "toolkitTarget": "05-snippets/dotnet/async-patterns.md",
+        "action": "append"
+    },
+    "toolkitContent": "",
+    "staleAfterDays": 365,
+    "techVersions": {
+        "dotnet": "5+"
+    },
+    "mergedIntoFile": null,
+    "mergedAt": null
+}

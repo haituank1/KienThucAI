@@ -1,0 +1,64 @@
+{
+  "id": "postgresql-connection-pooling-pgbouncer-20260630",
+  "topic": "Connection Pooling với PgBouncer: Session vs Transaction vs Statement mode",
+  "category": "postgresql",
+  "subcategory": "Infrastructure",
+  "tags": [
+    "pgbouncer",
+    "connection-pool",
+    "postgresql",
+    "performance",
+    "session-mode",
+    "transaction-mode"
+  ],
+  "difficulty": "advanced",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.93,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "PgBouncer pool connections để PostgreSQL không phải fork process mới mỗi lần. Transaction mode: connection trả về pool sau mỗi transaction (hiệu quả nhất). Session mode: 1 connection per app session. Statement mode: ít feature nhất.",
+  "problem": "PostgreSQL fork 1 process cho mỗi connection: 500 connections = 500 processes. Với .NET app chạy Kubernetes với 50 replicas × 10 pool size = 500 connections. PostgreSQL memory: 5–10MB/connection = 2.5–5GB chỉ cho connections.",
+  "solution": "PgBouncer transaction mode: 1000 app connections → 50 actual DB connections. Pool size nhỏ hơn nhiều. max_connections PostgreSQL có thể giảm xuống 100–200.",
+  "codeExample": "# pgbouncer.ini\n[databases]\nmyapp = host=postgres port=5432 dbname=myapp\n\n[pgbouncer]\npool_mode = transaction          # transaction mode — most efficient\nmax_client_conn = 1000           # app connections\ndefault_pool_size = 50           # actual DB connections\nmin_pool_size = 10\nserver_idle_timeout = 600\nclient_idle_timeout = 0\n\n# Transaction mode limitations:\n# - Session-level advisory locks KHÔNG work (use xact locks)\n# - SET LOCAL bị reset\n# - PREPARE/DEALLOCATE cần server_reset_query\n# - LISTEN/NOTIFY không work\n\n# Session mode — phù hợp khi cần session features\n# pool_mode = session\n# (mỗi client session giữ 1 DB connection suốt thời gian)\n\n# Monitoring\n# psql -h pgbouncer -p 6432 -U pgbouncer pgbouncer\n# SHOW POOLS;\n# SHOW CLIENTS;\n# SHOW SERVERS;\n\n# .NET connection string → trỏ vào PgBouncer thay PostgreSQL\n# Host=pgbouncer;Port=6432;Database=myapp;Username=app;Password=...;\n# Pooling=false (PgBouncer là pooler, không cần Npgsql pooling thêm)",
+  "tradeoffs": [
+    "Transaction mode: không dùng session features (advisory locks, SET, PREPARE, LISTEN). Kiểm tra compatibility",
+    "Npgsql đã có built-in connection pool: với PgBouncer transaction mode, tắt Npgsql pooling để tránh double pooling",
+    "PgBouncer single-threaded: với >10K connections/s, xem xét Odyssey (multi-threaded) hoặc pgpool-II",
+    "SSL termination: PgBouncer có thể terminate SSL từ app, kết nối PostgreSQL qua trusted network"
+  ],
+  "references": [
+    {
+      "title": "PgBouncer docs",
+      "url": "https://www.pgbouncer.org/"
+    },
+    {
+      "title": "Npgsql with PgBouncer",
+      "url": "https://www.npgsql.org/doc/compatibility.html#pgbouncer"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Đo số connections thực tế trên PostgreSQL: SHOW POOLS trong PgBouncer console",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/infrastructure.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "10+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

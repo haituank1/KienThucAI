@@ -607,6 +607,13 @@ async function openDetail(id) {
     setText('modalMergedInfo', `${item.mergedIntoFile} · ${mergedDate}`);
   } else { mergedSection.hidden = true; }
 
+  // Cross-reference: load related items (fire-and-forget)
+  const relSection = document.getElementById('modalRelatedSection');
+  if (relSection) relSection.hidden = true;  // reset while loading
+  api.get(`/api/knowledge/${id}/related?limit=6`)
+    .then(related => renderRelatedItems(related))
+    .catch(() => {});  // silent fail — cross-ref là optional
+
   // Action buttons
   const actions  = document.getElementById('modalActions');
   const isPending = item.status === 'pending_review' || item.status === 'needs_rework';
@@ -761,6 +768,14 @@ function onMergeActionChange(action) {
   _currentMergeAction = action;
   updateContentLabel();
   if (_currentPreview) renderPreviewUI(_currentPreview);
+
+  // Feature: show diff panel khi chọn Replace
+  const panel = document.getElementById('diffPanel');
+  if (action === 'replace') {
+    showDiffPanel();
+  } else {
+    if (panel) panel.hidden = true;
+  }
 }
 
 /** User thay đổi target path thủ công → load headings mới */
@@ -1488,3 +1503,259 @@ function tkFindSource(headingText, relPath) {
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 init();
+
+// ── Feature 1: Full-text search trong toolkit content ─────────────────────────
+
+async function searchToolkitContent(q) {
+  q = (q || '').trim();
+  const statusEl = document.getElementById('tkContentSearchStatus');
+  const resultsDiv = document.getElementById('tkContentResults');
+  if (!q || q.length < 2) {
+    if (statusEl) statusEl.textContent = '';
+    if (resultsDiv) resultsDiv.hidden = true;
+    return;
+  }
+  if (statusEl) statusEl.textContent = '⏳ Đang tìm...';
+  try {
+    const results = await api.get(`/api/toolkit/search?q=${encodeURIComponent(q)}`);
+    renderContentSearchResults(results, q);
+    if (statusEl) statusEl.textContent = results.length ? `${results.length} file có kết quả` : 'Không tìm thấy';
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Lỗi: ' + e.message;
+  }
+}
+
+function renderContentSearchResults(results, q) {
+  const container = document.getElementById('tkContentResults');
+  const list = document.getElementById('tkContentResultsList');
+  if (!container || !list) return;
+
+  if (!results || results.length === 0) {
+    container.hidden = true;
+    return;
+  }
+
+  // Highlight query term trong line text
+  function highlight(text, q) {
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'),
+      '<mark style="background:#fbbf2440;color:#fbbf24;border-radius:2px;padding:0 2px">$1</mark>');
+  }
+
+  list.innerHTML = results.map(r => `
+    <div class="content-search-result">
+      <div class="content-search-file">
+        <span style="color:#818cf8">📄</span>
+        <span style="color:#c4b5fd;font-weight:600">${esc(r.fileName)}</span>
+        <span style="color:#475569;font-size:0.7rem">${esc(r.directory)}</span>
+        <span style="color:#475569;font-size:0.68rem;margin-left:auto">${r.matches.length} kết quả</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1px">
+        ${r.matches.map(m => `
+          <div class="content-search-line">
+            <span class="content-search-lineno">${m.lineNumber}</span>
+            <span class="content-search-text">${highlight(esc(m.lineText.trim()), q)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  container.hidden = false;
+}
+
+// ── Feature 2: Diff view khi Replace section ──────────────────────────────────
+
+/**
+ * LCS-based line diff.
+ * Returns array of { type: 'same'|'add'|'remove', text: string }
+ */
+/**
+ * LCS-based line diff.
+ * Returns array of { type: 'same'|'add'|'remove', text: string }
+ */
+function computeLineDiff(oldText, newText) {
+  const oldLines = (oldText || '').split('\n');
+  const newLines = (newText || '').split('\n');
+  const m = oldLines.length, n = newLines.length;
+
+  // Build LCS DP table
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = oldLines[i-1] === newLines[j-1]
+        ? dp[i-1][j-1] + 1
+        : Math.max(dp[i-1][j], dp[i][j-1]);
+
+  // Backtrack từ (m,n) về (0,0) — thu ops theo thứ tự ngược, rồi reverse
+  const ops = [];
+  let ii = m, jj = n;
+  while (ii > 0 || jj > 0) {
+    if (ii > 0 && jj > 0 && oldLines[ii-1] === newLines[jj-1]) {
+      ops.push({ type: 'same',   text: oldLines[ii-1] }); ii--; jj--;
+    } else if (jj > 0 && (ii === 0 || dp[ii][jj-1] >= dp[ii-1][jj])) {
+      ops.push({ type: 'add',    text: newLines[jj-1] }); jj--;
+    } else {
+      ops.push({ type: 'remove', text: oldLines[ii-1] }); ii--;
+    }
+  }
+  return ops.reverse();
+}
+
+function renderDiff(oldText, newText) {
+  const ops = computeLineDiff(oldText, newText);
+  return ops.map(op => {
+    const cls = op.type === 'add' ? 'diff-add' : op.type === 'remove' ? 'diff-remove' : 'diff-same';
+    const prefix = op.type === 'add' ? '+' : op.type === 'remove' ? '−' : ' ';
+    return `<div class="diff-line ${cls}"><span class="diff-prefix">${prefix}</span><span>${esc(op.text)}</span></div>`;
+  }).join('');
+}
+
+async function showDiffPanel() {
+  if (!_currentPreview) return;
+  const panel = document.getElementById('diffPanel');
+  const content = document.getElementById('diffContent');
+  const loading = document.getElementById('diffLoading');
+  if (!panel || !content) return;
+
+  panel.hidden = false;
+  if (loading) loading.hidden = false;
+  content.innerHTML = '';
+
+  const targetPath = document.getElementById('previewTargetInput')?.value?.trim() || _currentPreview.targetRelPath;
+  const headingToReplace = _currentPreview.conflictingHeading
+    || extractFirstHeadingFromText(document.getElementById('previewContent')?.value || '');
+
+  if (!targetPath || !headingToReplace) {
+    content.innerHTML = '<span style="color:#64748b;font-size:0.75rem">Chưa xác định được section cần replace.</span>';
+    if (loading) loading.hidden = true;
+    return;
+  }
+
+  try {
+    const section = await api.get(
+      `/api/toolkit/section?path=${encodeURIComponent(targetPath)}&heading=${encodeURIComponent(headingToReplace)}`
+    );
+    if (loading) loading.hidden = true;
+    if (!section.found) {
+      content.innerHTML = '<span style="color:#64748b;font-size:0.75rem">Section chưa tồn tại — sẽ append.</span>';
+      return;
+    }
+    const newContent = document.getElementById('previewContent')?.value || '';
+    content.innerHTML = renderDiff(section.content, newContent);
+  } catch(e) {
+    if (loading) loading.hidden = true;
+    content.innerHTML = `<span style="color:#f87171;font-size:0.75rem">Lỗi load diff: ${esc(e.message)}</span>`;
+  }
+}
+
+// ── Feature 3: Stale notification + Re-research Prompt ───────────────────────
+
+/**
+ * Sinh re-research prompt cho item stale hiện tại.
+ * Gọi khi user bấm "Generate Prompt" trong detail modal.
+ */
+function showResearchPrompt() {
+  const item = state.currentItem;
+  if (!item) return;
+
+  const ageDays = item.validatedAt
+    ? Math.floor((Date.now() - new Date(item.validatedAt).getTime()) / 86_400_000)
+    : Math.floor((Date.now() - new Date(item.researchedAt).getTime()) / 86_400_000);
+
+  const category = item.category || 'dotnet';
+  const prompt = [
+    `Tôi có một knowledge item đã stale (${ageDays} ngày chưa cập nhật) và cần được re-research.`,
+    ``,
+    `TOPIC: ${item.topic}`,
+    `CATEGORY: ${category}`,
+    item.tags?.length ? `TAGS: ${item.tags.join(', ')}` : null,
+    item.summary ? `SUMMARY HIỆN TẠI:\n${item.summary}` : null,
+    ``,
+    `YÊU CẦU:`,
+    `1. Research lại topic này theo kiến thức mới nhất (đặc biệt nếu có breaking changes, deprecation, hoặc best practices mới).`,
+    `2. So sánh với summary cũ — highlight những gì thay đổi.`,
+    `3. Đưa ra kết quả dạng JSON theo schema của file ai-lab/data/${category}/[yyyy-MM]/[topic-slug].json.`,
+    `4. Follow workflow trong my-ai-toolkit/07-agents/workflows/research-session.md nếu có.`,
+  ].filter(l => l !== null).join('\n');
+
+  const modal = document.getElementById('promptModal');
+  const ta = document.getElementById('promptText');
+  if (!modal || !ta) return;
+  ta.value = prompt;
+  modal.hidden = false;
+}
+
+function copyPrompt() {
+  const ta = document.getElementById('promptText');
+  if (!ta) return;
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.querySelector('#promptModal .btn-primary');
+    if (btn) { btn.textContent = '✅ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000); }
+  }).catch(() => {
+    ta.select();
+    document.execCommand('copy');
+  });
+}
+
+function closePromptModal() {
+  const modal = document.getElementById('promptModal');
+  if (modal) modal.hidden = true;
+}
+
+function renderRelatedItems(items) {
+  const section = document.getElementById("modalRelatedSection");
+  const list    = document.getElementById("modalRelatedList");
+  if (!section || !list) return;
+
+  if (!items || items.length === 0) {
+    section.hidden = true;
+    return;
+  }
+
+  list.innerHTML = items.map(function(item) {
+    var commonTagsTitle = item.commonTags && item.commonTags.length
+      ? "Tags chung: " + item.commonTags.join(", ")
+      : "Category: " + item.category;
+    return "<button class=\"related-chip\"" +
+      " title=\"" + esc(commonTagsTitle) + "\"" +
+      " onclick=\"openDetail(\'" + esc(item.id) + "\')\">"+
+      "<span class=\"related-chip-score\">" + item.score + "</span>" +
+      "<span>" + esc(item.topic) + "</span>" +
+      "<span class=\"related-chip-cat\">" + esc(item.category) + "</span>" +
+      "</button>";
+  }).join("");
+
+  section.hidden = false;
+}
+
+// ── Feature 2: Session Starter Generator ──────────────────
+
+async function generateSessionStarter() {
+  var typeEl  = document.getElementById("sessionStarterType");
+  var type    = typeEl ? typeEl.value : "debug";
+  var btn     = document.getElementById("sessionStarterBtn");
+  var status  = document.getElementById("sessionStarterStatus");
+
+  if (btn) btn.disabled = true;
+  if (status) status.textContent = "Dang generate...";
+
+  try {
+    var result = await api.get("/api/toolkit/session-starter?type=" + encodeURIComponent(type));
+    var srcCount = result.sources ? result.sources.length : 0;
+    if (status) status.textContent = srcCount + " sections tu toolkit";
+
+    var modal = document.getElementById("promptModal");
+    var ta    = document.getElementById("promptText");
+    var title = modal ? modal.querySelector("h3") : null;
+    if (modal && ta) {
+      if (title) title.textContent = "Session Starter — " + type;
+      ta.value = result.prompt || "";
+      modal.hidden = false;
+    }
+  } catch(e) {
+    if (status) status.textContent = "Loi: " + e.message;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}

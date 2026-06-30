@@ -1,0 +1,63 @@
+{
+    "id": "dotnet-span-memory-arraypool-20260630",
+    "topic": "Span<T>, Memory<T> và ArrayPool<T>: Zero-allocation patterns",
+    "category": "dotnet",
+    "subcategory": "Performance",
+    "tags": [
+        "span",
+        "memory",
+        "arraypool",
+        "zero-allocation",
+        "performance"
+    ],
+    "difficulty": "advanced",
+    "relevance": "critical",
+    "status": "pending_review",
+    "confidence": 0.95,
+    "researchedAt": "2026-06-30T08:00:00Z",
+    "validatedAt": null,
+    "validatedBy": null,
+    "summary": "Span<T>/Memory<T> slice buffer không allocate heap. ArrayPool<T>.Shared tái sử dụng mảng lớn, giảm GC pressure trong hot path.",
+    "problem": "Hot path xử lý byte/string liên tục new byte[n] mỗi lần call, gây GC pressure và latency spike.",
+    "solution": "ArrayPool<T>.Shared.Rent(size) mượn buffer, xử lý qua Span<T>, trả lại với Return(). stackalloc cho buffer nhỏ (<=1KB). Memory<T> cho async context.",
+    "codeExample": "byte[] rented = ArrayPool<byte>.Shared.Rent(4096);\ntry {\n    Span<byte> span = rented.AsSpan(0, 4096);\n    ProcessData(span);\n} finally {\n    ArrayPool<byte>.Shared.Return(rented, clearArray: false);\n}\n\n// stackalloc - zero heap\nSpan<byte> small = stackalloc byte[256];\nint written = Encoding.UTF8.GetBytes(input, small);\nProcess(small[..written]);\n\n// Memory<T> với async\nasync Task ProcessAsync(Memory<byte> mem, CancellationToken ct) {\n    await socket.ReceiveAsync(mem, ct);\n    var span = mem.Span; // chỉ trong sync scope\n}",
+    "tradeoffs": [
+        "stackalloc trong recursive method có thể gây StackOverflowException",
+        "ArrayPool.Return() phải trong finally, nếu quên là pool exhaustion",
+        "clearArray: true có overhead, chỉ dùng với sensitive data",
+        "Span<T> là ref struct: không dùng làm field, không qua await"
+    ],
+    "references": [
+        {
+            "title": "Span<T> docs",
+            "url": "https://learn.microsoft.com/en-us/dotnet/api/system.span-1"
+        },
+        {
+            "title": "ArrayPool<T> docs",
+            "url": "https://learn.microsoft.com/en-us/dotnet/api/system.buffers.arraypool-1"
+        }
+    ],
+    "selfVerification": {
+        "verified": false,
+        "method": "BenchmarkDotNet: new byte[] vs ArrayPool in 1M loop",
+        "caveats": ""
+    },
+    "demo": {
+        "exists": false,
+        "type": "backend",
+        "path": "",
+        "description": ""
+    },
+    "validation": {
+        "notes": "",
+        "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+        "action": "append"
+    },
+    "toolkitContent": "",
+    "staleAfterDays": 365,
+    "techVersions": {
+        "dotnet": "6+"
+    },
+    "mergedIntoFile": null,
+    "mergedAt": null
+}

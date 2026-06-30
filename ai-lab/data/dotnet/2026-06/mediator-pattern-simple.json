@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-mediator-pattern-simple-20260630",
+  "topic": "Simple Mediator không MediatR: Khi nào tránh over-engineering",
+  "category": "dotnet",
+  "subcategory": "Architecture",
+  "tags": [
+    "mediatr",
+    "mediator",
+    "cqrs",
+    "over-engineering",
+    "simplicity",
+    "direct-injection"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.87,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "MediatR phổ biến nhưng không phải always-right choice. Với CRUD API đơn giản, MediatR thêm layer không có giá trị, tăng complexity, khó debug. Direct service injection đủ tốt cho 80% use case. MediatR shine khi có complex pipeline behaviors cần cross-cutting concerns.",
+  "problem": "Mọi dự án đều có MediatR dù chỉ là CRUD không cần cross-cutting. Handler là tầng trung gian vô nghĩa gọi service bên dưới. Debug trace qua MediatR dispatch phức tạp.",
+  "solution": "Đánh giá trước khi thêm MediatR: nếu không cần pipeline behaviors hoặc decoupling event handlers, dùng direct service injection. Repository pattern + Service layer là đủ.",
+  "codeExample": "// OVER-ENGINEERED: MediatR cho CRUD đơn giản\npublic record GetProductQuery(int Id) : IRequest<ProductDto?>;\npublic class GetProductHandler(IProductRepository repo) : IRequestHandler<GetProductQuery, ProductDto?>\n{\n    public async Task<ProductDto?> Handle(GetProductQuery q, CancellationToken ct)\n        => await repo.GetDtoAsync(q.Id, ct); // chỉ forward, không logic\n}\n// Controller inject IMediator, gửi GetProductQuery → handler → repo\n// 3 files, 3 classes, cho 3 lines logic\n\n// SIMPLER: Direct injection\napp.MapGet(\"/api/products/{id:int}\", async (int id, IProductRepository repo, CancellationToken ct) =>\n{\n    var product = await repo.GetDtoAsync(id, ct);\n    return product is not null ? Results.Ok(product) : Results.NotFound();\n});\n\n// MediatR CÓ GIÁ TRỊ khi:\n// 1. Pipeline behaviors: validation, logging, transaction cross-cutting\n// 2. Event handlers: domain events với nhiều subscribers\n// 3. Complex command/query với business logic\n// 4. Large team, bounded contexts cần loose coupling\n\n// Checklist trước khi thêm MediatR:\n// ☐ Có pipeline behaviors cần thiết? (validation, transaction, logging)\n// ☐ Có nhiều event handlers subscribe cùng event?\n// ☐ Handlers có logic phức tạp, không chỉ forward?\n// → Nếu tất cả là KHÔNG, không cần MediatR",
+  "tradeoffs": [
+    "MediatR giá trị thực ở pipeline behaviors và domain event dispatching",
+    "Với microservice nhỏ (<20 endpoints), direct injection cleaner và dễ maintain hơn",
+    "Khi scale team và codebase, MediatR giúp organize và enforce patterns",
+    "Không phải pattern nào cũng áp dụng mọi nơi — evaluate trade-off theo context"
+  ],
+  "references": [
+    {
+      "title": "Jimmy Bogard on CQRS and MediatR misconceptions",
+      "url": "https://jimmybogard.com/avoiding-microservice-failures/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Code review: đếm số handler chỉ forward calls không có logic — nếu > 50%, xem xét remove MediatR",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/architecture.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

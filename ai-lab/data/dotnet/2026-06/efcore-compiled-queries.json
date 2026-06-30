@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-efcore-compiled-queries-20260630",
+  "topic": "EF Core Compiled Queries: Loại bỏ query compilation overhead",
+  "category": "dotnet",
+  "subcategory": "EF Core",
+  "tags": [
+    "ef-core",
+    "compiled-queries",
+    "performance",
+    "linq",
+    "hot-path"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "EF Core phải compile LINQ expression → SQL mỗi lần query (dù có internal cache). EF.CompileAsyncQuery() compile 1 lần tại startup, sau đó gọi trực tiếp là static delegate — loại bỏ compilation overhead hoàn toàn.",
+  "problem": "EF Core internal cache dựa trên expression tree hash. Hot path query chạy 10K/sec vẫn phải hash expression mỗi lần (5–10 µs). Với 10K QPS, tổng là 50–100ms CPU chỉ để hash.",
+  "solution": "Dùng EF.CompileAsyncQuery() cho query chạy thường xuyên. Lưu delegate vào static field để dùng lại. .NET 9 EF Core hỗ trợ pre-compiled models đi xa hơn.",
+  "codeExample": "// Compiled query — define 1 lần, dùng mãi\nprivate static readonly Func<AppDbContext, int, Task<User?>> GetUserById =\n    EF.CompileAsyncQuery(\n        (AppDbContext db, int id) => db.Users.FirstOrDefault(u => u.Id == id));\n\nprivate static readonly Func<AppDbContext, string, IAsyncEnumerable<Order>> GetOrdersByStatus =\n    EF.CompileAsyncQuery(\n        (AppDbContext db, string status) =>\n            db.Orders\n              .Where(o => o.Status == status)\n              .OrderByDescending(o => o.CreatedAt)\n              .Select(o => new { o.Id, o.Status, o.CreatedAt }));\n\n// Sử dụng — zero compilation overhead\npublic async Task<User?> GetUserAsync(int id, CancellationToken ct)\n{\n    await using var db = await _factory.CreateDbContextAsync(ct);\n    return await GetUserById(db, id);\n}\n\n// EF 9: pre-compiled models (compile entire model to C# code)\n// dotnet ef dbcontext optimize\n// Tạo ra MyDbContextModel.cs — không cần EF startup reflection",
+  "tradeoffs": [
+    "Compiled query không linh hoạt: parameter là positional, không thể add Where động",
+    "Expression tree phải simple: không thể có conditional includes hay dynamic sorting",
+    "EF 9 pre-compiled model: thêm build step nhưng startup nhanh hơn đáng kể cho large model",
+    "Chỉ có ý nghĩa ở hot path >= 50K calls/s; với 100 QPS thì không đáng"
+  ],
+  "references": [
+    {
+      "title": "Compiled queries - EF Core",
+      "url": "https://learn.microsoft.com/en-us/ef/core/performance/advanced-performance-topics#compiled-queries"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "BenchmarkDotNet: normal EF query vs compiled query, 100K iterations",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/ef-core-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+",
+    "efcore": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

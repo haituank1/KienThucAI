@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-opentelemetry-tracing-20260630",
+  "topic": "OpenTelemetry trong .NET 8: Distributed tracing, metrics và logging thống nhất",
+  "category": "dotnet",
+  "subcategory": "Observability",
+  "tags": [
+    "opentelemetry",
+    "tracing",
+    "metrics",
+    "observability",
+    "jaeger",
+    "prometheus",
+    "dotnet8"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "OpenTelemetry .NET SDK cung cấp unified API cho traces, metrics, logs. .NET 8 tích hợp sâu: ActivitySource (traces), System.Diagnostics.Metrics (metrics), ILogger bridge. Xuất sang Jaeger, Prometheus, Grafana, OTLP.",
+  "problem": "Nhiều thư viện (Serilog, Prometheus.net, Zipkin client) riêng lẻ, không có correlation giữa trace và log. Khi incident xảy ra khó trace request qua nhiều services.",
+  "solution": "Đăng ký OpenTelemetry với AddOpenTelemetry(). Tích hợp ASP.NET Core, HttpClient, EF Core instrumentation tự động. Custom spans với ActivitySource. Correlation tự động qua TraceId/SpanId.",
+  "codeExample": "builder.Services.AddOpenTelemetry()\n    .WithTracing(t => t\n        .AddAspNetCoreInstrumentation()\n        .AddHttpClientInstrumentation()\n        .AddEntityFrameworkCoreInstrumentation()\n        .AddSource(\"MyApp.*\")\n        .AddOtlpExporter(o => o.Endpoint = new Uri(\"http://otel-collector:4317\")))\n    .WithMetrics(m => m\n        .AddAspNetCoreInstrumentation()\n        .AddRuntimeInstrumentation()\n        .AddMeter(\"MyApp.*\")\n        .AddPrometheusExporter())\n    .WithLogging(l => l.AddOtlpExporter());\n\n// Custom instrumentation\nprivate static readonly ActivitySource _tracer = new(\"MyApp.Orders\");\nprivate static readonly Meter _meter = new(\"MyApp.Orders\");\nprivate static readonly Counter<long> _ordersCreated =\n    _meter.CreateCounter<long>(\"orders.created\");\n\npublic async Task<Order> CreateOrderAsync(CreateOrderDto dto, CancellationToken ct)\n{\n    using var activity = _tracer.StartActivity(\"CreateOrder\");\n    activity?.SetTag(\"order.customerId\", dto.CustomerId);\n    var order = await _repo.CreateAsync(dto, ct);\n    activity?.SetTag(\"order.id\", order.Id);\n    _ordersCreated.Add(1, new TagList { { \"currency\", dto.Currency } });\n    return order;\n}",
+  "tradeoffs": [
+    "OTLP exporter là blocking theo mặc định: dùng BatchExportProcessor trong production",
+    "EF Core instrumentation log SQL: có thể là sensitive data — filter trong production",
+    "Sampling: 100% trace ở high-traffic service = tải cao cho collector; dùng ParentBased+TraceIdRatio sampler",
+    "OpenTelemetry .NET SDK version thay đổi nhanh — pin version và test khi upgrade"
+  ],
+  "references": [
+    {
+      "title": "OpenTelemetry .NET",
+      "url": "https://opentelemetry.io/docs/languages/net/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Kiểm tra TraceId consistent qua HTTP log và span trong Jaeger",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/observability.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 180,
+  "techVersions": {
+    "dotnet": "8+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

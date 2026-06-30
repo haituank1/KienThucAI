@@ -1,0 +1,59 @@
+{
+    "id": "dotnet-frozen-dictionary-searchvalues-20260630",
+    "topic": "FrozenDictionary và SearchValues: Read-only lookup tối ưu .NET 8",
+    "category": "dotnet",
+    "subcategory": "Performance",
+    "tags": [
+        "frozendictionary",
+        "searchvalues",
+        "dotnet8",
+        "performance",
+        "lookup"
+    ],
+    "difficulty": "intermediate",
+    "relevance": "high",
+    "status": "pending_review",
+    "confidence": 0.93,
+    "researchedAt": "2026-06-30T08:00:00Z",
+    "validatedAt": null,
+    "validatedBy": null,
+    "summary": "FrozenDictionary là immutable dict tối ưu read-heavy: lookup nhanh hơn Dictionary 2-3x. SearchValues<T> tối ưu ContainsAny() trên Span/string bằng SIMD.",
+    "problem": "Dictionary dùng chung strategy cho cả read và write. Data load 1 lần lúc startup và chỉ đọc: overhead write-safe design là không cần thiết.",
+    "solution": "ToFrozenDictionary() sau khi build xong data. SearchValues.Create() cho char/byte set cần kiểm tra thường xuyên.",
+    "codeExample": "// Build once at startup\nFrozenDictionary<string, RouteHandler> _routes = defs\n    .ToFrozenDictionary(d => d.path, d => d.handler, StringComparer.OrdinalIgnoreCase);\n\n// Read - nhanh hơn Dictionary\nif (_routes.TryGetValue(path, out var handler))\n    await handler(ctx);\n\n// SearchValues - SIMD ContainsAny\nprivate static readonly SearchValues<char> _invalid =\n    SearchValues.Create(\"<>\\\"'&\\\\0\");\n\nbool IsClean(string input) => !input.AsSpan().ContainsAny(_invalid);",
+    "tradeoffs": [
+        "FrozenDictionary construction chậm (chọn hash strategy) - chỉ build ở startup",
+        "Mỗi update phải rebuild toàn bộ",
+        "Dùng nhiều RAM hơn Dictionary một chút",
+        "SearchValues hiệu quả nhất với string dài và charset nhỏ"
+    ],
+    "references": [
+        {
+            "title": "FrozenDictionary .NET 8",
+            "url": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.frozen.frozendictionary-2"
+        }
+    ],
+    "selfVerification": {
+        "verified": false,
+        "method": "BenchmarkDotNet lookup: Dictionary vs FrozenDictionary 10K entries",
+        "caveats": ""
+    },
+    "demo": {
+        "exists": false,
+        "type": "backend",
+        "path": "",
+        "description": ""
+    },
+    "validation": {
+        "notes": "",
+        "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+        "action": "append"
+    },
+    "toolkitContent": "",
+    "staleAfterDays": 730,
+    "techVersions": {
+        "dotnet": "8+"
+    },
+    "mergedIntoFile": null,
+    "mergedAt": null
+}

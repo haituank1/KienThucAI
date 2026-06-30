@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-gc-tuning-server-workstation-20260630",
+  "topic": "GC Tuning: Server GC vs Workstation GC và DATAS cho .NET",
+  "category": "dotnet",
+  "subcategory": "Performance",
+  "tags": [
+    "gc",
+    "garbage-collection",
+    "server-gc",
+    "datas",
+    "performance",
+    "memory",
+    "tuning"
+  ],
+  "difficulty": "expert",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Server GC dùng dedicated GC thread cho mỗi CPU core, throughput cao hơn nhưng latency cao hơn. DATAS (.NET 7+) tự động switch giữa Workstation và Server mode dựa trên workload thực tế.",
+  "problem": "ASP.NET Core dùng Server GC mặc định nhưng container chỉ có 1–2 vCPU bị overhead từ Server GC với nhiều heap segment. Ngược lại, batch processing trên 8+ core bị hạn chế bởi Workstation GC.",
+  "solution": "Hiểu rõ khi nào dùng từng loại. Trong container với giới hạn CPU, set GCHeapHardLimit. Với .NET 7+, bật DATAS để GC tự động adapt. Monitor với dotnet-counters.",
+  "codeExample": "// runtimeconfig.json\n{\n  \"configProperties\": {\n    \"System.GC.Server\": true,\n    \"System.GC.Concurrent\": true,\n    \"System.GC.HeapHardLimit\": 536870912,\n    \"System.GC.DATAS\": true\n  }\n}\n\n// Environment variables (runtime override)\n// DOTNET_GCConserveMemory=5       // 0-9, cao = ít GC pressure nhưng chậm hơn\n// DOTNET_GCHeapHardLimitPercent=75 // % of container memory limit\n\n// Monitor GC trong production\n// dotnet-counters monitor --name MyApp --counters System.Runtime\n\n// Phát hiện GC pressure\ndouble gcPauseRatio = GC.GetTotalPauseDuration().TotalSeconds\n    / Process.GetCurrentProcess().TotalProcessorTime.TotalSeconds;\n// > 10% là dấu hiệu GC pressure",
+  "tradeoffs": [
+    "Server GC: throughput tốt (+30–50%) nhưng Gen2 GC pause dài hơn (100ms+) — tối cho batch",
+    "Workstation GC: pause ngắn hơn nhưng throughput kém hơn — tối cho interactive/low-latency",
+    "DATAS (.NET 7+): overhead nhỏ để monitor và switch, nhưng hiệu ứng có thể khó predict",
+    "GCHeapHardLimit trong container: tránh OOMKill nhưng GC sẽ chạy thường xuyên hơn khi sát limit"
+  ],
+  "references": [
+    {
+      "title": "GC fundamentals - .NET",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/fundamentals"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh throughput/latency: Server vs Workstation GC với load test",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "7+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-memory-cache-patterns-20260630",
+  "topic": "IMemoryCache: Correct usage, stampede và eviction strategies",
+  "category": "dotnet",
+  "subcategory": "Caching",
+  "tags": [
+    "memorycache",
+    "cache",
+    "stampede",
+    "eviction",
+    "aspnetcore",
+    "performance"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "IMemoryCache là thread-safe nhưng GetOrCreateAsync không atomic: nhiều concurrent calls có thể gây stampede (cache miss → nhiều factory calls). Cần SemaphoreSlim hoặc Lazy<T> wrapper để bảo vệ factory. HybridCache (.NET 9) giải quyết built-in.",
+  "problem": "Khi cache miss, 100 concurrent requests cùng gọi factory → 100 DB queries thay vì 1. IMemoryCache.GetOrCreate() không có stampede protection. MemoryCache cũng có thể bị eviction trước khi expires.",
+  "solution": "Dùng Lazy<Task<T>> pattern hoặc SemaphoreSlim per-key. Trong .NET 9, HybridCache có protection built-in. Cấu hình SizeLimit + SetSize để tránh memory bloat.",
+  "codeExample": "// WRONG: race condition — nhiều threads gọi factory cùng lúc\nvar data = await _cache.GetOrCreateAsync(\"key\", async _ => await FetchFromDbAsync());\n\n// RIGHT: Lazy<Task> pattern để serialize concurrent misses\nprivate readonly ConcurrentDictionary<string, Lazy<Task<Data?>>> _pending = new();\n\npublic async Task<Data?> GetWithStampedeProtectionAsync(string key, CancellationToken ct)\n{\n    if (_cache.TryGetValue<Data>(key, out var cached)) return cached;\n\n    var lazy = _pending.GetOrAdd(key, _ => new Lazy<Task<Data?>>(() =>\n        FetchAndCacheAsync(key, ct)));\n    try { return await lazy.Value; }\n    finally { _pending.TryRemove(key, out _); }\n}\n\nprivate async Task<Data?> FetchAndCacheAsync(string key, CancellationToken ct)\n{\n    var data = await FetchFromDbAsync(key, ct);\n    var options = new MemoryCacheEntryOptions()\n        .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))\n        .SetSize(1)                           // cần thiết khi có SizeLimit\n        .RegisterPostEvictionCallback((k, v, r, s) =>\n            _logger.LogDebug(\"Cache evicted {Key}: {Reason}\", k, r));\n    return _cache.Set(key, data, options);\n}\n\n// Config với SizeLimit (bytes or custom units)\nbuilder.Services.AddMemoryCache(opt =>\n{\n    opt.SizeLimit = 1000;                    // custom units, mỗi entry SetSize()\n    opt.ExpirationScanFrequency = TimeSpan.FromMinutes(1);\n});",
+  "tradeoffs": [
+    "IMemoryCache không distributed: mỗi node có cache riêng — data inconsistency giữa nodes",
+    "SizeLimit đơn vị tự định nghĩa (1 = 1 entry hoặc 1 byte tùy bạn) — phải nhất quán",
+    "PostEvictionCallback gọi synchronous trong GC thread: không làm heavy work, không async",
+    "AbsoluteExpiration vs SlidingExpiration: dùng Absolute cho data thay đổi theo schedule, Sliding cho session-like data"
+  ],
+  "references": [
+    {
+      "title": "IMemoryCache - ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/memory"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Load test: 100 concurrent cache miss → verify factory called once only",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/caching.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "2.0+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

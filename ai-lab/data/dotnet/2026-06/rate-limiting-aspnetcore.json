@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-rate-limiting-aspnetcore-20260630",
+  "topic": "Rate Limiting trong ASP.NET Core 7+: Sliding Window, Token Bucket và Concurrency",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "rate-limiting",
+    "aspnetcore",
+    "dotnet7",
+    "sliding-window",
+    "token-bucket",
+    "api-protection"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.93,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ASP.NET Core 7 tích hợp Rate Limiting middleware với 4 algorithms: Fixed Window, Sliding Window, Token Bucket, Concurrency Limiter. Hỗ trợ per-user/per-IP partitioning và custom rejection response.",
+  "problem": "Tự viết rate limiting trong middleware hoặc dùng thư viện bên ngoài phức tạp, không tương thích tốt với DI, và khó test. Chưa có built-in solution trước .NET 7.",
+  "solution": "Đăng ký RateLimiter qua builder.Services.AddRateLimiter(), áp dụng policy qua [EnableRateLimiting] attribute hoặc RequireRateLimiting() endpoint extension.",
+  "codeExample": "builder.Services.AddRateLimiter(limiter =>\n{\n    // Sliding Window: smooth hơn Fixed Window\n    limiter.AddSlidingWindowLimiter(\"api\", opt =>\n    {\n        opt.PermitLimit = 100;\n        opt.Window = TimeSpan.FromMinutes(1);\n        opt.SegmentsPerWindow = 6; // check mỗi 10 giây\n        opt.QueueLimit = 10;\n    });\n\n    // Per-user partitioned limiter\n    limiter.AddPolicy(\"per-user\", ctx =>\n        RateLimitPartition.GetSlidingWindowLimiter(\n            partitionKey: ctx.User.Identity?.Name\n                ?? ctx.Connection.RemoteIpAddress?.ToString()\n                ?? \"anon\",\n            factory: _ => new SlidingWindowRateLimiterOptions\n            {\n                PermitLimit = 50, Window = TimeSpan.FromMinutes(1), SegmentsPerWindow = 6\n            }));\n\n    // Custom 429 response\n    limiter.OnRejected = async (ctx, ct) =>\n    {\n        ctx.HttpContext.Response.StatusCode = 429;\n        if (ctx.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retry))\n            ctx.HttpContext.Response.Headers.RetryAfter = retry.TotalSeconds.ToString();\n        await ctx.HttpContext.Response.WriteAsJsonAsync(new { error = \"Rate limit exceeded\" }, ct);\n    };\n});\n\napp.UseRateLimiter();\napp.MapPost(\"/api/orders\", CreateOrder).RequireRateLimiting(\"per-user\");",
+  "tradeoffs": [
+    "Built-in rate limiter là in-memory: không hoạt động trong multi-instance deployment — cần Redis-backed solution",
+    "Sliding Window dùng nhiều memory hơn Fixed Window (phải lưu segment counts)",
+    "Queue limit giúp absorb burst nhưng làm tăng latency — chỉ dùng khi acceptable",
+    "Token Bucket tốt cho burst, Concurrency Limiter tốt cho resource protection"
+  ],
+  "references": [
+    {
+      "title": "Rate limiting in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test: 200 requests/min với sliding window 100/min — verify rejection behavior",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "7+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

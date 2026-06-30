@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-response-streaming-20260630",
+  "topic": "Response Streaming trong ASP.NET Core: IAsyncEnumerable và Server-Sent Events",
+  "category": "dotnet",
+  "subcategory": "ASP.NET Core",
+  "tags": [
+    "streaming",
+    "iasyncenumerable",
+    "sse",
+    "server-sent-events",
+    "aspnetcore",
+    "real-time"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.92,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "ASP.NET Core tự động stream IAsyncEnumerable<T> response: không buffer toàn bộ result trước khi gửi. Server-Sent Events (SSE) với TypedResults.ServerSentEvents() (.NET 9) cho real-time updates không cần WebSocket.",
+  "problem": "Report API trả 100K rows phải buffer toàn bộ vào memory trước khi serialize. Real-time progress update cần WebSocket setup phức tạp. AI token streaming API cần protocol riêng.",
+  "solution": "Return IAsyncEnumerable<T> từ Minimal API — ASP.NET Core tự stream. TypedResults.ServerSentEvents() (.NET 9) cho push-based streaming theo SSE protocol.",
+  "codeExample": "// Stream IAsyncEnumerable (buffering-free)\napp.MapGet(\"/api/export/orders\", (OrderRepo repo, CancellationToken ct) =>\n    repo.GetAllAsync(ct)); // trả IAsyncEnumerable<OrderDto>\n\n// Trong repo:\npublic async IAsyncEnumerable<OrderDto> GetAllAsync(\n    [EnumeratorCancellation] CancellationToken ct)\n{\n    await foreach (var order in _db.Orders.AsAsyncEnumerable().WithCancellation(ct))\n        yield return new OrderDto(order.Id, order.Status, order.Total);\n}\n\n// Server-Sent Events (.NET 9) — AI streaming, progress updates\napp.MapGet(\"/api/ai/stream\", async (string prompt, AiService ai, CancellationToken ct) =>\n{\n    var stream = ai.StreamCompletionAsync(prompt, ct);\n    return TypedResults.ServerSentEvents(\n        GetSseEvents(stream, ct),\n        eventType: \"token\");\n});\n\nstatic async IAsyncEnumerable<SseItem<string>> GetSseEvents(\n    IAsyncEnumerable<string> tokens,\n    [EnumeratorCancellation] CancellationToken ct)\n{\n    await foreach (var token in tokens.WithCancellation(ct))\n        yield return new SseItem<string>(token);\n    yield return new SseItem<string>(\"[DONE]\", eventType: \"done\");\n}\n\n// Client (JavaScript):\n// const es = new EventSource('/api/ai/stream?prompt=...');\n// es.addEventListener('token', e => process(e.data));",
+  "tradeoffs": [
+    "IAsyncEnumerable streaming không cho phép set Content-Length header → client không biết progress %",
+    "SSE chỉ server-to-client, HTTP/1.1 giới hạn 6 connections/domain — không phù hợp nhiều SSE streams",
+    "Nếu client disconnect giữa stream, CancellationToken sẽ được signal — phải check và stop IAsyncEnumerable",
+    "SSE không hoạt động qua HTTP/2 multiplexing đúng cách với một số reverse proxy configs"
+  ],
+  "references": [
+    {
+      "title": "SSE in ASP.NET Core 9",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/release-notes/aspnetcore-9.0#server-sent-events"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "curl test: verify chunked transfer encoding, first byte latency",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/aspnetcore-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

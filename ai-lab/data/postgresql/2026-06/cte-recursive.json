@@ -1,0 +1,61 @@
+{
+  "id": "postgresql-cte-recursive-20260630",
+  "topic": "CTE và Recursive CTE: Query hierarchical data trong PostgreSQL",
+  "category": "postgresql",
+  "subcategory": "SQL",
+  "tags": [
+    "cte",
+    "recursive-cte",
+    "hierarchy",
+    "tree",
+    "graph",
+    "postgresql",
+    "with-clause"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.94,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Common Table Expressions (WITH clause) cải thiện readability và cho phép query hierarchical/recursive data. Recursive CTE traverse tree/graph structure trong SQL không cần multiple round-trips từ application.",
+  "problem": "Organizational chart, category tree, comment threads: traverse hierarchy trong application code tốn nhiều DB roundtrips. SQL không có built-in tree traversal.",
+  "solution": "WITH RECURSIVE: anchor member (root) + recursive member (join với itself). Kết quả tích lũy cho đến không có rows mới. depth column để detect cycles.",
+  "codeExample": "-- Tổ chức hierarchy (employee_id, manager_id)\nWITH RECURSIVE org_tree AS (\n    -- Anchor: CEO (không có manager)\n    SELECT id, name, manager_id, 0 AS depth, ARRAY[id] AS path\n    FROM employees WHERE manager_id IS NULL\n\n    UNION ALL\n\n    -- Recursive: thêm direct reports của mỗi employee đã xử lý\n    SELECT e.id, e.name, e.manager_id, ot.depth + 1, ot.path || e.id\n    FROM employees e\n    JOIN org_tree ot ON e.manager_id = ot.id\n    WHERE e.id != ALL(ot.path) -- cycle detection\n)\nSELECT *, repeat('  ', depth) || name AS indented_name\nFROM org_tree\nORDER BY path;\n\n-- Category tree: all descendants của category 5\nWITH RECURSIVE cat_tree AS (\n    SELECT id, name, parent_id, 1 AS level FROM categories WHERE id = 5\n    UNION ALL\n    SELECT c.id, c.name, c.parent_id, ct.level + 1\n    FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id\n)\nSELECT * FROM cat_tree;\n\n-- CTE thường để query phức tạp\nWITH\nmonthly_revenue AS (\n    SELECT DATE_TRUNC('month', created_at) AS month, SUM(total) AS revenue\n    FROM orders WHERE status = 'completed' GROUP BY 1\n),\nprev_month AS (\n    SELECT *, LAG(revenue) OVER (ORDER BY month) AS prev_revenue\n    FROM monthly_revenue\n)\nSELECT month, revenue,\n    ROUND((revenue - prev_revenue) / prev_revenue * 100, 2) AS growth_pct\nFROM prev_month;",
+  "tradeoffs": [
+    "Recursive CTE không có LIMIT tự động: phải thêm depth limit hoặc cycle detection để tránh infinite loop",
+    "PostgreSQL 12+: CTEs mặc định là optimization fence — query planner không push conditions INTO CTE. Dùng CTE MATERIALIZED hoặc NOT MATERIALIZED để control",
+    "Rất sâu hierarchy (>100 levels): performance giảm, xem xét closure table hay ltree extension",
+    "CYCLE clause (PostgreSQL 14+): SELECT ... CYCLE id SET is_cycle USING path — built-in cycle detection"
+  ],
+  "references": [
+    {
+      "title": "Recursive queries in PostgreSQL",
+      "url": "https://www.postgresql.org/docs/current/queries-with.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Test recursive CTE với 5-level hierarchy: verify kết quả đúng thứ tự",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/sql-patterns.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "8.4+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

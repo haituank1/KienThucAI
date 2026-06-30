@@ -1,0 +1,65 @@
+{
+  "id": "postgresql-explain-analyze-deep-20260630",
+  "topic": "EXPLAIN ANALYZE sâu: Đọc query plan và phát hiện bottleneck",
+  "category": "postgresql",
+  "subcategory": "Performance",
+  "tags": [
+    "explain",
+    "analyze",
+    "query-plan",
+    "performance",
+    "postgresql",
+    "buffers",
+    "timing"
+  ],
+  "difficulty": "advanced",
+  "relevance": "critical",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) cho full picture: actual vs estimated rows, buffer hits/misses, timing per node. Rows estimation error > 10× là dấu hiệu stale statistics. Hash Join là O(n+m), Nested Loop là O(n×m).",
+  "problem": "Query chậm nhưng không biết tại sao: index có rồi mà vẫn Seq Scan. Estimated 100 rows nhưng actual 100K rows → planner chọn sai join method. Không biết đọc output EXPLAIN.",
+  "solution": "Đọc plan từ inner nodes ra ngoài. Tìm nodes có actual rows >> estimated rows (statistics cũ). Tìm nodes có high buffers read (cold cache IO). Tìm loops cao với nested loop join.",
+  "codeExample": "-- Full analysis\nEXPLAIN (ANALYZE, BUFFERS, VERBOSE, FORMAT TEXT)\nSELECT o.id, o.status, c.name\nFROM orders o\nJOIN customers c ON o.customer_id = c.id\nWHERE o.status = 'pending' AND o.created_at > '2026-01-01';\n\n-- Đọc output (từ trong ra ngoài):\n-- Hash Join (actual rows=50234, cost=1200..8500)\n--   Hash Cond: (o.customer_id = c.id)\n--   -> Seq Scan on orders (actual rows=1000000, loops=1)  ← BAD: Seq Scan\n--        Filter: (status = 'pending')\n--        Rows Removed by Filter: 990000\n--   -> Hash (actual rows=100000)\n--        Buckets: 131072\n--        -> Seq Scan on customers (rows=100000)\n\n-- Vấn đề: Seq Scan trên orders (1M rows) với filter\n-- Fix: partial index WHERE status = 'pending'\n\n-- Kiểm tra statistics freshness\nSELECT relname, n_live_tup, n_dead_tup, last_analyze, last_autoanalyze\nFROM pg_stat_user_tables WHERE relname = 'orders';\n\n-- Force statistics update\nANALYZE orders;\n\n-- Buffers output — phát hiện cache miss:\n-- Buffers: shared hit=1234 read=56789  ← read > hit = đang đọc từ disk\n-- → tăng shared_buffers hoặc thêm RAM\n\n-- Loại join phổ biến:\n-- Hash Join: 2 tables lớn, equality join → O(n+m) nhưng build hash table\n-- Nested Loop: 1 table nhỏ + index trên table lớn → O(n×m) worst, O(n×log(m)) với index\n-- Merge Join: cả 2 đã sort, expensive sort nhưng efficient khi already sorted",
+  "tradeoffs": [
+    "ANALYZE thực sự chạy query (EXPLAIN không): với DELETE/UPDATE cần transaction rollback để tránh data change",
+    "Format JSON cho pg_query.io visualization dễ đọc hơn text format",
+    "Rows estimation sai: chạy ANALYZE table hoặc set statistics target cao hơn cho problematic columns",
+    "enable_seqscan=off để test xem planner WOULD dùng index: hữu ích để debug missing index"
+  ],
+  "references": [
+    {
+      "title": "Using EXPLAIN - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/using-explain.html"
+    },
+    {
+      "title": "explain.dalibo.com - EXPLAIN visualizer",
+      "url": "https://explain.dalibo.com"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh estimated vs actual rows trong plan: nếu diff > 10× → ANALYZE",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/performance.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "12+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

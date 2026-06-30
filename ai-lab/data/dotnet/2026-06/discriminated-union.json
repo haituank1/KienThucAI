@@ -1,0 +1,63 @@
+{
+  "id": "dotnet-discriminated-union-20260630",
+  "topic": "Discriminated Unions trong C#: OneOf, union-like pattern và switch expression",
+  "category": "dotnet",
+  "subcategory": "Language",
+  "tags": [
+    "discriminated-union",
+    "oneof",
+    "pattern-matching",
+    "csharp",
+    "domain-modeling"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.88,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "C# chưa có native discriminated unions (DU) như F#. Workarounds: OneOf<T1,T2> thư viện, abstract base class với sealed subclasses + switch expression, Result<T> custom. C# 13 đang xem xét DU nhưng chưa có timeline rõ.",
+  "problem": "Return type không rõ ràng: method có thể trả User, NotFound, Forbidden — nhưng phải dùng exception hoặc nullable. Switch không exhaustive check như F# match.",
+  "solution": "OneOf<T1,T2,T3> thư viện: type-safe union, Match() exhaustive. Abstract base + sealed class: compile-time exhaustive với switch. Cả hai tốt hơn exception-driven flow.",
+  "codeExample": "// Option 1: OneOf<> thư viện (NuGet: OneOf)\nusing OneOf;\npublic OneOf<OrderDto, NotFound, Forbidden> GetOrder(int id, int userId) =>\n    _orders.TryGetValue(id, out var o) switch\n    {\n        false => new NotFound(),\n        true when o.OwnerId != userId => new Forbidden(),\n        true => _mapper.ToDto(o)\n    };\n\nvar result = GetOrder(orderId, userId);\nstring response = result.Match(\n    order => $\"Order {order.Id}\",    // exhaustive: phải handle tất cả cases\n    notFound => \"Not found\",\n    forbidden => \"Forbidden\");\n\n// Option 2: Sealed class hierarchy + pattern matching\npublic abstract record GetOrderResult;\npublic record OrderFound(OrderDto Order) : GetOrderResult;\npublic sealed record OrderNotFound : GetOrderResult;\npublic sealed record OrderForbidden : GetOrderResult;\n\nstring HandleResult(GetOrderResult result) => result switch\n{\n    OrderFound(var o) => $\"Order {o.Id}\",\n    OrderNotFound => \"Not found\",\n    OrderForbidden => \"Forbidden\",\n    _ => throw new UnreachableException() // compiler không exhaustive check với record\n};\n\n// C# sealed hierarchy: compiler cảnh báo non-exhaustive switch nếu có sealed + switch expression",
+  "tradeoffs": [
+    "OneOf<T1,T2,T3>: generic parameter limit (8 max, có generic permutations), boxing overhead nhỏ",
+    "Abstract class approach: verbose, không tự-document như union type",
+    "C# 13/14 có thể có native union types nhưng chưa confirmed",
+    "F# interop: F# discriminated unions rất clean nếu dự án có thể dùng F# cho domain layer"
+  ],
+  "references": [
+    {
+      "title": "OneOf - GitHub",
+      "url": "https://github.com/mcintyre321/OneOf"
+    },
+    {
+      "title": "C# discriminated unions proposal",
+      "url": "https://github.com/dotnet/csharplang/issues/113"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Switch expression: verify compile error khi thiếu case (với sealed)",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/language-features.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,60 @@
+{
+  "id": "postgresql-generated-columns-20260630",
+  "topic": "Generated Columns và Expression Indexes trong PostgreSQL",
+  "category": "postgresql",
+  "subcategory": "Schema Design",
+  "tags": [
+    "generated-columns",
+    "expression-index",
+    "computed",
+    "postgresql",
+    "schema",
+    "performance"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.93,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Generated columns (STORED, PG 12+): tính toán từ columns khác, lưu vật lý, index được. Expression indexes: index trên biểu thức (LOWER(email)) thay vì raw column. Không cần computed column nếu chỉ cần index.",
+  "problem": "Query WHERE LOWER(email) = @email: không dùng index trên email (case mismatch). Search không phân biệt hoa thường. Tính toán total từ quantity × price trong mỗi query.",
+  "solution": "Expression index: CREATE INDEX ... ON users (LOWER(email)). Generated column: tính và lưu total = quantity × price, index trên total.",
+  "codeExample": "-- Expression index: case-insensitive email lookup\nCREATE INDEX idx_users_email_lower ON users (LOWER(email));\n\n-- Query TỰ ĐỘNG dùng expression index\nSELECT * FROM users WHERE LOWER(email) = LOWER(@email);\n-- hoặc (sau PostgreSQL 12 với citext extension)\n\n-- Generated column (STORED): lưu vật lý\nALTER TABLE order_items ADD COLUMN subtotal NUMERIC(12,2)\n    GENERATED ALWAYS AS (quantity * unit_price) STORED;\n\n-- Index trên generated column\nCREATE INDEX idx_items_subtotal ON order_items (subtotal);\n\n-- Query\nSELECT * FROM order_items WHERE subtotal > 1000;\n\n-- Generated column cho full-text search (thường dùng)\nALTER TABLE products ADD COLUMN search_vector tsvector\n    GENERATED ALWAYS AS (\n        to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, ''))\n    ) STORED;\n\nCREATE INDEX idx_products_fts ON products USING GIN (search_vector);\n\n-- Expression index cho JSON field\nCREATE INDEX idx_orders_customer_json ON orders ((metadata->>'customer_email'));\n\n-- Functional index cho date truncation\nCREATE INDEX idx_orders_month ON orders (DATE_TRUNC('month', created_at));\n-- Query:\nSELECT * FROM orders WHERE DATE_TRUNC('month', created_at) = '2026-06-01';",
+  "tradeoffs": [
+    "STORED generated column: tăng storage (~20%), update operation chậm hơn (phải recalculate)",
+    "Expression index: chỉ dùng khi query expression EXACT MATCH với index expression (case-sensitive function name)",
+    "VIRTUAL generated column (chưa có ở PostgreSQL, có ở MySQL): không lưu vật lý, tính lúc query",
+    "Generated columns không thể reference non-immutable functions (NOW(), random()) — chỉ IMMUTABLE functions"
+  ],
+  "references": [
+    {
+      "title": "Generated Columns - PostgreSQL docs",
+      "url": "https://www.postgresql.org/docs/current/ddl-generated-columns.html"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "EXPLAIN: WHERE LOWER(email) = 'test@example.com' với/không expression index",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/postgresql/schema-design.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "postgresql": "12+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

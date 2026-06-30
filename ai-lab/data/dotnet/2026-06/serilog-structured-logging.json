@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-serilog-structured-logging-20260630",
+  "topic": "Serilog: Structured logging và performance best practices trong .NET",
+  "category": "dotnet",
+  "subcategory": "Logging",
+  "tags": [
+    "serilog",
+    "logging",
+    "structured-logging",
+    "enricher",
+    "sink",
+    "performance"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.95,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Serilog hỗ trợ structured logging: log object được serialize thành key-value pairs (JSON) thay vì string. Query theo field trong Seq/Elasticsearch. IsEnabled check tránh string interpolation overhead khi log level bị tắt.",
+  "problem": "String interpolation trong log: logger.LogInfo($\"User {user.Name} created order {order.Id}\") luôn allocate string dù log level bị tắt. Không query được theo field trong log aggregator.",
+  "solution": "Dùng message template: Log.Information(\"User {UserName} created order {OrderId}\", user.Name, order.Id). Serilog capture structured properties. Thêm IsEnabled check cho expensive ops.",
+  "codeExample": "// Setup\nLog.Logger = new LoggerConfiguration()\n    .MinimumLevel.Information()\n    .MinimumLevel.Override(\"Microsoft.EntityFrameworkCore\", LogEventLevel.Warning)\n    .Enrich.FromLogContext()\n    .Enrich.WithProperty(\"Application\", \"MyApp\")\n    .WriteTo.Console(new JsonFormatter())\n    .WriteTo.Seq(\"http://seq:5341\")\n    .CreateLogger();\n\nbuilder.Host.UseSerilog();\n\n// WRONG: string interpolation — luôn allocate dù tắt log\nlogger.LogInformation($\"Order {order.Id} created for {customerId}\");\n\n// RIGHT: structured, queryable\nlogger.LogInformation(\n    \"Order {OrderId} created for customer {CustomerId} with total {Total:C}\",\n    order.Id, customerId, order.Total);\n\n// Destructuring với '@'\nlogger.LogDebug(\"Processing {@Order}\", order);\n\n// Performance: IsEnabled check\nif (logger.IsEnabled(LogLevel.Debug))\n{\n    var snapshot = ComputeExpensiveDebugInfo(); // chỉ gọi khi Debug on\n    logger.LogDebug(\"Debug snapshot: {@Snapshot}\", snapshot);\n}\n\n// LogContext — thêm prop cho mọi log trong scope\nusing (LogContext.PushProperty(\"RequestId\", correlationId))\n{\n    // Mọi log trong using block có RequestId\n}",
+  "tradeoffs": [
+    "Destructuring (@) serialize toàn bộ object: nên dùng explicit projection cho object lớn",
+    "WriteTo.File với Async wrapper để tránh block main thread",
+    "Minimum level Override quan trọng: EF Core DEBUG log rất verbose — nên set Warning trong production",
+    "Seq license cost cho production; alternative: Grafana Loki (free) + JSON console output"
+  ],
+  "references": [
+    {
+      "title": "Serilog docs",
+      "url": "https://serilog.net/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Verify structured JSON output, query by OrderId trong Seq",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/observability.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

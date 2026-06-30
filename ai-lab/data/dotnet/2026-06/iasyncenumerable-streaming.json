@@ -1,0 +1,60 @@
+{
+    "id": "dotnet-iasyncenumerable-streaming-20260630",
+    "topic": "IAsyncEnumerable<T>: Streaming data thay vì List<T>",
+    "category": "dotnet",
+    "subcategory": "Async",
+    "tags": [
+        "iasyncenumerable",
+        "streaming",
+        "async",
+        "yield",
+        "memory",
+        "ef-core"
+    ],
+    "difficulty": "intermediate",
+    "relevance": "high",
+    "status": "pending_review",
+    "confidence": 0.93,
+    "researchedAt": "2026-06-30T08:00:00Z",
+    "validatedAt": null,
+    "validatedBy": null,
+    "summary": "IAsyncEnumerable<T> stream kết quả từng item thay vì load toàn bộ vào List<T>, giảm peak memory từ O(n) xuống O(1). EF Core hỗ trợ AsAsyncEnumerable().",
+    "problem": "ToListAsync() load 100K records vào RAM trước khi xử lý: 100K x 1KB = 100MB peak chỉ để process và discard.",
+    "solution": "AsAsyncEnumerable() trên EF IQueryable hoặc yield return IAsyncEnumerable<T>. Consumer dùng await foreach.",
+    "codeExample": "// EF Core streaming\nawait foreach (var order in db.Orders\n    .Where(o => o.Status == \"pending\")\n    .AsAsyncEnumerable()\n    .WithCancellation(ct))\n{\n    await ProcessOrder(order, ct);\n}\n\n// Producer method\nasync IAsyncEnumerable<CsvRow> ReadCsvAsync(\n    string path,\n    [EnumeratorCancellation] CancellationToken ct = default)\n{\n    using var reader = new StreamReader(path);\n    string? line;\n    while ((line = await reader.ReadLineAsync(ct)) is not null)\n        yield return ParseRow(line);\n}\n\n// Chunk để batch\nawait foreach (var chunk in ReadCsvAsync(path,ct).Chunk(500))\n    await db.BulkInsertAsync(chunk, ct);",
+    "tradeoffs": [
+        "Không Count()/Skip/Take trực tiếp - nếu cần paging vẫn phải dùng IQueryable",
+        "EF Core: giữ connection mở suốt quá trình enumerate",
+        "WithCancellation() chỉ pass CT, không throw tự động - method phải check"
+    ],
+    "references": [
+        {
+            "title": "Async streams - C# guide",
+            "url": "https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/generate-consume-asynchronous-stream"
+        }
+    ],
+    "selfVerification": {
+        "verified": false,
+        "method": "Measure peak memory: ToListAsync vs AsAsyncEnumerable 100K rows",
+        "caveats": ""
+    },
+    "demo": {
+        "exists": false,
+        "type": "backend",
+        "path": "",
+        "description": ""
+    },
+    "validation": {
+        "notes": "",
+        "toolkitTarget": "05-snippets/dotnet/async-patterns.md",
+        "action": "append"
+    },
+    "toolkitContent": "",
+    "staleAfterDays": 365,
+    "techVersions": {
+        "dotnet": "5+",
+        "efcore": "5+"
+    },
+    "mergedIntoFile": null,
+    "mergedAt": null
+}

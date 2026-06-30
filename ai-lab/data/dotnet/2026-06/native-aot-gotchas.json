@@ -1,0 +1,60 @@
+{
+  "id": "dotnet-native-aot-gotchas-20260630",
+  "topic": "Native AOT trong .NET 8/9: Lợi ích, giới hạn và gotchas khi deploy",
+  "category": "dotnet",
+  "subcategory": "Deployment",
+  "tags": [
+    "native-aot",
+    "dotnet8",
+    "dotnet9",
+    "performance",
+    "startup",
+    "reflection"
+  ],
+  "difficulty": "expert",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.88,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "Native AOT compile sang binary native: startup <50ms, RAM thấp hơn 50%, không cần .NET runtime. Nhưng phải bỏ reflection, dynamic code gen, nhiều thư viện (EF Core full, Newtonsoft) không tương thích.",
+  "problem": "Container .NET app khởi động chậm (2–5 giây), tốn RAM idle. Trong Kubernetes với nhiều replicas và scale-to-zero, startup time là critical.",
+  "solution": "Enable <PublishAot>true</PublishAot>. Dùng source generators: System.Text.Json JsonSerializerContext, Minimal API. Tránh Reflection.Emit, MakeGenericType runtime, dynamic.",
+  "codeExample": "// .csproj\n<PropertyGroup>\n  <PublishAot>true</PublishAot>\n  <InvariantGlobalization>true</InvariantGlobalization>\n</PropertyGroup>\n\n// JsonSerializerContext thay thế runtime reflection\n[JsonSerializable(typeof(UserDto))]\n[JsonSerializable(typeof(List<UserDto>))]\n[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]\ninternal partial class AppJsonContext : JsonSerializerContext { }\n\nbuilder.Services.ConfigureHttpJsonOptions(o =>\n    o.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));\n\n// Minimal API — AOT-friendly\napp.MapGet(\"/users/{id}\", (int id, UserService svc) =>\n    svc.GetById(id) is { } u ? Results.Ok(u) : Results.NotFound());\n\n// Build kiểm tra AOT warnings:\n// dotnet publish -r linux-x64 --self-contained",
+  "tradeoffs": [
+    "EF Core chỉ hỗ trợ AOT từ .NET 9 với giới hạn (compiled models, không LINQ phức tạp)",
+    "Build time tăng đáng kể (3–10 phút thay vì giây)",
+    "Debugger khó hơn: không có JIT, hot reload không hoạt động",
+    "Cross-compilation: phải build trên OS tương tự target (Linux build trên Linux)"
+  ],
+  "references": [
+    {
+      "title": "Native AOT deployment - .NET 8",
+      "url": "https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "So sánh startup time & RSS memory: JIT vs AOT Minimal API",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/deployment.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 180,
+  "techVersions": {
+    "dotnet": "8+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,61 @@
+{
+  "id": "dotnet-string-pool-interning-20260630",
+  "topic": "String pooling và Span-based parsing: Giảm string allocation trong .NET",
+  "category": "dotnet",
+  "subcategory": "Performance",
+  "tags": [
+    "string",
+    "interning",
+    "stringpool",
+    "allocation",
+    "performance",
+    "memory",
+    "span"
+  ],
+  "difficulty": "advanced",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.9,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "StringPool.Shared (CommunityToolkit.HighPerformance) intern string từ Span<char>, return cached string nếu đã tồn tại. Tốt hơn String.Intern() vì thread-safe và bounded size. Span-based parsing tránh string allocation hoàn toàn.",
+  "problem": "Parse 100K JSON messages, mỗi tên field ('userId', 'status') tạo new string object mỗi lần. 100K messages × 10 fields = 1M string objects dù values là identical.",
+  "solution": "StringPool.Shared.GetOrAdd() từ CommunityToolkit.HighPerformance: intern string từ Span<char>, return cached string nếu đã tồn tại. Span-based processing tránh string hoàn toàn.",
+  "codeExample": "// CommunityToolkit.HighPerformance StringPool\n// Install: dotnet add package CommunityToolkit.HighPerformance\n\nusing CommunityToolkit.HighPerformance.Buffers;\n\n// Parse JSON field name — intern để dedup\nstring GetFieldName(ReadOnlySpan<char> rawSpan)\n    => StringPool.Shared.GetOrAdd(rawSpan);\n\n// Span-based parsing — zero alloc\nvoid ParseLine(ReadOnlySpan<char> line)\n{\n    int colonIdx = line.IndexOf(':');\n    ReadOnlySpan<char> key = line[..colonIdx].Trim();\n    ReadOnlySpan<char> value = line[(colonIdx + 1)..].Trim();\n\n    // Chỉ convert sang string nếu thực sự cần lưu\n    if (key.Equals(\"Content-Type\", StringComparison.OrdinalIgnoreCase))\n        _contentType = value.ToString(); // 1 alloc\n    // Không allocate nếu chỉ đọc\n}\n\n// string.Create() cho concatenation tối ưu\nstring FormatId(int tenantId, int userId) =>\n    string.Create(20, (tenantId, userId),\n        (span, state) =>\n        {\n            state.tenantId.TryFormat(span, out int n);\n            span[n] = ':';\n            state.userId.TryFormat(span[(n+1)..], out _);\n        });",
+  "tradeoffs": [
+    "StringPool có hash lookup overhead: chỉ có lợi khi string lặp lại nhiều lần (>2–3 lần)",
+    "String.Intern() unbounded và never GC'd: nguy hiểm với dynamic strings (user input)",
+    "StringPool.Shared là thread-safe nhưng có lock tranh: trong extreme hot path có thể dùng per-thread pool",
+    "ReadOnlySpan<char> không có overhead nhưng chỉ dùng sync context"
+  ],
+  "references": [
+    {
+      "title": "StringPool - CommunityToolkit.HighPerformance",
+      "url": "https://learn.microsoft.com/en-us/dotnet/communitytoolkit/high-performance/stringpool"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Memory profiler: so sánh alloc count: parse 10K same-key JSON với/không StringPool",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "5+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}

@@ -1,0 +1,59 @@
+{
+  "id": "dotnet-benchmarkdotnet-micro-20260630",
+  "topic": "BenchmarkDotNet: Micro-benchmarking đúng cách cho .NET",
+  "category": "dotnet",
+  "subcategory": "Performance",
+  "tags": [
+    "benchmarkdotnet",
+    "benchmarking",
+    "performance",
+    "profiling",
+    "memory-diagnoser"
+  ],
+  "difficulty": "intermediate",
+  "relevance": "high",
+  "status": "pending_review",
+  "confidence": 0.97,
+  "researchedAt": "2026-06-30T08:00:00Z",
+  "validatedAt": null,
+  "validatedBy": null,
+  "summary": "BenchmarkDotNet là standard cho .NET micro-benchmarking: warmup tự động, JIT consideration, statistical analysis, Memory Diagnoser đo allocation. Tránh các sai lầm phổ biến: benchmark trong Debug, không warmup, đo trong 1 process.",
+  "problem": "Benchmark thủ công (Stopwatch trong loop) không tin cậy: JIT chưa warm, GC có thể chạy giữa, không có statistical analysis. Kết quả bị skew bởi outliers.",
+  "solution": "Dùng BenchmarkDotNet: [Benchmark] attribute, chạy với Release build, [MemoryDiagnoser] đo alloc, [Params] compare nhiều input sizes. Results có Mean, StdDev, Allocated.",
+  "codeExample": "// Install: dotnet add package BenchmarkDotNet\n[MemoryDiagnoser]\n[RankColumn]\npublic class StringBenchmarks\n{\n    [Params(100, 1000, 10000)]\n    public int N;\n\n    [Benchmark(Baseline = true)]\n    public void StringConcatN()\n    {\n        string s = \"\";\n        for (int i = 0; i < N; i++) s += \"x\";\n    }\n\n    [Benchmark]\n    public void StringBuilderN()\n    {\n        var sb = new System.Text.StringBuilder();\n        for (int i = 0; i < N; i++) sb.Append('x');\n        _ = sb.ToString();\n    }\n\n    [Benchmark]\n    public void StringCreate()\n    {\n        _ = string.Create(N, N, (span, n) =>\n        {\n            for (int i = 0; i < n; i++) span[i] = 'x';\n        });\n    }\n}\n\n// Chạy: dotnet run -c Release\n// Program.cs:\nBenchmarkRunner.Run<StringBenchmarks>();",
+  "tradeoffs": [
+    "BenchmarkDotNet PHẢI chạy ở Release mode — Debug thì kết quả vô nghĩa (JIT không optimize)",
+    "Mỗi benchmark method nên allocate fresh data trong [GlobalSetup] nếu bench phụ thuộc input",
+    "Micro-benchmark có thể không reflect macro performance: GC pause, thread contention ở scale",
+    "Không benchmark trong shared CI runner (noisy neighbor) — chạy trên dedicated machine"
+  ],
+  "references": [
+    {
+      "title": "BenchmarkDotNet docs",
+      "url": "https://benchmarkdotnet.org/"
+    }
+  ],
+  "selfVerification": {
+    "verified": false,
+    "method": "Compare string concat methods — verify StringBuilder wins cho N > 100",
+    "caveats": ""
+  },
+  "demo": {
+    "exists": false,
+    "type": "backend",
+    "path": "",
+    "description": ""
+  },
+  "validation": {
+    "notes": "",
+    "toolkitTarget": "05-snippets/dotnet/performance-memory.md",
+    "action": "append"
+  },
+  "toolkitContent": "",
+  "staleAfterDays": 365,
+  "techVersions": {
+    "dotnet": "6+"
+  },
+  "mergedIntoFile": null,
+  "mergedAt": null
+}
