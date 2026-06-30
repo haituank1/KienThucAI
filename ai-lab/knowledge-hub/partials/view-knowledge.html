@@ -1,0 +1,45 @@
+<!-- ══ KNOWLEDGE VIEW ════════════════════════════════════════════════════════ -->
+<div id="view-knowledge" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+
+  <!-- Topbar -->
+  <div class="view-topbar">
+    <div class="search-wrapper" style="max-width:260px;width:260px">
+      <input type="text" id="searchInput" class="input"
+             placeholder="🔍 Tìm kiếm..." oninput="debounceSearch(this.value)">
+      <button class="search-clear" id="searchClearBtn" hidden onclick="clearSearch()" title="Xoá">✕</button>
+    </div>
+    <div id="searchResultCount" class="search-count" hidden></div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="refreshAll()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openAddCategoryModal()">+ Category</button>
+    </div>
+    <!-- Hidden select for backward compat với filterStale / viewAllPending -->
+    <select id="statusFilter" hidden onchange="setStatusFilter(this.value)">
+      <option value="">Tất cả</option>
+      <option value="pending_review">Pending Review</option>
+      <option value="validated">Validated</option>
+      <option value="rejected">Rejected</option>
+      <option value="needs_rework">Needs Rework</option>
+      <option value="stale">Stale</option>
+    </select>
+  </div>
+
+  <!-- Filter bar: status chips -->
+  <div class="filter-bar">
+    <span class="filter-label">Status:</span>
+    <button class="filter-chip active" data-status="" onclick="setStatusFilter('')">Tất cả</button>
+    <button class="filter-chip" data-status="pending_review" onclick="setStatusFilter('pending_review')">⏳ Pending</button>
+    <button class="filter-chip" data-status="validated"      onclick="setStatusFilter('validated')">✅ Validated</button>
+    <button class="filter-chip" data-status="rejected"       onclick="setStatusFilter('rejected')">❌ Rejected</button>
+    <button class="filter-chip" data-status="needs_rework"   onclick="setStatusFilter('needs_rework')">🔄 Rework</button>
+    <button class="filter-chip" data-status="stale"          onclick="setStatusFilter('stale')">⚠️ Stale</button>
+  </div>
+
+  <!-- Scrollable knowledge grid -->
+  <div style="flex:1;overflow-y:auto;padding:1.25rem">
+    <div id="knowledgeList"
+         style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem"></div>
+    <div id="knowledgeEmpty" class="loading" hidden>Không có kết quả</div>
+    <div id="knowledgeLoading" class="loading">Đang tải...</div>
+  </div>
+</div>

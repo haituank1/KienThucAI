@@ -1,0 +1,35 @@
+<!-- ══ TOOLKIT VIEW ══════════════════════════════════════════════════════════ -->
+<div id="view-toolkit" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+  <div style="flex:1;overflow-y:auto;padding:1.25rem">
+
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">
+      <h2 style="margin:0;font-size:1rem;font-weight:600;color:#cbd5e1">🗂️ Toolkit Explorer</h2>
+      <div id="tkStats" style="font-size:0.75rem;color:#64748b"></div>
+      <div style="margin-left:auto">
+        <button class="btn btn-ghost" onclick="loadToolkitExplorer()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+      <div class="search-wrapper" style="max-width:360px;width:100%">
+        <input type="text" id="tkSearchInput" class="input"
+               placeholder="🔍 Heading... (Enter = search trong nội dung)"
+               oninput="filterToolkitHeadings(this.value)"
+               onkeydown="if(event.key==='Enter') searchToolkitContent(this.value)">
+        <button class="search-clear" id="tkSearchClear" hidden onclick="clearToolkitSearch()" title="Xoá">✕</button>
+      </div>
+      <span id="tkContentSearchStatus" style="font-size:0.7rem;color:#64748b;white-space:nowrap"></span>
+    </div>
+
+    <div id="tkContentResults" hidden style="margin-bottom:1rem">
+      <div style="font-size:0.7rem;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">
+        🔍 Content matches
+      </div>
+      <div id="tkContentResultsList" style="display:flex;flex-direction:column;gap:0.35rem"></div>
+    </div>
+
+    <div id="tkFileList" style="display:flex;flex-direction:column;gap:0.5rem">
+      <div class="loading">Đang tải...</div>
+    </div>
+  </div>
+</div>

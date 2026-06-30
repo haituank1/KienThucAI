@@ -1,0 +1,68 @@
+<!-- ══ LOGO ════════════════════════════════════════════════════════════════ -->
+<div class="sidebar-logo">
+  <span class="sidebar-logo-icon">🧠</span>
+  <div>
+    <div class="sidebar-logo-title">Knowledge Hub</div>
+    <div class="sidebar-logo-sub">AI Lab</div>
+  </div>
+</div>
+
+<!-- ══ NAV ═════════════════════════════════════════════════════════════════ -->
+<nav class="sidebar-nav">
+
+  <div class="nav-section">
+    <div class="nav-section-label">Overview</div>
+    <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Knowledge</div>
+    <div class="nav-item" data-view="knowledge" onclick="switchView('knowledge')">
+      <span class="nav-icon">📚</span> Knowledge
+      <span id="navPendingBadge" hidden class="pending-badge">0</span>
+    </div>
+    <div id="categoryFilters" class="nav-sub">
+      <div class="nav-sub-item cat-filter active" data-cat="" onclick="filterByCategory('')">
+        <span>🗂️</span>
+        <span class="nav-sub-label">Tất cả</span>
+        <span id="catBadgeAll" class="nav-sub-count">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Workflow</div>
+    <div class="nav-item" data-view="queue" onclick="switchView('queue')">
+      <span class="nav-icon">📋</span> Research Queue
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">System</div>
+    <div class="nav-item" data-view="toolkit" onclick="switchView('toolkit')">
+      <span class="nav-icon">🗂️</span> Toolkit Explorer
+    </div>
+    <div class="nav-item" data-view="settings" onclick="switchView('settings')">
+      <span class="nav-icon">⚙️</span> Settings
+    </div>
+  </div>
+
+</nav>
+
+<!-- ══ BOTTOM ═══════════════════════════════════════════════════════════════ -->
+<div class="sidebar-bottom">
+  <div id="connectionStatus" class="connection-status">
+    <span class="conn-dot"></span>
+    <span>Đang kết nối...</span>
+  </div>
+  <div id="sidebarUser" hidden class="sidebar-user">
+    <span id="sidebarUserAvatar" class="user-avatar">T</span>
+    <div class="user-info">
+      <div id="sidebarUserName" class="user-name">Tuan</div>
+      <div id="sidebarUserRole" class="user-role">admin</div>
+    </div>
+    <button onclick="logout()" class="logout-btn" title="Đăng xuất">⏻</button>
+  </div>
+</div>

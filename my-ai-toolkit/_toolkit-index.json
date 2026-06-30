@@ -1,5 +1,5 @@
 ﻿{
-  "generatedAt": "2026-06-30T06:24:00.8528226Z",
+  "generatedAt": "2026-06-30T12:55:01.8420616Z",
   "totalFiles": 55,
   "totalHeadings": 304,
   "files": [
@@ -1431,8 +1431,8 @@
       "relPath": "05-snippets/dotnet/async-patterns.md",
       "fileName": "async-patterns.md",
       "directory": "05-snippets/dotnet",
-      "sizeBytes": 4715,
-      "lastModified": "2026-06-26T20:36:26.997381Z",
+      "sizeBytes": 4856,
+      "lastModified": "2026-06-30T08:59:17.3364144Z",
       "fileExists": true,
       "headings": [
         {

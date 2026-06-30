@@ -1,0 +1,69 @@
+<!-- ══ DASHBOARD VIEW ════════════════════════════════════════════════════════ -->
+<div id="view-dashboard" style="flex:1;overflow-y:auto;padding:1.5rem">
+  <div id="alertRow" hidden style="margin-bottom:1rem"></div>
+
+  <!-- Primary stats -->
+  <div class="stats-grid" style="margin-bottom:1rem">
+    <div class="stat-card">
+      <div class="stat-number" style="color:#818cf8" id="statTotal">—</div>
+      <div class="stat-label">Total Items</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color:#fbbf24" id="statPending">—</div>
+      <div class="stat-label">Pending Review</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color:#34d399" id="statValidated">—</div>
+      <div class="stat-label">Validated</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color:#f87171" id="statRejected">—</div>
+      <div class="stat-label">Rejected</div>
+    </div>
+  </div>
+
+  <!-- Secondary stats -->
+  <div class="stats-grid" style="margin-bottom:1rem">
+    <div class="stat-card">
+      <div class="stat-number" style="color:#c084fc;font-size:1.5rem" id="statConfidence">—%</div>
+      <div class="stat-label">Avg Confidence</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color:#60a5fa;font-size:1.5rem" id="statWithDemo">—</div>
+      <div class="stat-label">With Demo</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color:#2dd4bf;font-size:1.5rem" id="statThisWeek">—</div>
+      <div class="stat-label">Validated This Week</div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="filterStale()" title="Click để xem items stale">
+      <div class="stat-number" style="color:#fbbf24;font-size:1.5rem" id="statStale">0</div>
+      <div class="stat-label">⚠️ Stale Items</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid" style="margin-bottom:1rem">
+    <div class="card" style="overflow:hidden">
+      <div class="card-title">📊 Breakdown theo Category</div>
+      <div class="chart-container">
+        <canvas id="chartCategory"></canvas>
+      </div>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-title">📈 Activity Timeline (30 ngày)</div>
+      <div class="chart-container">
+        <canvas id="chartTimeline"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending preview -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">⏳ Pending Review gần đây</div>
+      <button class="btn btn-ghost" style="font-size:0.75rem" onclick="viewAllPending()">Xem tất cả →</button>
+    </div>
+    <div id="pendingPreview"></div>
+  </div>
+</div>
