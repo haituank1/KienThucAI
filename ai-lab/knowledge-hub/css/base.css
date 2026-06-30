@@ -445,6 +445,12 @@ body {
   line-height: 1.6;
   color: #a5b4fc;
 }
+/* Prism.js targets code/pre elements; override to apply on div.code-block too */
+.code-block[class*="language-"] {
+  background: #1e293b !important;  /* keep our dark bg */
+  color: #ccc;                      /* prism-tomorrow base text */
+  text-shadow: none !important;
+}
 .modal-section-label {
   font-size: 0.65rem;
   color: var(--text-3);

@@ -16,7 +16,7 @@
   "status": "validated",
   "confidence": 0.97,
   "researchedAt": "2026-06-30T08:00:00Z",
-  "validatedAt": "2026-06-30T09:58:59.04296Z",
+  "validatedAt": "2026-06-30T13:12:45.6682531Z",
   "validatedBy": "Tuan",
   "summary": "CancellationToken là cooperative: method phải check hoặc pass token xuống. Linked tokens kết hợp nhiều tokens (user cancel + timeout). Sai lầm phổ biến: catch OperationCanceledException rồi tiếp tục, không pass token xuống call stack.",
   "problem": "API methods nhận CancellationToken nhưng không pass xuống service/repo: cancel button click trên client nhưng server vẫn xử lý. Timeout CT bị bỏ qua vì không linked. OperationCanceledException bị catch và hidden.",
@@ -54,6 +54,6 @@
   "techVersions": {
     "dotnet": "4.5+"
   },
-  "mergedIntoFile": null,
-  "mergedAt": null
+  "mergedIntoFile": "05-snippets/dotnet/async-patterns.md",
+  "mergedAt": "2026-06-30T13:11:00.059683Z"
 }

@@ -1,7 +1,7 @@
 ﻿{
-  "generatedAt": "2026-06-30T12:55:01.8420616Z",
+  "generatedAt": "2026-06-30T13:10:59.920839Z",
   "totalFiles": 55,
-  "totalHeadings": 304,
+  "totalHeadings": 305,
   "files": [
     {
       "relPath": "01-context/ai-working-style.md",
@@ -1431,8 +1431,8 @@
       "relPath": "05-snippets/dotnet/async-patterns.md",
       "fileName": "async-patterns.md",
       "directory": "05-snippets/dotnet",
-      "sizeBytes": 4856,
-      "lastModified": "2026-06-30T08:59:17.3364144Z",
+      "sizeBytes": 6300,
+      "lastModified": "2026-06-30T13:10:59.8853744Z",
       "fileExists": true,
       "headings": [
         {
@@ -1464,6 +1464,11 @@
           "level": 2,
           "text": "6. ValueTask vs Task",
           "lineNumber": 122
+        },
+        {
+          "level": 2,
+          "text": "CancellationToken: Patterns đúng và pitfalls trong .NET",
+          "lineNumber": 143
         }
       ]
     },

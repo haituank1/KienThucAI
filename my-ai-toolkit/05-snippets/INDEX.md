@@ -1,7 +1,7 @@
 ﻿# 05-Snippets — Index
 > **Auto-generated bởi DemoEngine** khi validate knowledge mới.
 > Đọc file này trước để biết có gì, rồi AI tự navigate đến file cần thiết.
-> Last updated: 2026-06-27 14:54 UTC
+> Last updated: 2026-06-30 13:10 UTC
 
 ---
 
@@ -21,7 +21,7 @@ Snippets: my-ai-toolkit/05-snippets/INDEX.md — đọc index trước, pull fil
 
 | File | Sections | Dùng khi |
 |------|---------|---------|
-| [async-patterns.md](dotnet/async-patterns.md) | 1. Parallel Processing với bounded concu…, 2. Channel<T> — Producer/Consumer pipeli…, 3. CancellationToken Timeout Wrapper, 4. Retry với Polly v8, 5. Graceful Shutdown trong BackgroundSer…, 6. ValueTask vs Task | Concurrency, pipeline, retry, background job |
+| [async-patterns.md](dotnet/async-patterns.md) | 1. Parallel Processing với bounded concu…, 2. Channel<T> — Producer/Consumer pipeli…, 3. CancellationToken Timeout Wrapper, 4. Retry với Polly v8, 5. Graceful Shutdown trong BackgroundSer…, 6. ValueTask vs Task, CancellationToken: Patterns đúng và pitf… | Concurrency, pipeline, retry, background job |
 | [ef-core-patterns.md](dotnet/ef-core-patterns.md) | 1. Projection với nested object (tránh N…, 2. Bulk update không load entity (EF Cor…, 3. Batch insert, 4. Streaming large result (tránh OOM), 5. Optimistic Concurrency (PostgreSQL xm…, 7. Global Query Filter — Soft delete & M…, 8. Compiled Query — Hot query >100 req/s…, 9. Interceptor — Audit trail tự động, 10. Owned Entity — Value Object mapping, EF Core — Typed Raw SQL `SqlQuery<T>` | EF Core query, ORM pattern, performance |
 | [gotchas.md](dotnet/gotchas.md) | 1. Captured variable trong async loop, 2. ConfigureAwait trong library, 3. DbContext trong background service (c…, 4. HttpClient socket exhaustion, 5. EF Core LEFT JOIN bị thành INNER JOIN, 6. Task.WhenAll chỉ propagate 1 exceptio…, 7. CancellationToken không được pass → r…, 8. IEnumerable bị enumerate nhiều lần, 9. SemaphoreSlim — class-level, không tạ…, 10. DateTime.Now vs DateTime.UtcNow, 11. System.Text.Json — case sensitivity …, 12. DI — GetService vs GetRequiredServic… | Debug lỗi lạ, review code, production issue |
 | [performance-patterns.md](dotnet/performance-patterns.md) | 1. Span<T> — Zero-copy string/byte proce…, 2. ArrayPool<T> — Reuse buffer trong hot…, 3. ObjectPool<T> — Reuse expensive objec…, 4. Streaming Export — Memory O(1) thay v…, 5. BenchmarkDotNet — Đo thực tế trước kh…, 6. Struct cho short-lived, small data | Memory optimization, hot path, export lớn |
@@ -52,8 +52,8 @@ Snippets: my-ai-toolkit/05-snippets/INDEX.md — đọc index trước, pull fil
 
 | Category | Files | Tổng sections |
 |----------|-------|--------------|
-| dotnet | 4 | 34 |
+| dotnet | 4 | 35 |
 | postgresql | 3 | 25 |
 | rabbitmq | 1 | 4 |
 | redis | 1 | 4 |
-| **Total** | **9** | **67** |
+| **Total** | **9** | **68** |

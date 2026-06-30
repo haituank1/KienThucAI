@@ -139,3 +139,44 @@ var vt = GetOrderAsync(id, ct);
 var r1 = await vt; // OK
 var r2 = await vt; // ❌ Undefined behavior — dùng .AsTask() nếu cần await nhiều lần
 ```
+
+## CancellationToken: Patterns đúng và pitfalls trong .NET
+> 2026-06-30 · 97%
+
+CancellationToken là cooperative: method phải check hoặc pass token xuống.
+
+// WRONG: CT không được pass xuống
+public async Task<Order> CreateOrderAsync(CreateOrderDto dto, CancellationToken ct)
+{
+    var product = await _productSvc.GetAsync(dto.ProductId); // WRONG: mất CT
+    return await _repo.CreateAsync(dto);                     // WRONG: mất CT
+}
+
+// RIGHT: pass CT xuống toàn bộ stack
+public async Task<Order> CreateOrderAsync(CreateOrderDto dto, CancellationToken ct)
+{
+    var product = await _productSvc.GetAsync(dto.ProductId, ct);
+    return await _repo.CreateAsync(dto, ct);
+}
+
+// Linked token: timeout + user cancel
+public async Task<Result> ProcessWithTimeoutAsync(Request req, CancellationToken userCt)
+{
+    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+        userCt, timeoutCts.Token);
+    try
+    {
+        return await DoWorkAsync(req, linkedCts.Token);
+    }
+    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+    {
+        throw new TimeoutException("Operation timed out after 30 seconds");
+    }
+    // OperationCanceledException từ userCt sẽ propagate tự nhiên
+}
+
+// WRONG: swallow cancellation — NEVER
+catch (OperationCanceledException) { return default; }
+
+---
