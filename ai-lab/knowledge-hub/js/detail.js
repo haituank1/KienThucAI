@@ -182,11 +182,15 @@ async function openDetail(id) {
     .then(related => renderRelatedItems(related))
     .catch(() => {});
 
+  // Pin button — top-right slot (cạnh nút ✕)
+  var pinSlot = document.getElementById('modalPinSlot');
+  if (pinSlot) pinSlot.innerHTML = renderPromoteBtn(item);
+
   // Action buttons
   const actions   = document.getElementById('modalActions');
   const isPending = item.status === 'pending_review' || item.status === 'needs_rework';
   actions.innerHTML = [
-        isPending ? '<button class="btn btn-success" onclick="showValidateForm(\'validated\')">Validate</button>' : '',
+    isPending ? '<button class="btn btn-success" onclick="showValidateForm(\'validated\')">Validate</button>' : '',
     isPending ? '<button class="btn btn-danger"  onclick="showValidateForm(\'rejected\')">Reject</button>' : '',
     isPending ? '<button class="btn btn-warning" onclick="showValidateForm(\'needs_rework\')">Needs Rework</button>' : '',
     item.demo && item.demo.exists ? '<button class="btn btn-primary" onclick="openDemoFromModal()">Xem Demo</button>' : '',

@@ -2,7 +2,7 @@
 
 // -- Partial loader --------------------------------------------------------
 async function loadPartials() {
-  const get = url => fetch(url).then(r => {
+  const get = url => fetch(url, { cache: 'no-store' }).then(r => {
     if (!r.ok) throw new Error('Partial not found: ' + url);
     return r.text();
   });
@@ -31,7 +31,7 @@ async function init() {
     setConnectionStatus(false);
     return;
   }
-  await Promise.all([loadCategories(), loadStats(), loadKnowledge(), loadRatings()]);
+  await Promise.all([loadCategories(), loadStats(), loadKnowledge(), loadRatings(), loadPromotions()]);
   loadToolkitIndex(); // fire-and-forget
 }
 
@@ -72,16 +72,11 @@ function setConnectionStatus(ok) {
   ].join('');
 }
 
-// -- View switching --------------------------------------------------------
+// -- View switching ----------------------------------------------------------
 function switchView(view) {
   state.currentView = view;
 
-  document.querySelectorAll('[data-view]').forEach(function(el) {
-    el.classList.toggle('active', el.dataset.view === view);
-  });
-
-  // Dashboard: display:block (inner uses CSS grid)
-  // Other views: display:flex (flex-column layout)
+  // Dashboard: block (inner CSS grid); others: flex (flex-column)
   var flexViews = { knowledge: 1, queue: 1, toolkit: 1, settings: 1 };
   document.querySelectorAll('[id^="view-"]').forEach(function(el) {
     if (el.id !== 'view-' + view) {
@@ -91,13 +86,18 @@ function switchView(view) {
     }
   });
 
-  if (view === 'settings') loadSettings();
-  if (view === 'queue')    loadQueue();
-  if (view === 'toolkit')  loadToolkitExplorer();
+  // Update sidebar nav active state
+  document.querySelectorAll('.nav-item[data-view]').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+
+  if (view === 'settings')  loadSettings();
+  if (view === 'queue')     loadQueue();
+  if (view === 'toolkit')   loadToolkitExplorer();
   if (view === 'knowledge') renderKnowledge();
 }
 
-// -- Bootstrap -------------------------------------------------------------
+// -- Bootstrap ---------------------------------------------------------------
 (function() {
   loadPartials().then(function() {
     authInit();

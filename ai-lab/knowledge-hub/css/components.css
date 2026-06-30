@@ -186,6 +186,62 @@
 }
 .related-chip:hover { border-color: #6366f1; color: #818cf8; background: #6366f120; }
 
+/* ── Promote to Rule button ──────────────────────────────────────────────── */
+.btn-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, gap 0.18s, padding-right 0.18s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.btn-pin::before { content: '📌'; }
+.btn-pin::after {
+  content: attr(data-label);
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width 0.18s ease, opacity 0.15s ease, margin-left 0.18s;
+  margin-left: 0;
+}
+.btn-pin:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  gap: 0.3rem;
+}
+.btn-pin:hover::after {
+  max-width: 8rem;
+  opacity: 1;
+  margin-left: 0.3rem;
+}
+/* Promoted state */
+.btn-pin.is-promoted {
+  border-color: #f59e0b;
+  background: #f59e0b18;
+  color: #f59e0b;
+}
+.btn-pin.is-promoted:hover {
+  border-color: #ef4444;
+  background: #ef444418;
+  color: #ef4444;
+}
+
+/* Pin badge nhỏ trên card */
+.pin-badge {
+  font-size: 0.7rem;
+  color: #f59e0b;
+  line-height: 1;
+  title: 'Promoted to Rule';
+}
+
 /* ── Star widget ─────────────────────────────────────────────────────────── */
 .star-widget { display: inline-flex; gap: 0.15rem; align-items: center; }
 .star-widget .star {

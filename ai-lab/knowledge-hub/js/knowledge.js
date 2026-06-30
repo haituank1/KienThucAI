@@ -208,18 +208,34 @@ function renderKnowledge() {
 
   if (loading) loading.hidden = true;
 
-  if (!state.items.length) {
+  // Apply promoted filter (client-side, không mutate state.items)
+  var items = state.promotedOnly
+    ? state.items.filter(function(i) { return !!state.promotions[i.id]; })
+    : state.items;
+
+  if (!items.length) {
     if (container) container.innerHTML = '';
-    if (empty) empty.hidden = false;
+    if (empty) {
+      empty.hidden = false;
+      empty.textContent = state.promotedOnly ? 'Chưa có item nào được Promote to Rule' : 'Không có kết quả';
+    }
     return;
   }
   if (empty) empty.hidden = true;
-  if (container) container.innerHTML = state.items.map(renderKnowledgeCard).join('');
+  if (container) container.innerHTML = items.map(renderKnowledgeCard).join('');
 }
 
 function renderKnowledgeCard(item) {
+  // Guard: bo qua item thieu du lieu bat buoc (file incomplete/corrupt)
+  if (!item || !item.topic || !item.researchedAt) return '';
+  const pinned = !!state.promotions[item.id];
+
   const cat     = state.categories.find(c => c.id === item.category) || { label: item.category, icon: '📚', color: '#6366f1' };
-  const dateStr = new Date(item.researchedAt).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
+  const resDate = new Date(item.researchedAt);
+  // Guard: researchedAt không hợp lệ (DateTime.MinValue từ backend = year 1)
+  const dateStr = (isNaN(resDate) || resDate.getFullYear() < 2000)
+    ? '??/??'
+    : resDate.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
   const stale   = isStale(item);
   const staleDays = stale ? Math.floor((Date.now() - new Date(item.validatedAt || item.researchedAt)) / 86_400_000) : 0;
 
@@ -256,6 +272,7 @@ function renderKnowledgeCard(item) {
         <div>${renderStars(item.id, state.ratings[item.id] || 0, false, '0.82rem')}</div>
         <div class="kcard-right">
           ${tkBadge}
+          ${pinned ? '<span class="pin-badge" title="Promoted to Rule">📌</span>' : ''}
           <span class="kcard-date">${dateStr}</span>
         </div>
       </div>
@@ -332,6 +349,14 @@ function applyFilters() {
   // Đọc từ state.currentStatus (đã set bởi setStatusFilter)
   loadKnowledge();
 }
+function togglePromotedFilter() {
+  state.promotedOnly = !state.promotedOnly;
+  var btn = document.getElementById('promotedFilterBtn');
+  if (btn) btn.classList.toggle('active', state.promotedOnly);
+  updateSearchResultCount();
+  renderKnowledge();
+}
+
 
 function debounceSearch(val) {
   clearTimeout(state.searchTimer);
@@ -356,10 +381,13 @@ function clearSearch() {
 function updateSearchResultCount() {
   const el = document.getElementById('searchResultCount');
   if (!el) return;
-  const hasFilter = state.currentSearch || state.currentStatus || state.currentCategory;
+  const hasFilter = state.currentSearch || state.currentStatus || state.currentCategory || state.promotedOnly;
   if (hasFilter) {
+    var count = state.promotedOnly
+      ? state.items.filter(function(i) { return !!state.promotions[i.id]; }).length
+      : state.items.length;
     el.hidden = false;
-    el.textContent = `${state.items.length} kết quả`;
+    el.textContent = count + ' kết quả' + (state.promotedOnly ? ' 📌' : '');
   } else {
     el.hidden = true;
   }
@@ -372,16 +400,23 @@ function filterStale() {
   setStatusFilter('stale');
 }
 
-async function refreshAll() {
-  // Reset guard để force reload
-  state.loadingKnowledge = false;
-  await Promise.all([loadCategories(), loadStats(), loadKnowledge()]);
+
+async function loadRatings() {
+  try {
+    const data = await api.get('/api/ratings');
+    state.ratings = data || {};
+  } catch {
+    state.ratings = {};
+  }
 }
 
-/** Shortcut: xem tất cả pending items */
 function viewAllPending() {
-  state.items = [];
-  switchView('knowledge');
+  if (state.currentView !== 'knowledge') {
+    state.items = [];
+    switchView('knowledge');
+  }
+  state.currentCategory = '';
+  document.querySelectorAll('.cat-filter').forEach(el =>
+    el.classList.toggle('active', el.dataset.cat === ''));
   setStatusFilter('pending_review');
 }
-

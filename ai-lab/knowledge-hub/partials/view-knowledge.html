@@ -33,6 +33,8 @@
     <button class="filter-chip" data-status="rejected"       onclick="setStatusFilter('rejected')">❌ Rejected</button>
     <button class="filter-chip" data-status="needs_rework"   onclick="setStatusFilter('needs_rework')">🔄 Rework</button>
     <button class="filter-chip" data-status="stale"          onclick="setStatusFilter('stale')">⚠️ Stale</button>
+    <span class="filter-sep"></span>
+    <button id="promotedFilterBtn" class="filter-chip filter-chip-pin" onclick="togglePromotedFilter()">📌 Promoted</button>
   </div>
 
   <!-- Scrollable knowledge grid -->

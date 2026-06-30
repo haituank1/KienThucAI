@@ -58,6 +58,7 @@ builder.Services.AddScoped<ToolkitService>();
 builder.Services.AddScoped<QueueService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<RatingService>();
+builder.Services.AddScoped<PromotionService>();
 
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.SetIsOriginAllowed(_ => true)
@@ -113,6 +114,7 @@ app.MapQueueEndpoints();
 app.MapToolkitEndpoints();
 app.MapAuthEndpoints();
 app.MapRatingEndpoints();
+app.MapPromotionEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new
 {

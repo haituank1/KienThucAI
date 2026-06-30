@@ -1,9 +1,6 @@
-// ── config.js — API base URL + shared state ────────────────────────────────
-// ── Config ───────────────────────────────────────────────────────────────────
+// -- config.js: API base URL + shared state --
 const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:5001' : '';
 
-
-// ── State ────────────────────────────────────────────────────────────────────
 const state = {
   currentView:       'dashboard',
   currentCategory:   '',
@@ -16,13 +13,14 @@ const state = {
   categoryChart:     null,
   timelineChart:     null,
   searchTimer:       null,
-  loadingKnowledge:  false,  // guard: tránh concurrent loadKnowledge calls
-  queue:             [],     // research queue items
-  queueFilter:       'all',  // all | pending | done
-  toolkitFiles:      [],     // Toolkit Explorer data
-  tkExpandedFiles:   new Set(), // set of expanded relPaths
-  tkSearch:          '',     // search in Toolkit Explorer
-  toolkitIndex:      null,   // _toolkit-index.json — dùng để detect "Found in toolkit"
-  ratings:           {}      // { itemId: stars }
+  loadingKnowledge:  false,
+  queue:             [],
+  queueFilter:       'all',
+  toolkitFiles:      [],
+  tkExpandedFiles:   new Set(),
+  tkSearch:          '',
+  toolkitIndex:      null,
+  ratings:           {},
+  promotions:        {},
+  promotedOnly:      false
 };
-

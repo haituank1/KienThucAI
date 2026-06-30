@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "dotnet-automapper-vs-manual-20260630",
   "topic": "AutoMapper vs Manual Mapping vs Mapperly: Trade-offs trong .NET",
   "category": "dotnet",
@@ -13,11 +13,11 @@
   ],
   "difficulty": "intermediate",
   "relevance": "high",
-  "status": "pending_review",
+  "status": "validated",
   "confidence": 0.9,
   "researchedAt": "2026-06-30T08:00:00Z",
-  "validatedAt": null,
-  "validatedBy": null,
+  "validatedAt": "2026-06-30T13:40:18.9548636Z",
+  "validatedBy": "Tuan",
   "summary": "AutoMapper dùng reflection: chậm hơn manual mapping ~10×, không AOT compatible, errors chỉ phát hiện runtime. Mapperly dùng source generators: nhanh như manual mapping, compile-time errors. Manual mapping: verbose nhưng explicit.",
   "problem": "AutoMapper ProjectTo<> với EF Core có thể tạo inefficient SQL. Mapping error chỉ biết lúc runtime. Reflection overhead trong hot path.",
   "solution": "Mapperly (source gen) cho compile-time safe, high performance mapping. Manual mapping cho simple domain với ít fields. Không dùng AutoMapper mới trong project .NET 6+.",

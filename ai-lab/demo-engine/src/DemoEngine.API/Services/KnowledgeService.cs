@@ -47,6 +47,11 @@ public class KnowledgeService(IConfiguration config, ILogger<KnowledgeService> l
 
                 var item = JsonSerializer.Deserialize<KnowledgeItem>(json, JsonOpts);
                 if (item is null) continue;
+
+                // Guard: skip items thiếu required fields (bảo vệ khỏi file incomplete/corrupt)
+                if (string.IsNullOrWhiteSpace(item.Topic)) { logger.LogWarning("Skip item missing Topic: {File}", file); continue; }
+                if (item.ResearchedAt == DateTime.MinValue) { logger.LogWarning("Skip item missing ResearchedAt: {File}", file); continue; }
+
                 item.FilePath = file;
                 items.Add(item);
             }
